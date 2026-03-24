@@ -306,7 +306,7 @@ Build in this order. Do not skip ahead.
 
 - [x] Step 1 — Database migration: add all new v2 tables to Supabase
 - [ ] Step 2 — Level routing logic: user_profile check and level-based redirect on login
-- [ ] Step 3 — Onboarding flow: 5-screen pre-challenge experience
+- [x] Step 3 — Onboarding flow: 5-screen pre-challenge experience
 - [ ] Step 4 — Starter dashboard: 7-day challenge view with gamification
 - [ ] Step 5 — Video coaching system: video cards triggered by day and event
 - [ ] Step 6 — Gamification: rewards, badges, streak visual, Day 7 celebration sequence
