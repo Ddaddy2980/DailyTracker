@@ -77,3 +77,13 @@ export const LEVEL_NAMES: Record<number, LevelName> = {
   4: 'Refiner',
   5: 'Guide',
 }
+
+export type VideoModule = 'A' | 'B' | 'C' | 'D'
+
+export interface VideoEntry {
+  id:      string        // e.g. 'A1', 'D3'
+  module:  VideoModule
+  title:   string
+  url:     string        // embed URL, or '' for coming-soon
+  pillar?: PillarName    // only on B-module videos
+}

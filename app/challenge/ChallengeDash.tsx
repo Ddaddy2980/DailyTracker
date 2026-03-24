@@ -4,9 +4,10 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { submitCheckin } from '@/app/actions'
 import type { Challenge, UserProfile, DayStatus } from '@/lib/types'
-import StreakHeader  from '@/components/challenge/StreakHeader'
-import ChallengeMap from '@/components/challenge/ChallengeMap'
-import DayCheckIn   from '@/components/challenge/DayCheckIn'
+import StreakHeader   from '@/components/challenge/StreakHeader'
+import ChallengeMap  from '@/components/challenge/ChallengeMap'
+import DayCheckIn    from '@/components/challenge/DayCheckIn'
+import VideoSection  from '@/components/challenge/VideoSection'
 
 interface Props {
   challenge:         Challenge
@@ -16,10 +17,11 @@ interface Props {
   streak:            number
   dayNumber:         number
   today:             string
+  watchedVideoIds:   string[]
 }
 
 export default function ChallengeDash({
-  challenge, profile, dayStatuses, todayCompletions, streak, dayNumber, today,
+  challenge, profile, dayStatuses, todayCompletions, streak, dayNumber, today, watchedVideoIds,
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -88,6 +90,13 @@ export default function ChallengeDash({
           alreadySaved={alreadySaved}
           onToggle={handleToggle}
           onSave={handleSave}
+        />
+
+        {/* Video coaching */}
+        <VideoSection
+          dayNumber={dayNumber}
+          selectedPillars={pillars}
+          watchedVideoIds={watchedVideoIds}
         />
 
       </div>

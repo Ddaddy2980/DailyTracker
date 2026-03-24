@@ -222,6 +222,38 @@ export async function completeOnboarding(data: {
   revalidatePath('/')
 }
 
+// ─── Video progress (v2) ──────────────────────────────────────────────────────
+
+export async function getWatchedVideoIds(): Promise<string[]> {
+  const { userId } = await auth()
+  if (!userId) return []
+
+  const sb = createServerSupabaseClient()
+  const { data, error } = await sb
+    .from('video_progress')
+    .select('video_id')
+    .eq('user_id', userId)
+
+  if (error) { console.error('getWatchedVideoIds:', error); return [] }
+  return (data ?? []).map(row => row.video_id as string)
+}
+
+export async function markVideoWatched(videoId: string, triggeredBy: string): Promise<void> {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Unauthorized')
+
+  const sb = createServerSupabaseClient()
+  const { error } = await sb
+    .from('video_progress')
+    .upsert(
+      { user_id: userId, video_id: videoId, triggered_by: triggeredBy, watched_at: new Date().toISOString() },
+      { onConflict: 'user_id,video_id' }
+    )
+
+  if (error) throw new Error(`markVideoWatched: ${error.message}`)
+  revalidatePath('/challenge')
+}
+
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 export async function getUserConfig(): Promise<UserConfig | null> {
