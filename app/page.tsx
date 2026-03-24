@@ -21,9 +21,8 @@ export default async function Home() {
 
   if (!profile.onboarding_completed) redirect('/onboarding')
 
-  // Level 1 users go to the Starter experience.
-  // /challenge will replace this in Step 4 once the 7-day view is built.
-  if (profile.current_level === 1) redirect('/dashboard')
+  // Level 1 users go to the Starter challenge view.
+  if (profile.current_level === 1) redirect('/challenge')
 
   // Levels 2–5: route to their experience (future steps).
   redirect('/dashboard')
