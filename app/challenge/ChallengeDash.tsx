@@ -3,10 +3,13 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { submitCheckin } from '@/app/actions'
-import type { Challenge, UserProfile, DayStatus } from '@/lib/types'
-import StreakHeader  from '@/components/challenge/StreakHeader'
-import ChallengeMap from '@/components/challenge/ChallengeMap'
-import DayCheckIn   from '@/components/challenge/DayCheckIn'
+import type { Challenge, UserProfile, DayStatus, RewardType } from '@/lib/types'
+import StreakHeader    from '@/components/challenge/StreakHeader'
+import ChallengeMap   from '@/components/challenge/ChallengeMap'
+import DayCheckIn     from '@/components/challenge/DayCheckIn'
+import EarnedBadges   from '@/components/challenge/EarnedBadges'
+import RewardUnlock   from '@/components/challenge/RewardUnlock'
+import Day7Celebration from '@/components/challenge/Day7Celebration'
 
 interface Props {
   challenge:         Challenge
@@ -16,14 +19,19 @@ interface Props {
   streak:            number
   dayNumber:         number
   today:             string
+  earnedRewards:     RewardType[]
 }
 
 export default function ChallengeDash({
-  challenge, profile, dayStatuses, todayCompletions, streak, dayNumber, today,
+  challenge, profile, dayStatuses, todayCompletions, streak, dayNumber, today, earnedRewards,
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [completions, setCompletions] = useState<Record<string, boolean>>(todayCompletions)
+
+  // Reward celebration state — only set after a fresh save, cleared on dismiss
+  const [newRewards, setNewRewards]       = useState<RewardType[]>([])
+  const [showDay7, setShowDay7]           = useState(false)
 
   const pillars     = profile.selected_pillars
   const pillarGoals = Object.fromEntries(
@@ -39,15 +47,31 @@ export default function ChallengeDash({
 
   function handleSave() {
     startTransition(async () => {
-      await submitCheckin({
+      const { newRewards: awarded } = await submitCheckin({
         date:        today,
         challengeId: challenge.id,
         startDate:   challenge.start_date,
         endDate:     challenge.end_date,
         completions,
+        dayNumber,
       })
+
+      if (awarded.includes('day7_complete') || awarded.includes('starter_badge')) {
+        setShowDay7(true)
+      } else if (awarded.length > 0) {
+        setNewRewards(awarded)
+      }
+
       router.refresh()
     })
+  }
+
+  function dismissReward() {
+    setNewRewards([])
+  }
+
+  function dismissDay7() {
+    setShowDay7(false)
   }
 
   return (
@@ -79,6 +103,9 @@ export default function ChallengeDash({
           dayStatuses={dayStatuses}
         />
 
+        {/* Milestone badges */}
+        <EarnedBadges earned={earnedRewards} />
+
         {/* Daily check-in */}
         <DayCheckIn
           pillars={pillars}
@@ -91,6 +118,20 @@ export default function ChallengeDash({
         />
 
       </div>
+
+      {/* Mid-challenge reward overlay (Days 1, 3, 4) */}
+      {newRewards.length > 0 && (
+        <RewardUnlock rewards={newRewards} onDismiss={dismissReward} />
+      )}
+
+      {/* Day 7 full celebration */}
+      {showDay7 && (
+        <Day7Celebration
+          name={null}
+          daysCount={challenge.days_completed}
+          onDismiss={dismissDay7}
+        />
+      )}
     </div>
   )
 }

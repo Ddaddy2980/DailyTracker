@@ -11,7 +11,7 @@ import {
   type DailyEntry,
   type PillarGoal,
 } from '@/lib/constants'
-import type { UserProfile, Challenge, ChallengeEntry } from '@/lib/types'
+import type { UserProfile, Challenge, ChallengeEntry, Reward, RewardType } from '@/lib/types'
 
 // Merge stored pillar goals with defaults so every expected ID is always present.
 // Guards against empty arrays (migration default) or goals added after initial setup.
@@ -119,13 +119,22 @@ export async function getChallengeEntries(
   }))
 }
 
+// Maps milestone day numbers to reward types earned on that day
+const DAY_REWARDS: Partial<Record<number, RewardType[]>> = {
+  1: ['day1_complete'],
+  3: ['day3_survival'],
+  4: ['halfway'],
+  7: ['day7_complete', 'starter_badge'],
+}
+
 export async function submitCheckin(data: {
   date:        string
   challengeId: string
   startDate:   string
   endDate:     string
   completions: Record<string, boolean>   // pillarName → complete
-}): Promise<void> {
+  dayNumber:   number
+}): Promise<{ newRewards: RewardType[] }> {
   const { userId } = await auth()
   if (!userId) throw new Error('Unauthorized')
 
@@ -170,7 +179,53 @@ export async function submitCheckin(data: {
     updated_at:      new Date().toISOString(),
   }).eq('id', data.challengeId)
 
+  // ── Award milestone rewards ────────────────────────────────────────────────
+  // Only award if every pillar was completed on this save.
+  const allComplete = pillars.every(p => data.completions[p])
+  const candidateRewards = allComplete ? (DAY_REWARDS[data.dayNumber] ?? []) : []
+  const newRewards: RewardType[] = []
+
+  if (candidateRewards.length > 0) {
+    // Fetch rewards already earned so we know which ones are truly new
+    const { data: existing } = await sb
+      .from('rewards')
+      .select('reward_type')
+      .eq('user_id', userId)
+
+    const alreadyEarned = new Set((existing ?? []).map(r => r.reward_type as RewardType))
+
+    for (const rt of candidateRewards) {
+      if (alreadyEarned.has(rt)) continue   // already awarded — skip
+      const { error: rewardErr } = await sb.from('rewards').insert({
+        user_id:      userId,
+        reward_type:  rt,
+        challenge_id: data.challengeId,
+        earned_at:    new Date().toISOString(),
+      })
+      if (!rewardErr) newRewards.push(rt)
+    }
+  }
+
   revalidatePath('/challenge')
+  return { newRewards }
+}
+
+// ─── Earned rewards (v2) ──────────────────────────────────────────────────────
+
+export async function getEarnedRewards(challengeId: string): Promise<Reward[]> {
+  const { userId } = await auth()
+  if (!userId) return []
+
+  const sb = createServerSupabaseClient()
+  const { data, error } = await sb
+    .from('rewards')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('challenge_id', challengeId)
+    .order('earned_at', { ascending: true })
+
+  if (error) { console.error('getEarnedRewards:', error); return [] }
+  return (data ?? []) as Reward[]
 }
 
 // ─── Onboarding (v2) ──────────────────────────────────────────────────────────
