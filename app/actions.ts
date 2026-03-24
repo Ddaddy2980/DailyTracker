@@ -65,6 +65,55 @@ export async function getUserProfile(): Promise<UserProfile | null> {
   return created as UserProfile
 }
 
+// ─── Onboarding (v2) ──────────────────────────────────────────────────────────
+
+export async function completeOnboarding(data: {
+  purposeStatement: string
+  selectedPillars: string[]
+  goals: Record<string, string>
+}): Promise<void> {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Unauthorized')
+
+  const sb    = createServerSupabaseClient()
+  const start = todayStr()
+
+  // End date = start + 6 days (7-day challenge, inclusive)
+  const startDt = new Date(start + 'T00:00:00')
+  startDt.setDate(startDt.getDate() + 6)
+  const end = new Intl.DateTimeFormat('en-CA').format(startDt)
+
+  // 1. Update user_profile
+  const { error: profileErr } = await sb
+    .from('user_profile')
+    .update({
+      purpose_statement:    data.purposeStatement || null,
+      selected_pillars:     data.selectedPillars,
+      onboarding_completed: true,
+      updated_at:           new Date().toISOString(),
+    })
+    .eq('user_id', userId)
+
+  if (profileErr) throw new Error(`completeOnboarding profile: ${profileErr.message}`)
+
+  // 2. Create the Level 1 challenge row
+  const { error: challengeErr } = await sb
+    .from('challenges')
+    .insert({
+      user_id:      userId,
+      level:        1,
+      duration_days: 7,
+      start_date:   start,
+      end_date:     end,
+      status:       'active',
+      pillar_goals: data.goals,
+    })
+
+  if (challengeErr) throw new Error(`completeOnboarding challenge: ${challengeErr.message}`)
+
+  revalidatePath('/')
+}
+
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 export async function getUserConfig(): Promise<UserConfig | null> {
