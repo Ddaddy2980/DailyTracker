@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import {
-  getUserProfile, getActiveChallenge, getChallengeEntries, getEarnedRewards,
+  getUserProfile, getActiveChallenge, getChallengeEntries, getEarnedRewards, getWatchedVideoIds,
 } from '@/app/actions'
 import { todayStr } from '@/lib/constants'
 import type { ChallengeEntry, DayStatus, RewardType } from '@/lib/types'
@@ -72,9 +72,10 @@ export default async function ChallengePage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
-  const [profile, challenge] = await Promise.all([
+  const [profile, challenge, watchedVideoIds] = await Promise.all([
     getUserProfile(),
     getActiveChallenge(),
+    getWatchedVideoIds(),
   ])
 
   if (!profile) redirect('/sign-in')
@@ -115,6 +116,7 @@ export default async function ChallengePage() {
       dayNumber={dayNumber}
       today={today}
       earnedRewards={earnedRewardTypes}
+      watchedVideoIds={watchedVideoIds}
     />
   )
 }

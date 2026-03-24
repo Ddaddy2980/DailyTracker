@@ -10,6 +10,7 @@ import DayCheckIn     from '@/components/challenge/DayCheckIn'
 import EarnedBadges   from '@/components/challenge/EarnedBadges'
 import RewardUnlock   from '@/components/challenge/RewardUnlock'
 import Day7Celebration from '@/components/challenge/Day7Celebration'
+import VideoSection   from '@/components/challenge/VideoSection'
 
 interface Props {
   challenge:         Challenge
@@ -20,18 +21,20 @@ interface Props {
   dayNumber:         number
   today:             string
   earnedRewards:     RewardType[]
+  watchedVideoIds:   string[]
 }
 
 export default function ChallengeDash({
-  challenge, profile, dayStatuses, todayCompletions, streak, dayNumber, today, earnedRewards,
+  challenge, profile, dayStatuses, todayCompletions, streak, dayNumber, today,
+  earnedRewards, watchedVideoIds,
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [completions, setCompletions] = useState<Record<string, boolean>>(todayCompletions)
 
   // Reward celebration state — only set after a fresh save, cleared on dismiss
-  const [newRewards, setNewRewards]       = useState<RewardType[]>([])
-  const [showDay7, setShowDay7]           = useState(false)
+  const [newRewards, setNewRewards] = useState<RewardType[]>([])
+  const [showDay7, setShowDay7]     = useState(false)
 
   const pillars     = profile.selected_pillars
   const pillarGoals = Object.fromEntries(
@@ -64,14 +67,6 @@ export default function ChallengeDash({
 
       router.refresh()
     })
-  }
-
-  function dismissReward() {
-    setNewRewards([])
-  }
-
-  function dismissDay7() {
-    setShowDay7(false)
   }
 
   return (
@@ -117,11 +112,18 @@ export default function ChallengeDash({
           onSave={handleSave}
         />
 
+        {/* Video coaching */}
+        <VideoSection
+          dayNumber={dayNumber}
+          selectedPillars={pillars}
+          watchedVideoIds={watchedVideoIds}
+        />
+
       </div>
 
       {/* Mid-challenge reward overlay (Days 1, 3, 4) */}
       {newRewards.length > 0 && (
-        <RewardUnlock rewards={newRewards} onDismiss={dismissReward} />
+        <RewardUnlock rewards={newRewards} onDismiss={() => setNewRewards([])} />
       )}
 
       {/* Day 7 full celebration */}
@@ -129,7 +131,7 @@ export default function ChallengeDash({
         <Day7Celebration
           name={null}
           daysCount={challenge.days_completed}
-          onDismiss={dismissDay7}
+          onDismiss={() => setShowDay7(false)}
         />
       )}
     </div>
