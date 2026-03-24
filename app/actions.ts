@@ -206,7 +206,25 @@ export async function submitCheckin(data: {
     }
   }
 
+  // ── Level promotion ───────────────────────────────────────────────────────
+  // When the starter_badge is newly awarded (Day 7 complete), graduate the
+  // user to Level 2 so they land on the full tracker on next visit.
+  if (newRewards.includes('starter_badge')) {
+    await sb
+      .from('user_profile')
+      .update({ current_level: 2, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('current_level', 1)   // guard: only promote from Level 1
+
+    // Mark the challenge as completed
+    await sb
+      .from('challenges')
+      .update({ status: 'completed', updated_at: new Date().toISOString() })
+      .eq('id', data.challengeId)
+  }
+
   revalidatePath('/challenge')
+  revalidatePath('/')
   return { newRewards }
 }
 
