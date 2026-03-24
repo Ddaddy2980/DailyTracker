@@ -310,7 +310,7 @@ Build in this order. Do not skip ahead.
 - [x] Step 4 — Starter dashboard: 7-day challenge view with gamification
 - [x] Step 5 — Video coaching system: video cards triggered by day and event
 - [x] Step 6 — Gamification: rewards, badges, streak visual, Day 7 celebration sequence
-- [ ] Step 7 — Migrate existing tracker: wrap /app/dashboard inside new level-aware shell
+- [x] Step 7 — Migrate existing tracker: wrap /app/dashboard inside new level-aware shell
 
 ---
 
