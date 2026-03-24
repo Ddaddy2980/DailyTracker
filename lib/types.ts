@@ -55,6 +55,20 @@ export type PillarName = 'spiritual' | 'physical' | 'nutritional' | 'personal'
 
 export type LevelName = 'Starter' | 'Builder' | 'Consistent' | 'Refiner' | 'Guide'
 
+// Lightweight entry type used by the challenge dashboard.
+// Reads only the columns needed to determine per-pillar completion.
+// v2 stores { challenge_complete: true } inside each JSONB pillar column.
+export interface ChallengeEntry {
+  entry_date:    string
+  spiritual:     Record<string, unknown>
+  physical_goals: Record<string, unknown>
+  nutritional:   Record<string, unknown>
+  personal:      Record<string, unknown>
+}
+
+// State of a single day on the 7-day challenge map
+export type DayStatus = 'complete' | 'missed' | 'today' | 'future'
+
 // Maps a numeric level to its display name
 export const LEVEL_NAMES: Record<number, LevelName> = {
   1: 'Starter',

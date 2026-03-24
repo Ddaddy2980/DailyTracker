@@ -11,7 +11,7 @@ import {
   type DailyEntry,
   type PillarGoal,
 } from '@/lib/constants'
-import type { UserProfile } from '@/lib/types'
+import type { UserProfile, Challenge, ChallengeEntry } from '@/lib/types'
 
 // Merge stored pillar goals with defaults so every expected ID is always present.
 // Guards against empty arrays (migration default) or goals added after initial setup.
@@ -63,6 +63,114 @@ export async function getUserProfile(): Promise<UserProfile | null> {
   }
 
   return created as UserProfile
+}
+
+// ─── Challenge (v2) ───────────────────────────────────────────────────────────
+
+// Maps pillar name to the daily_entries column that stores its completion state
+const PILLAR_COL: Record<string, string> = {
+  spiritual:   'spiritual',
+  physical:    'physical_goals',
+  nutritional: 'nutritional',
+  personal:    'personal',
+}
+
+export async function getActiveChallenge(): Promise<Challenge | null> {
+  const { userId } = await auth()
+  if (!userId) return null
+
+  const sb = createServerSupabaseClient()
+  const { data, error } = await sb
+    .from('challenges')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) { console.error('getActiveChallenge:', error); return null }
+  return data as Challenge | null
+}
+
+export async function getChallengeEntries(
+  startDate: string,
+  endDate:   string,
+): Promise<ChallengeEntry[]> {
+  const { userId } = await auth()
+  if (!userId) return []
+
+  const sb = createServerSupabaseClient()
+  const { data, error } = await sb
+    .from('daily_entries')
+    .select('entry_date, spiritual, physical_goals, nutritional, personal')
+    .eq('user_id', userId)
+    .gte('entry_date', startDate)
+    .lte('entry_date', endDate)
+    .order('entry_date', { ascending: true })
+
+  if (error) { console.error('getChallengeEntries:', error); return [] }
+  return (data ?? []).map(row => ({
+    entry_date:    row.entry_date,
+    spiritual:     (row.spiritual      ?? {}) as Record<string, unknown>,
+    physical_goals:(row.physical_goals ?? {}) as Record<string, unknown>,
+    nutritional:   (row.nutritional    ?? {}) as Record<string, unknown>,
+    personal:      (row.personal       ?? {}) as Record<string, unknown>,
+  }))
+}
+
+export async function submitCheckin(data: {
+  date:        string
+  challengeId: string
+  startDate:   string
+  endDate:     string
+  completions: Record<string, boolean>   // pillarName → complete
+}): Promise<void> {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Unauthorized')
+
+  const sb = createServerSupabaseClient()
+
+  // Build the upsert payload — one key per selected pillar
+  const payload: Record<string, unknown> = {
+    user_id:    userId,
+    entry_date: data.date,
+    updated_at: new Date().toISOString(),
+  }
+  for (const [pillar, complete] of Object.entries(data.completions)) {
+    const col = PILLAR_COL[pillar]
+    if (col) payload[col] = { challenge_complete: complete }
+  }
+
+  const { error: entryErr } = await sb
+    .from('daily_entries')
+    .upsert(payload, { onConflict: 'user_id,entry_date' })
+  if (entryErr) throw new Error(`submitCheckin entry: ${entryErr.message}`)
+
+  // Recalculate days_completed from actual entries (idempotent)
+  const { data: allEntries } = await sb
+    .from('daily_entries')
+    .select('entry_date, spiritual, physical_goals, nutritional, personal')
+    .eq('user_id', userId)
+    .gte('entry_date', data.startDate)
+    .lte('entry_date', data.endDate)
+
+  const pillars = Object.keys(data.completions)
+  const completeDays = (allEntries ?? []).filter(entry =>
+    pillars.every(p => {
+      const col = PILLAR_COL[p]
+      const val = col ? (entry[col as keyof typeof entry] as Record<string, unknown> | null) : null
+      return val?.challenge_complete === true
+    })
+  ).length
+
+  await sb.from('challenges').update({
+    days_completed:  completeDays,
+    consistency_pct: Math.round((completeDays / 7) * 100),
+    updated_at:      new Date().toISOString(),
+  }).eq('id', data.challengeId)
+
+  revalidatePath('/challenge')
 }
 
 // ─── Onboarding (v2) ──────────────────────────────────────────────────────────
