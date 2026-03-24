@@ -1,10 +1,10 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import {
-  getUserProfile, getActiveChallenge, getChallengeEntries,
+  getUserProfile, getActiveChallenge, getChallengeEntries, getEarnedRewards,
 } from '@/app/actions'
 import { todayStr } from '@/lib/constants'
-import type { ChallengeEntry, DayStatus } from '@/lib/types'
+import type { ChallengeEntry, DayStatus, RewardType } from '@/lib/types'
 import ChallengeDash from './ChallengeDash'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -81,7 +81,10 @@ export default async function ChallengePage() {
   if (!challenge) redirect('/dashboard')   // no active challenge — fall back to v1
 
   const today   = todayStr()
-  const entries = await getChallengeEntries(challenge.start_date, challenge.end_date)
+  const [entries, earnedRewards] = await Promise.all([
+    getChallengeEntries(challenge.start_date, challenge.end_date),
+    getEarnedRewards(challenge.id),
+  ])
   const pillars = profile.selected_pillars
 
   const dayStatuses    = calcDayStatuses(challenge.start_date, entries, pillars, today)
@@ -100,6 +103,8 @@ export default async function ChallengePage() {
   const todayMs  = new Date(today + 'T00:00:00').getTime()
   const dayNumber = Math.min(Math.max(Math.floor((todayMs - startMs) / 86400000) + 1, 1), 7)
 
+  const earnedRewardTypes = earnedRewards.map(r => r.reward_type) as RewardType[]
+
   return (
     <ChallengeDash
       challenge={challenge}
@@ -109,6 +114,7 @@ export default async function ChallengePage() {
       streak={streak}
       dayNumber={dayNumber}
       today={today}
+      earnedRewards={earnedRewardTypes}
     />
   )
 }
