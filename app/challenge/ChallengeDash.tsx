@@ -3,18 +3,26 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { submitCheckin } from '@/app/actions'
-import type { Challenge, UserProfile, DayStatus, RewardType } from '@/lib/types'
-import StreakHeader    from '@/components/challenge/StreakHeader'
-import ChallengeMap   from '@/components/challenge/ChallengeMap'
-import DayCheckIn     from '@/components/challenge/DayCheckIn'
-import EarnedBadges   from '@/components/challenge/EarnedBadges'
-import RewardUnlock   from '@/components/challenge/RewardUnlock'
-import Day7Celebration from '@/components/challenge/Day7Celebration'
-import VideoSection   from '@/components/challenge/VideoSection'
+import type { Challenge, UserProfile, DayStatus, RewardType, GroupWithMembers, ChallengeEntry } from '@/lib/types'
+import AppHeader        from '@/components/shared/AppHeader'
+import BottomNav        from '@/components/shared/BottomNav'
+import type { BottomNavTab } from '@/components/shared/BottomNav'
+import GroupView        from '@/components/groups/GroupView'
+import StreakHeader     from '@/components/challenge/StreakHeader'
+import ChallengeMap     from '@/components/challenge/ChallengeMap'
+import DayCheckIn       from '@/components/challenge/DayCheckIn'
+import EarnedBadges     from '@/components/challenge/EarnedBadges'
+import RewardUnlock     from '@/components/challenge/RewardUnlock'
+import TuningComplete   from '@/components/challenge/TuningComplete'
+import VideoSection     from '@/components/challenge/VideoSection'
+import HistoryList      from '@/components/challenge/HistoryList'
+import ChallengeGoalsTab  from '@/components/challenge/ChallengeGoalsTab'
+import VideoLibraryTab    from '@/components/shared/VideoLibraryTab'
 
 interface Props {
   challenge:         Challenge
   profile:           UserProfile
+  entries:           ChallengeEntry[]
   dayStatuses:       Record<string, DayStatus>
   todayCompletions:  Record<string, boolean>
   streak:            number
@@ -22,19 +30,26 @@ interface Props {
   today:             string
   earnedRewards:     RewardType[]
   watchedVideoIds:   string[]
+  groups:            GroupWithMembers[]
 }
 
+type ActiveTab = 'today' | 'history' | 'groups' | 'videos' | 'goals'
+
 export default function ChallengeDash({
-  challenge, profile, dayStatuses, todayCompletions, streak, dayNumber, today,
-  earnedRewards, watchedVideoIds,
+  challenge, profile, entries, dayStatuses, todayCompletions, streak, dayNumber, today,
+  earnedRewards, watchedVideoIds, groups,
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [completions, setCompletions] = useState<Record<string, boolean>>(todayCompletions)
 
-  // Reward celebration state — only set after a fresh save, cleared on dismiss
-  const [newRewards, setNewRewards] = useState<RewardType[]>([])
-  const [showDay7, setShowDay7]     = useState(false)
+  const [completions, setCompletions]   = useState<Record<string, boolean>>(todayCompletions)
+  const [activeTab, setActiveTab]       = useState<ActiveTab>('today')
+  const [newRewards, setNewRewards]     = useState<RewardType[]>([])
+  const [showDay7, setShowDay7]         = useState(false)
+
+  // History edit state
+  const [historyEditDate, setHistoryEditDate]             = useState<string | null>(null)
+  const [historyEditCompletions, setHistoryEditCompletions] = useState<Record<string, boolean>>({})
 
   const pillars     = profile.selected_pillars
   const pillarGoals = Object.fromEntries(
@@ -51,89 +66,206 @@ export default function ChallengeDash({
   function handleSave() {
     startTransition(async () => {
       const { newRewards: awarded } = await submitCheckin({
-        date:        today,
-        challengeId: challenge.id,
-        startDate:   challenge.start_date,
-        endDate:     challenge.end_date,
+        date:         today,
+        challengeId:  challenge.id,
+        startDate:    challenge.start_date,
+        endDate:      challenge.end_date,
         completions,
         dayNumber,
+        durationDays: challenge.duration_days,
+        level:        challenge.level,
       })
 
-      if (awarded.includes('day7_complete') || awarded.includes('starter_badge')) {
+      if (awarded.includes('day7_complete') || awarded.includes('tuning_badge')) {
         setShowDay7(true)
       } else if (awarded.length > 0) {
         setNewRewards(awarded)
       }
 
+      setActiveTab('today')
       router.refresh()
     })
   }
 
-  return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      <div className="max-w-lg mx-auto px-5 pt-8 pb-16 space-y-6">
+  // ── History edit ─────────────────────────────────────────────────────────────
 
-        {/* Header */}
+  function handleOpenHistoryEdit(date: string, completions: Record<string, boolean>) {
+    setHistoryEditDate(date)
+    setHistoryEditCompletions(completions)
+  }
+
+  function handleHistoryEditToggle(pillar: string) {
+    setHistoryEditCompletions(prev => ({ ...prev, [pillar]: !prev[pillar] }))
+  }
+
+  function handleHistoryEditSave() {
+    if (!historyEditDate) return
+    const editMs  = new Date(historyEditDate + 'T00:00:00').getTime()
+    const startMs = new Date(challenge.start_date + 'T00:00:00').getTime()
+    const editDay = Math.max(Math.floor((editMs - startMs) / 86400000) + 1, 1)
+
+    startTransition(async () => {
+      await submitCheckin({
+        date:         historyEditDate,
+        challengeId:  challenge.id,
+        startDate:    challenge.start_date,
+        endDate:      challenge.end_date,
+        completions:  historyEditCompletions,
+        dayNumber:    editDay,
+        durationDays: challenge.duration_days,
+        level:        challenge.level,
+      })
+      setHistoryEditDate(null)
+      router.refresh()
+    })
+  }
+
+  // ── Bottom nav ───────────────────────────────────────────────────────────────
+
+  const bottomTab: BottomNavTab =
+    activeTab === 'groups'  ? 'groups'  :
+    activeTab === 'history' ? 'history' :
+    activeTab === 'videos'  ? 'videos'  :
+    activeTab === 'goals'   ? 'goals'   :
+    'dashboard'
+
+  function handleBottomTab(tab: BottomNavTab) {
+    setHistoryEditDate(null)
+    if (tab === 'groups')       setActiveTab('groups')
+    else if (tab === 'history') setActiveTab('history')
+    else if (tab === 'videos')  setActiveTab('videos')
+    else if (tab === 'goals')   setActiveTab('goals')
+    else                        setActiveTab('today')
+  }
+
+  return (
+    <div className="min-h-screen text-[var(--text-primary)]" style={{ backgroundColor: 'var(--app-bg)' }}>
+      <AppHeader />
+      <div className="max-w-lg mx-auto px-5 pt-4 pb-20 space-y-6">
+
+        {/* Level context */}
         <div className="flex items-center justify-between">
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-            Level 1 — Starter
+          <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">
+            Level 1 — Tuning
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-[var(--text-muted)]">
             {challenge.days_completed}/7 days complete
           </p>
         </div>
 
-        {/* Streak header + purpose reminder */}
-        <StreakHeader
-          dayNumber={dayNumber}
-          streak={streak}
-          purposeStatement={profile.purpose_statement}
-          todayComplete={todayComplete && alreadySaved}
-        />
+        {/* ── DASHBOARD TAB ── */}
+        {activeTab === 'today' && (
+          <>
+            <StreakHeader
+              dayNumber={dayNumber}
+              completions={completions}
+              purposeStatement={profile.purpose_statement}
+              todayComplete={todayComplete && alreadySaved}
+            />
+            <ChallengeMap
+              startDate={challenge.start_date}
+              dayNumber={dayNumber}
+              dayStatuses={dayStatuses}
+            />
+            <EarnedBadges earned={earnedRewards} />
+            <DayCheckIn
+              pillars={pillars}
+              pillarGoals={pillarGoals}
+              completions={completions}
+              isPending={isPending}
+              alreadySaved={alreadySaved}
+              onToggle={handleToggle}
+              onSave={handleSave}
+            />
+            <VideoSection
+              dayNumber={dayNumber}
+              selectedPillars={pillars}
+              watchedVideoIds={watchedVideoIds}
+            />
+          </>
+        )}
 
-        {/* 7-day map */}
-        <ChallengeMap
-          startDate={challenge.start_date}
-          dayNumber={dayNumber}
-          dayStatuses={dayStatuses}
-        />
+        {/* ── HISTORY TAB ── */}
+        {activeTab === 'history' && (
+          historyEditDate ? (
+            <>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setHistoryEditDate(null)}
+                  className="text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                >
+                  ← Back
+                </button>
+                <p className="text-xs font-black uppercase tracking-widest text-[var(--text-secondary)]">
+                  Editing Day{' '}
+                  {Math.max(Math.floor((new Date(historyEditDate + 'T00:00:00').getTime() - new Date(challenge.start_date + 'T00:00:00').getTime()) / 86400000) + 1, 1)}
+                  {' · '}
+                  {new Date(historyEditDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </p>
+              </div>
+              <DayCheckIn
+                pillars={pillars}
+                pillarGoals={pillarGoals}
+                completions={historyEditCompletions}
+                isPending={isPending}
+                alreadySaved={false}
+                onToggle={handleHistoryEditToggle}
+                onSave={handleHistoryEditSave}
+              />
+            </>
+          ) : (
+            <HistoryList
+              startDate={challenge.start_date}
+              entries={entries}
+              pillars={pillars}
+              today={today}
+              onEdit={handleOpenHistoryEdit}
+            />
+          )
+        )}
 
-        {/* Milestone badges */}
-        <EarnedBadges earned={earnedRewards} />
+        {/* ── GROUPS TAB ── */}
+        {activeTab === 'groups' && (
+          <GroupView groups={groups} />
+        )}
 
-        {/* Daily check-in */}
-        <DayCheckIn
-          pillars={pillars}
-          pillarGoals={pillarGoals}
-          completions={completions}
-          isPending={isPending}
-          alreadySaved={alreadySaved}
-          onToggle={handleToggle}
-          onSave={handleSave}
-        />
+        {/* ── VIDEOS TAB ── */}
+        {activeTab === 'videos' && (
+          <VideoLibraryTab
+            level={1}
+            dayNumber={dayNumber}
+            selectedPillars={pillars}
+            watchedVideoIds={watchedVideoIds}
+            lastPulseState={null}
+          />
+        )}
 
-        {/* Video coaching */}
-        <VideoSection
-          dayNumber={dayNumber}
-          selectedPillars={pillars}
-          watchedVideoIds={watchedVideoIds}
-        />
+        {/* ── GOALS TAB ── */}
+        {activeTab === 'goals' && (
+          <ChallengeGoalsTab
+            challenge={challenge}
+            pillars={pillars}
+            pillarGoals={pillarGoals}
+            onSaved={() => router.refresh()}
+          />
+        )}
 
       </div>
 
-      {/* Mid-challenge reward overlay (Days 1, 3, 4) */}
       {newRewards.length > 0 && (
         <RewardUnlock rewards={newRewards} onDismiss={() => setNewRewards([])} />
       )}
 
-      {/* Day 7 full celebration */}
       {showDay7 && (
-        <Day7Celebration
-          name={null}
-          daysCount={challenge.days_completed}
-          onDismiss={() => setShowDay7(false)}
+        <TuningComplete
+          daysCompleted={challenge.days_completed}
+          consistencyPct={Math.round(challenge.consistency_pct)}
+          pillars={pillars}
+          pillarGoals={pillarGoals}
         />
       )}
+
+      <BottomNav activeTab={bottomTab} onTab={handleBottomTab} />
     </div>
   )
 }

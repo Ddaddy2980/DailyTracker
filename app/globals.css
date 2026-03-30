@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --app-bg: #f0f2f5;
+    --card-bg: #ffffff;
+    --card-border: #e2e6ea;
+    --text-primary: #1a1a2e;
+    --text-secondary: #6b7280;
+    --text-muted: #9ca3af;
+
+    --pillar-spiritual-bg: #275578;
+    --pillar-spiritual-text: #ffffff;
+    --pillar-spiritual-accent: #4a90d9;
+
+    --pillar-physical-bg: #202644;
+    --pillar-physical-text: #ffffff;
+    --pillar-physical-accent: #6b8dd6;
+
+    --pillar-nutritional-bg: #b85d27;
+    --pillar-nutritional-text: #ffffff;
+    --pillar-nutritional-accent: #e07840;
+
+    --pillar-personal-bg: #437142;
+    --pillar-personal-text: #ffffff;
+    --pillar-personal-accent: #5aab6e;
+
+    --nav-bg: #ffffff;
+    --nav-border: #e2e6ea;
+    --nav-active: #1a3a5c;
+    --nav-inactive: #9ca3af;
+  }
+
+  body {
+    background: linear-gradient(160deg, #c2c6ca 0%, #d8dce2 35%, #e8ebf0 65%, #f1f5f9 100%) fixed;
+    min-height: 100vh;
+    color: #0f172a;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] { -moz-appearance: textfield; }
+
+  .chk-spirit { accent-color: #4aadd6; }
+  .chk-physi  { accent-color: #8891c4; }
+  .chk-nutri  { accent-color: #e8895a; }
+  .chk-perso  { accent-color: #7ab87c; }
+}
+
+@layer utilities {
+  .pillar-spiritual   { background-color: var(--pillar-spiritual-bg);   color: var(--pillar-spiritual-text);   }
+  .pillar-physical    { background-color: var(--pillar-physical-bg);    color: var(--pillar-physical-text);    }
+  .pillar-nutritional { background-color: var(--pillar-nutritional-bg); color: var(--pillar-nutritional-text); }
+  .pillar-personal    { background-color: var(--pillar-personal-bg);    color: var(--pillar-personal-text);    }
+}

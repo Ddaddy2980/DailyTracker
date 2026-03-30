@@ -120,19 +120,19 @@ interface Reward {
 }
 
 type RewardType =
-  | 'starter_badge'
+  | 'tuning_badge'
   | 'day1_complete'
   | 'day3_survival'
   | 'halfway'
   | 'day7_complete'
-  | 'builder_badge'
-  | 'consistent_badge'
-  | 'refiner_badge'
-  | 'guide_badge'
+  | 'jamming_badge'
+  | 'grooving_badge'
+  | 'soloing_badge'
+  | 'orchestrating_badge'
 
 type PillarName = 'spiritual' | 'physical' | 'nutritional' | 'personal'
 
-type LevelName = 'Starter' | 'Builder' | 'Consistent' | 'Refiner' | 'Guide'
+type LevelName = 'Tuning' | 'Jamming' | 'Grooving' | 'Soloing' | 'Orchestrating'
 ```
 
 ---
@@ -194,7 +194,7 @@ User logs in
   → Check user_profile table for this user_id
   → If no user_profile row exists: create one (level=1, onboarding_completed=false) → redirect to /onboarding
   → If user_profile.onboarding_completed = false: redirect to /onboarding
-  → If user_profile.current_level = 1: route to Starter dashboard (/challenge or /dashboard)
+  → If user_profile.current_level = 1: route to Tuning dashboard (/challenge or /dashboard)
   → If user_profile.current_level > 1: route to appropriate level dashboard
 ```
 
@@ -268,6 +268,14 @@ export const VIDEO_LIBRARY = {
 
 ---
 
+## Data Shape Invariants
+
+These are confirmed facts about the database state. Do not write code that hedges against the old format.
+
+- **`user_profile.focus_top_5`** is always `FocusTop5Item[] | null` — never a plain `string[]`. The string array format never existed in production. Any code reading this field must handle the structured `{ rank, text }` format only.
+
+---
+
 ## What Not To Touch
 
 Unless David explicitly asks:
@@ -277,6 +285,9 @@ Unless David explicitly asks:
 - Do not change the Clerk configuration
 - Do not change `package.json` dependencies without asking first
 - Do not rename existing files or folders
+- Do not modify `checkRootedMilestone()` in `/lib/milestones.ts` without David's explicit direction — this function has been fully tested against 8 scenarios including a regression test for the carried-forward goal fix
+- Do not modify the `createDestinationGoal` upsert logic or the `rooted_badge` wiring in `submitCheckin` without David's explicit direction
+- Do not modify `checkRootedMilestone()` in `/lib/milestones.ts` without David's explicit direction — this function has been fully tested against 8 scenarios including a regression test for the carried-forward goal fix
 
 ---
 
@@ -304,13 +315,48 @@ At the end of each session:
 
 Build in this order. Do not skip ahead.
 
+### Phase 1 — Tuning Level (COMPLETE)
+
 - [x] Step 1 — Database migration: add all new v2 tables to Supabase
 - [x] Step 2 — Level routing logic: user_profile check and level-based redirect on login
 - [x] Step 3 — Onboarding flow: 5-screen pre-challenge experience
-- [x] Step 4 — Starter dashboard: 7-day challenge view with gamification
+- [x] Step 4 — Tuning dashboard: 7-day challenge view with gamification
 - [x] Step 5 — Video coaching system: video cards triggered by day and event
 - [x] Step 6 — Gamification: rewards, badges, streak visual, Day 7 celebration sequence
 - [x] Step 7 — Migrate existing tracker: wrap /app/dashboard inside new level-aware shell
+
+### Phase 2 — Jamming Level (CURRENT)
+
+- [x] Step 8 — Database migration: add pulse_checks table + new user_profile fields
+- [x] Step 9 — Tuning completion + transition screen: celebration, share card, rest day option, Jamming invitation
+- [x] Step 10 — Jamming onboarding: 3-screen lighter onboarding, carry-forward goal, accountability partner setup
+- [x] Step 11 — Pulse check UI: three-state question component, weekly anchor display, cooldown logic
+- [x] Step 12 — Pulse check engine: event trigger detection (missed day, partial completion), 48-hour cooldown enforcement, notification_tier update
+- [x] Step 13 — Adaptive notification system: notification_tier drives cadence, mid-week message, accountability partner weekly update
+- [x] Step 14 — Jamming dashboard: 14/21-day challenge map, named milestones, weekly summary view, pulse history
+- [x] Step 15 — Jamming video additions: J1–J7 video cards with pulse-state triggers
+- [x] Step 16 — Jamming completion sequence: badge, stats, share card, Grooving invitation
+
+### Phase 3 — Grooving Level (CURRENT)
+
+- [x] Step 17 — Database migration: add grooving_circle_members, destination_goals, weekly_reflections, challenge_pauses tables + new user_profile fields
+- [x] Step 18 — Jamming completion + Grooving transition: "What changed?" reflection, Grooving invitation, challenge length choice
+- [x] Step 19 — Grooving onboarding: 3-screen flow, 25/5 exercise, Grooving Circle setup
+- [x] Step 20 — Full four-pillar access: unlock all four pillars at Grooving level, third/fourth pillar introduction flow
+- [x] Step 21 — Habit calendar: grid view, color-coded by pillar, pattern detection, weekly summary link
+- [x] Step 22 — Rooted milestone engine: Day 40–50 detection logic, celebration sequence, destination goal introduction bridge
+- [x] Step 23 — Destination goal system: setup flow, dashboard layer above duration goals, weekly check-in integration
+- [x] Step 24 — 25/5 focus exercise: full exercise UI, save top 5 to user_profile, link to destination goals
+- [ ] Step 25 — Deeper weekly reflection: rotating questions, full reflection flow, destination goal check-in, pulse check integration
+- [ ] Step 26 — Grooving Circle: member management, weekly digest generation, encouragement reply system
+- [ ] Step 27 — Life interruption pause system: pause activation, streak preservation, end date extension, return flow
+- [ ] Step 28 — Grooving video additions: G1–G8, G-Return, pulse response variants
+- [ ] Step 29 — Grooving notification system: reduced cadence, habit calendar pattern alerts, Rooted milestone push
+- [ ] Step 30 — Grooving completion sequence: badge, full stats, 25/5 review, destination goal status, Soloing invitation
+
+### Phase 4 — Soloing Level (FUTURE)
+
+### Phase 5 — Orchestrating Level (FUTURE)
 
 ---
 

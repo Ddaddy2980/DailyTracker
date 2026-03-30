@@ -60,7 +60,7 @@ export default function StepConfirmation({ state, isPending, onConfirm, onBack }
       <div className="bg-slate-900 border border-slate-700 rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Level 1 — Starter
+            Level 1 — Tuning
           </span>
           <span className="text-xs font-bold text-purple-400 bg-purple-950 px-3 py-1 rounded-full">
             7 Days

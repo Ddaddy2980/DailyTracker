@@ -8,15 +8,16 @@ interface Props {
 }
 
 const REWARD_UI: Record<RewardType, { title: string; subtitle: string; icon: string; color: string; ring: string }> = {
-  day1_complete:    { title: 'Day 1 Done',        subtitle: 'You showed up. That\'s how it starts.',          icon: '🔥', color: 'bg-purple-950 border-purple-700', ring: 'ring-purple-500' },
-  day3_survival:    { title: 'Day 3 Survivor',    subtitle: 'The hardest day. You didn\'t quit.',             icon: '⚔️', color: 'bg-red-950 border-red-700',    ring: 'ring-red-500'    },
-  halfway:          { title: 'Halfway There',     subtitle: 'Four days down. Three to go. Don\'t stop now.',  icon: '⚡', color: 'bg-amber-950 border-amber-700', ring: 'ring-amber-500'  },
-  day7_complete:    { title: 'Day 7 Complete',    subtitle: 'You finished the challenge.',                    icon: '✅', color: 'bg-emerald-950 border-emerald-700', ring: 'ring-emerald-500' },
-  starter_badge:    { title: 'Starter Badge',     subtitle: 'You earned the Starter badge.',                  icon: '🏅', color: 'bg-purple-950 border-purple-700', ring: 'ring-purple-500' },
-  builder_badge:    { title: 'Builder Badge',     subtitle: 'Level 2 unlocked.',                              icon: '🏗️', color: 'bg-blue-950 border-blue-700',    ring: 'ring-blue-500'   },
-  consistent_badge: { title: 'Consistent Badge',  subtitle: 'Level 3 unlocked.',                              icon: '🎯', color: 'bg-emerald-950 border-emerald-700', ring: 'ring-emerald-500' },
-  refiner_badge:    { title: 'Refiner Badge',     subtitle: 'Level 4 unlocked.',                              icon: '💎', color: 'bg-amber-950 border-amber-700',  ring: 'ring-amber-500'  },
-  guide_badge:      { title: 'Guide Badge',       subtitle: 'Level 5 unlocked.',                              icon: '🌟', color: 'bg-slate-800 border-slate-500',  ring: 'ring-white'      },
+  day1_complete:        { title: 'Day 1 Done',          subtitle: 'You showed up. That\'s how it starts.',          icon: '🔥', color: 'bg-purple-950 border-purple-700', ring: 'ring-purple-500' },
+  day3_survival:        { title: 'Day 3 Survivor',      subtitle: 'The hardest day. You didn\'t quit.',             icon: '⚔️', color: 'bg-red-950 border-red-700',    ring: 'ring-red-500'    },
+  halfway:              { title: 'Halfway There',       subtitle: 'Four days down. Three to go. Don\'t stop now.',  icon: '⚡', color: 'bg-amber-950 border-amber-700', ring: 'ring-amber-500'  },
+  day7_complete:        { title: 'Day 7 Complete',      subtitle: 'You finished the challenge.',                    icon: '✅', color: 'bg-emerald-950 border-emerald-700', ring: 'ring-emerald-500' },
+  tuning_badge:         { title: 'Tuning Badge',        subtitle: 'You earned the Tuning badge.',                   icon: '🏅', color: 'bg-purple-950 border-purple-700', ring: 'ring-purple-500' },
+  jamming_badge:        { title: 'Jamming Badge',       subtitle: 'Level 2 unlocked.',                              icon: '🏗️', color: 'bg-blue-950 border-blue-700',    ring: 'ring-blue-500'   },
+  grooving_badge:       { title: 'Grooving Badge',      subtitle: 'Level 3 unlocked.',                              icon: '🎯', color: 'bg-emerald-950 border-emerald-700', ring: 'ring-emerald-500' },
+  soloing_badge:        { title: 'Soloing Badge',       subtitle: 'Level 4 unlocked.',                              icon: '💎', color: 'bg-amber-950 border-amber-700',  ring: 'ring-amber-500'  },
+  orchestrating_badge:  { title: 'Orchestrating Badge', subtitle: 'Level 5 unlocked.',                              icon: '🌟', color: 'bg-slate-800 border-slate-500',  ring: 'ring-white'      },
+  rooted_badge:         { title: 'Habit Taken Root',    subtitle: 'You crossed the line. This is now who you are.', icon: '🌱', color: 'bg-green-950 border-green-700',   ring: 'ring-green-500'  },
 }
 
 // Only show one reward at a time (the first non-day7/non-starter reward in the list)

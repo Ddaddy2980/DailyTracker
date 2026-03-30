@@ -38,7 +38,7 @@ export default function Day7Celebration({ name, daysCount, onDismiss }: Props) {
           <p className="text-xs font-bold uppercase tracking-widest text-purple-400 mb-1">
             Badge Earned
           </p>
-          <h2 className="text-2xl font-black text-white">Starter</h2>
+          <h2 className="text-2xl font-black text-white">Tuning</h2>
           <p className="text-purple-300 text-sm mt-1">Level 1 Complete</p>
         </div>
 

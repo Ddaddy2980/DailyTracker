@@ -1,16 +1,17 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
-import { getUserProfile } from '@/app/actions'
+import { getUserProfile, getActiveChallenge } from '@/app/actions'
 import OnboardingFlow from './OnboardingFlow'
 
 export default async function OnboardingPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
-  const profile = await getUserProfile()
+  const [profile, challenge] = await Promise.all([getUserProfile(), getActiveChallenge()])
 
-  // Already completed onboarding — don't allow re-entry
-  if (profile?.onboarding_completed) redirect('/dashboard')
+  if (profile?.onboarding_completed) {
+    redirect(challenge?.is_continuous ? '/journey' : '/dashboard')
+  }
 
   return <OnboardingFlow />
 }

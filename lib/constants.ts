@@ -1,4 +1,4 @@
-import type { VideoEntry } from '@/lib/types'
+import type { VideoEntry, PulseState, ChallengePause } from '@/lib/types'
 
 // ─── Pillar definitions ──────────────────────────────────────────────────────
 
@@ -315,6 +315,29 @@ export const VIDEO_LIBRARY: VideoEntry[] = [
   { id: 'D5', module: 'D', title: 'Day 5: Notice anything yet? Here\'s what\'s forming.',              url: '' },
   { id: 'D6', module: 'D', title: 'Day 6: One day left. Don\'t coast across the finish line.',         url: '' },
   { id: 'D7', module: 'D', title: 'Day 7: You finished. Here\'s what that means.',                     url: '' },
+
+  // Module J — Jamming coaching
+  { id: 'J1', module: 'J', title: 'Welcome to Jamming. Here\'s what\'s different.',                                        url: '' },
+  { id: 'J2', module: 'J', title: 'Why adding a second pillar feels like starting over (and why it\'s not)',                url: '' },
+  { id: 'J3', module: 'J', title: 'The weekly check-in: why reviewing matters more than tracking',                          url: '' },
+  { id: 'J4', module: 'J', title: 'What\'s forming in you right now',                                                      url: '' },
+  { id: 'J5', module: 'J', title: 'Still in it means you\'re winning',                                                     url: '' },
+  { id: 'J6', module: 'J', title: 'Let\'s make this survivable',                                                           url: '' },
+  { id: 'J7', module: 'J', title: 'Jamming complete. You\'ve built something real.',                                        url: '' },
+
+  // Module G — Grooving coaching
+  { id: 'G1',       module: 'G', title: 'Welcome to Grooving. The question changes here.',                    url: '', trigger: 'grooving_onboarding' },
+  { id: 'G2',       module: 'G', title: 'The 25/5 exercise: why this one changes how you see everything',     url: '', trigger: 'focus_exercise_screen' },
+  { id: 'G3',       module: 'G', title: 'The habit calendar: what you\'re actually building here',            url: '', trigger: 'habit_calendar_first_open' },
+  { id: 'G4',       module: 'G', title: 'Your circle: why who watches matters',                               url: '', trigger: 'grooving_circle_setup' },
+  { id: 'G5',       module: 'G', title: 'Rooted. What that means.',                                           url: '', trigger: 'rooted_milestone' },
+  { id: 'G6',       module: 'G', title: 'Now that you\'re rooted — here\'s how to set a direction',           url: '', trigger: 'post_rooted_destination' },
+  { id: 'G7',       module: 'G', title: 'If you need to pause — here\'s what that means.',                    url: '', trigger: 'pause_activation' },
+  { id: 'G_RETURN', module: 'G', title: 'Welcome back. Here\'s what picking up after a pause means.',         url: '', trigger: 'pause_return' },
+  { id: 'G8',       module: 'G', title: 'You finished Grooving. This is what you\'ve built.',                 url: '', trigger: 'grooving_completion' },
+  { id: 'G_SMOOTH', module: 'G', title: 'Smooth sailing. Keep the rhythm.',                                   url: '', trigger: 'pulse_smooth_sailing_grooving' },
+  { id: 'G_ROUGH',  module: 'G', title: 'Rough waters. Here\'s how to navigate.',                             url: '', trigger: 'pulse_rough_waters_grooving' },
+  { id: 'G_WATER',  module: 'G', title: 'Taking on water. Let\'s make this survivable.',                      url: '', trigger: 'pulse_taking_on_water_grooving' },
 ]
 
 // Returns the video IDs that should be surfaced on a given challenge day.
@@ -341,6 +364,129 @@ export function getDayVideoIds(dayNumber: number, selectedPillars: string[]): st
   const d = `D${dayNumber}`
   return d in { D2: 1, D4: 1, D5: 1, D6: 1, D7: 1 } ? [d] : []
 }
+
+// Returns J-module video IDs to surface on a given Jamming challenge day.
+// Day 1   → J1 (welcome) + J2 (second pillar framing)
+// Day 2   → J2
+// Day 6   → J3 (before first weekly pulse check)
+// Pulse state → J4 (smooth sailing) | J5 (rough waters) | J6 + C4 (taking on water)
+export function getJammingVideoIds(
+  dayNumber:      number,
+  lastPulseState: PulseState | null,
+): string[] {
+  const ids: string[] = []
+
+  if (dayNumber === 1)            ids.push('J1', 'J2')
+  else if (dayNumber === 2)       ids.push('J2')
+  if (dayNumber === 6)            ids.push('J3')
+
+  if (lastPulseState === 'smooth_sailing')  ids.push('J4')
+  if (lastPulseState === 'rough_waters')    ids.push('J5')
+  if (lastPulseState === 'taking_on_water') ids.push('J6', 'C4')
+
+  return ids
+}
+
+// Returns the G-module video IDs that should be surfaced for a Grooving challenge.
+// G_RETURN (return from pause) surfaces once when a pause has been resumed and disappears
+// after the user marks it watched — identical pattern to J-module videos in Jamming.
+export function getGroovingReturnVideoId(
+  pauseRecord: ChallengePause | null,
+): string[] {
+  if (pauseRecord?.resumed_at) return ['G_RETURN']
+  return []
+}
+
+// ─── Jamming notification copy ────────────────────────────────────────────────
+// All notification message copy lives here — never hardcode in components.
+// Functions receive context and return the message string.
+
+function pillarLabel(p: string): string {
+  const map: Record<string, string> = {
+    spiritual: 'Spiritual', physical: 'Physical',
+    nutritional: 'Nutritional', personal: 'Personal',
+  }
+  return map[p] ?? (p.charAt(0).toUpperCase() + p.slice(1))
+}
+
+export const JAMMING_NOTIFICATIONS = {
+  morning_anchor: (ctx: { dayNumber: number; pillars: string[] }) =>
+    `Day ${ctx.dayNumber}. ${ctx.pillars.map(pillarLabel).join(' + ')}. You know what to do.`,
+
+  evening_checkin: (ctx: { pillars: string[] }) =>
+    `You haven't checked in yet today. ${ctx.pillars.map(pillarLabel).join(' and ')} — still time.`,
+
+  late_rescue: () =>
+    `Last chance today. Check in before midnight.`,
+
+  mid_week_encouragement: (ctx: { dayNumber: number }) =>
+    `Midweek. Day ${ctx.dayNumber}. Still in it means you're winning.`,
+
+  miss_day_recovery: () =>
+    `Yesterday slipped. That happens to everyone. What matters is what you do today.`,
+
+  weekly_pulse_prompt: (ctx: { weekNumber: number }) =>
+    `Week ${ctx.weekNumber} — 2 minutes. See your week and tell us how you're doing.`,
+
+  accountability_update: (ctx: { partnerName: string; daysCompleted: number; durationDays: number }) =>
+    `${ctx.partnerName} — ${ctx.daysCompleted} of ${ctx.durationDays} days done this week. Still showing up.`,
+
+  jamming_complete: () =>
+    `You finished Jamming. Seriously — you built something real.`,
+} as const
+
+// Notification cadence by tier
+// minimal  → morning only
+// standard → morning + evening + mid-week
+// full     → morning + evening + mid-week + late rescue (personal message tone)
+export const NOTIFICATION_CADENCE: Record<string, string[]> = {
+  minimal:  ['morning_anchor'],
+  standard: ['morning_anchor', 'evening_checkin', 'mid_week_encouragement'],
+  full:     ['morning_anchor', 'evening_checkin', 'mid_week_encouragement', 'late_rescue'],
+}
+
+// Group notification copy — Step 16g
+// Three types, each matching a specific trigger in the group notification system.
+//
+//   member_joined   — in-app banner shown to the creator when a new member joins
+//   evening_nudge   — cron-driven nudge when co-members have checked in but the user hasn't
+//   full_group_day  — in-app banner shown to all members when everyone reaches 'full' today
+// Maximum number of active group memberships per user (Step 16h)
+export const MAX_GROUPS_PER_USER = 12
+
+export const GROUP_NOTIFICATIONS = {
+  member_joined: (ctx: { memberName: string; groupName: string }) =>
+    `${ctx.memberName} just joined ${ctx.groupName}.`,
+
+  evening_nudge: (ctx: { count: number; groupName: string }) =>
+    `${ctx.count} ${ctx.count === 1 ? 'person' : 'people'} in ${ctx.groupName} ${ctx.count === 1 ? 'has' : 'have'} checked in today. Still time to join them.`,
+
+  full_group_day: (ctx: { groupName: string }) =>
+    `Everyone in ${ctx.groupName} showed up today. That's a full group day.`,
+} as const
+
+export const GROOVING_NOTIFICATIONS = {
+  morning_anchor: (ctx: { dayNumber: number; durationDays: number }) =>
+    `Day ${ctx.dayNumber} of ${ctx.durationDays}. What will today build toward?`,
+
+  evening_checkin: () =>
+    `How did your pillars go today? Still time to check in.`,
+
+  pattern_alert: (ctx: { dayOfWeek: string }) =>
+    `You have missed ${ctx.dayOfWeek} three weeks running. Want to look at your goals for that day?`,
+
+  rooted_milestone: (ctx: { goalName: string }) =>
+    `${ctx.goalName} — you have done this every day for 30 days. That is not a goal anymore. That is who you are.`,
+
+  grooving_complete: () =>
+    `40 days. You built something that will outlast the challenge.`,
+
+  pause_daily: (ctx: { daysPaused: number }) =>
+    `Day ${ctx.daysPaused} of your pause. Your habits will be here when you return.`,
+
+  weekly_reflection_prompt: () =>
+    `You have reached the end of the week. Take a moment to reflect on how your pillars went.`,
+} as const
 
 // Tailwind colour classes per pillar
 export const PILLAR_COLORS = {

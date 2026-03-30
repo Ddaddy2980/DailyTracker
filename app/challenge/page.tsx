@@ -3,8 +3,9 @@ import { redirect } from 'next/navigation'
 import {
   getUserProfile, getActiveChallenge, getChallengeEntries, getEarnedRewards, getWatchedVideoIds,
 } from '@/app/actions'
+import { getMyGroups, getGroupWithMembers } from '@/app/actions-groups'
 import { todayStr } from '@/lib/constants'
-import type { ChallengeEntry, DayStatus, RewardType } from '@/lib/types'
+import type { ChallengeEntry, DayStatus, RewardType, GroupWithMembers } from '@/lib/types'
 import ChallengeDash from './ChallengeDash'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -82,11 +83,14 @@ export default async function ChallengePage() {
   if (!challenge) redirect('/dashboard')   // no active challenge — fall back to v1
 
   const today   = todayStr()
-  const [entries, earnedRewards] = await Promise.all([
+  const [entries, earnedRewards, myGroups] = await Promise.all([
     getChallengeEntries(challenge.start_date, challenge.end_date),
     getEarnedRewards(challenge.id),
+    getMyGroups(),
   ])
-  const pillars = profile.selected_pillars
+  const groupsData = await Promise.all(myGroups.map(g => getGroupWithMembers(g.id)))
+  const groups     = groupsData.filter((g): g is GroupWithMembers => g !== null)
+  const pillars    = profile.selected_pillars
 
   const dayStatuses    = calcDayStatuses(challenge.start_date, entries, pillars, today)
   const streak         = calcStreak(dayStatuses, challenge.start_date, today)
@@ -110,6 +114,7 @@ export default async function ChallengePage() {
     <ChallengeDash
       challenge={challenge}
       profile={profile}
+      entries={entries}
       dayStatuses={dayStatuses}
       todayCompletions={todayCompletions}
       streak={streak}
@@ -117,6 +122,7 @@ export default async function ChallengePage() {
       today={today}
       earnedRewards={earnedRewardTypes}
       watchedVideoIds={watchedVideoIds}
+      groups={groups}
     />
   )
 }

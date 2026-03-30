@@ -1,0 +1,18 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/notifications/cron/route": "app/api/notifications/cron/route.js",
+  "/dev/create-test-journey/page": "app/dev/create-test-journey/page.js",
+  "/grooving/onboarding/page": "app/grooving/onboarding/page.js",
+  "/challenge/page": "app/challenge/page.js",
+  "/dev/rooted-test/page": "app/dev/rooted-test/page.js",
+  "/grooving/page": "app/grooving/page.js",
+  "/jamming/onboarding/page": "app/jamming/onboarding/page.js",
+  "/join/[inviteCode]/page": "app/join/[inviteCode]/page.js",
+  "/jamming/page": "app/jamming/page.js",
+  "/journey/page": "app/journey/page.js",
+  "/onboarding/page": "app/onboarding/page.js",
+  "/sign-in/[[...sign-in]]/page": "app/sign-in/[[...sign-in]]/page.js",
+  "/page": "app/page.js",
+  "/sign-up/[[...sign-up]]/page": "app/sign-up/[[...sign-up]]/page.js",
+  "/dashboard/page": "app/dashboard/page.js"
+}
