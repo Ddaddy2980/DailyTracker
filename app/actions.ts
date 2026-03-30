@@ -968,24 +968,27 @@ export async function createContinuousJourney(data: {
     )
   }
 
-  // 2. Update user_profile with journey metadata and pillar selection
+  // 2. Upsert user_profile with journey metadata and pillar selection
   const { error: profileErr } = await sb
     .from('user_profile')
-    .update({
+    .upsert({
+      user_id:               userId,
       current_level:         1,
       selected_pillars:      data.selectedPillars,
       journey_start_date:    start,
       journey_total_days:    data.totalDays,
       journey_level_preview: preview,
+      name:                  data.name,
+      onboarding_completed:  true,
       updated_at:            new Date().toISOString(),
-    })
-    .eq('user_id', userId)
+    }, { onConflict: 'user_id' })
 
   if (profileErr) {
     throw new Error(`createContinuousJourney profile: ${profileErr.message}`)
   }
 
   revalidatePath('/journey')
+  revalidatePath('/onboarding')
   revalidatePath('/')
 
   return { challengeId: inserted.id as string }
