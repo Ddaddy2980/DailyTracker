@@ -3,7 +3,8 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { submitCheckin } from '@/app/actions'
-import type { Challenge, UserProfile, DayStatus, RewardType, GroupWithMembers, ChallengeEntry } from '@/lib/types'
+import type { Challenge, UserProfile, DayStatus, RewardType, GroupWithMembers, ChallengeEntry, PillarLevel, PillarName } from '@/lib/types'
+import { resolveNextPillarInvitation } from '@/lib/next-pillar-invitation'
 import AppHeader        from '@/components/shared/AppHeader'
 import BottomNav        from '@/components/shared/BottomNav'
 import type { BottomNavTab } from '@/components/shared/BottomNav'
@@ -31,13 +32,14 @@ interface Props {
   earnedRewards:     RewardType[]
   watchedVideoIds:   string[]
   groups:            GroupWithMembers[]
+  pillarLevels:      PillarLevel[]
 }
 
 type ActiveTab = 'today' | 'history' | 'groups' | 'videos' | 'goals'
 
 export default function ChallengeDash({
   challenge, profile, entries, dayStatuses, todayCompletions, streak, dayNumber, today,
-  earnedRewards, watchedVideoIds, groups,
+  earnedRewards, watchedVideoIds, groups, pillarLevels,
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -46,6 +48,7 @@ export default function ChallengeDash({
   const [activeTab, setActiveTab]       = useState<ActiveTab>('today')
   const [newRewards, setNewRewards]     = useState<RewardType[]>([])
   const [showDay7, setShowDay7]         = useState(false)
+  const [invitedPillar, setInvitedPillar] = useState<PillarName | null>(null)
 
   // History edit state
   const [historyEditDate, setHistoryEditDate]             = useState<string | null>(null)
@@ -83,6 +86,7 @@ export default function ChallengeDash({
       })
 
       if (awarded.includes('day7_complete') || awarded.includes('tuning_badge')) {
+        setInvitedPillar(resolveNextPillarInvitation(pillarLevels))
         setShowDay7(true)
       } else if (awarded.length > 0) {
         setNewRewards(awarded)
@@ -270,6 +274,8 @@ export default function ChallengeDash({
           consistencyPct={Math.round(challenge.consistency_pct)}
           pillars={pillars}
           pillarGoals={pillarGoals}
+          invitedPillar={invitedPillar}
+          pillarLevels={pillarLevels}
         />
       )}
 
