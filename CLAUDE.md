@@ -340,14 +340,19 @@ Build in this order. Do not skip ahead.
 - [x] Step 14 — Jamming dashboard: 14/21-day challenge map, named milestones, weekly summary view, pulse history
 - [x] Step 15 — Jamming video additions: J1–J7 video cards with pulse-state triggers
 - [x] Step 16 — Jamming completion sequence: badge, stats, share card, Grooving invitation
-  - [x] Step 16a — Database migration: consistency_groups, group_members, group_daily_status tables
-  - [x] Step 16b — Group creation: invite code generation, CreateGroupModal
-  - [x] Step 16c — Group dashboard query: GroupWithMembers composite type, server-side fetch
-  - [x] Step 16d — GroupCard component: member list, streak display, daily status indicators
-  - [x] Step 16e — GroupView: groups tab integration into ChallengeDash/JammingDash
-  - [x] Step 16f — Group management: GroupManageModal, GroupManageSheet, archive/pause/delete flows
-  - [x] Step 16g — Join notification + full-group-day celebration flag (pending_join_notification, group_daily_flags)
-  - [x] Step 16h — updateGroupDailyStatus: group_daily_status write wired into submitCheckin
+
+### Phase 2.5 — Consistency Groups (Cross-Level Feature)
+
+This feature is available at all levels from Tuning onward. It is built here because its group_daily_status write must be wired into submitCheckin, which is touched again in Grooving. Build it once in the right place.
+
+- [x] Step 16a — Database migration: add consistency_groups, group_members, group_daily_status tables
+- [x] Step 16b — Group creation flow: name input, invite code generation, creator management screen
+- [x] Step 16c — Group join flow: code entry screen, deep-link URL handler (/join/[inviteCode]), join confirmation
+- [x] Step 16d — Group dashboard: member list with pillar dots, completion indicators, streak counts, grace period logic
+- [x] Step 16e — submitCheckin integration: write/upsert group_daily_status for all active groups on every check-in
+- [x] Step 16f — Group management: rename, remove member, leave group, archive/delete group
+- [x] Step 16g — Group notifications: member joined (pending_join_notification), full-group-day celebration flag (group_daily_flags)
+- [x] Step 16h — Multi-group support: selector UI when user belongs to more than one group
 
 ### Phase 3 — Grooving Level (CURRENT)
 
@@ -359,12 +364,12 @@ Build in this order. Do not skip ahead.
 - [x] Step 22 — Rooted milestone engine: Day 40–50 detection logic, celebration sequence, destination goal introduction bridge
 - [x] Step 23 — Destination goal system: setup flow, dashboard layer above duration goals, weekly check-in integration
 - [x] Step 24 — 25/5 focus exercise: full exercise UI, save top 5 to user_profile, link to destination goals
-- [ ] Step 25 — Deeper weekly reflection: rotating questions, full reflection flow, destination goal check-in, pulse check integration
-- [ ] Step 26 — Grooving Circle: member management, weekly digest generation, encouragement reply system
-- [ ] Step 27 — Life interruption pause system: pause activation, streak preservation, end date extension, return flow
-- [ ] Step 28 — Grooving video additions: G1–G8, G-Return, pulse response variants
-- [ ] Step 29 — Grooving notification system: reduced cadence, habit calendar pattern alerts, Rooted milestone push
-- [ ] Step 30 — Grooving completion sequence: badge, full stats, 25/5 review, destination goal status, Soloing invitation
+- [x] Step 25 — Deeper weekly reflection: rotating questions, full reflection flow, destination goal check-in, pulse check integration
+- [x] Step 26 — Grooving Circle: member management, weekly digest generation, encouragement reply system
+- [x] Step 27 — Life interruption pause system: pause activation, streak preservation, end date extension, return flow
+- [x] Step 28 — Grooving video additions: G1–G8, G-Return, pulse response variants
+- [x] Step 29 — Grooving notification system: reduced cadence, habit calendar pattern alerts, Rooted milestone push
+- [x] Step 30 — Grooving completion sequence: badge, full stats, 25/5 review, destination goal status, Soloing invitation
 
 ### Phase 4 — Pillar Architecture & Consistency Profile (CURRENT)
 

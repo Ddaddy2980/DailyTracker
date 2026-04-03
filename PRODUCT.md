@@ -815,6 +815,188 @@ A small, private group of up to 5 people who receive a weekly digest of the user
 
 ---
 
+## Consistency Groups — Cross-Level Accountability Feature
+
+### What It Is
+
+A small private group of app users who can see each other's daily completion status in real time. The core question the group answers every day is simple: "Did everyone show up today?" Nothing more. No scores, no leaderboards, no performance comparison — just witnessed consistency.
+
+### Availability
+- Available at all levels: Tuning, Jamming, Grooving, Soloing, Orchestrating
+- Any user can create a group or join one from Day 1
+- Group membership is independent of challenge or level status
+
+### Design Principle
+The goal is witnessed consistency, not performance or competition. The moment the feature feels like comparison it stops feeling like community. Every design decision — what to show, what to hide, what language to use — must preserve this distinction.
+
+---
+
+### Data Model — New Tables
+
+**consistency_groups**
+```
+id (uuid, PK)
+name (text) — group name set by creator, max 30 characters
+created_by (text) — Clerk user_id of creator
+invite_code (text, unique) — short alphanumeric code e.g. 'GRACE-7F2K'
+invite_url_enabled (boolean, default true) — whether the deep-link invite URL is active
+max_members (integer, default 12)
+created_at (timestamptz)
+active (boolean, default true)
+```
+
+**group_members**
+```
+id (uuid, PK)
+group_id (uuid, FK to consistency_groups)
+user_id (text) — Clerk user_id
+display_name (text) — pulled from user_profile.name at join time, not live-synced
+joined_at (timestamptz)
+active (boolean, default true) — false when member leaves or is removed
+```
+
+**group_daily_status**
+```
+id (uuid, PK)
+group_id (uuid, FK to consistency_groups)
+user_id (text)
+status_date (date)
+completion_status (text) — 'full' | 'partial' | 'none'
+streak_count (integer)
+active_pillars (text[]) — array of pillar names the user is currently tracking
+updated_at (timestamptz)
+constraint: unique (group_id, user_id, status_date)
+```
+
+**Why group_daily_status exists**: Rather than querying every member's daily_entries in real time when someone opens the group view, a lightweight status row is written for each member each time they check in. The group dashboard becomes a single fast query rather than N joins across N members' data.
+
+---
+
+### Completion Status Logic
+
+| Status | Indicator | Condition |
+|---|---|---|
+| Full | Green checkmark | All active pillars have at least one goal checked in for the day |
+| Partial | Amber half-circle | Checked in but not all active pillars complete |
+| None | Empty circle | No check-in recorded yet today |
+
+**Grace period rule**: The 'none' (empty circle) state does not display for other members until after 9:00 PM in the user's local time. Before 9:00 PM, members who have not yet checked in show no indicator — not an empty circle. This prevents public shame for users who check in later in the day. After 9:00 PM, the empty circle appears so the group can see who may need encouragement.
+
+**Write timing**: `group_daily_status` is written or updated every time `submitCheckin` completes successfully. The upsert uses the unique constraint on (group_id, user_id, status_date) — re-checking in updates the existing row rather than creating a duplicate.
+
+---
+
+### Invitation System
+
+**Primary: Group code**
+- A short alphanumeric code generated at group creation: format `[WORD]-[4CHARS]` e.g. `RIVER-4K2M`
+- The creator shares the code however they choose — text, email, in person
+- Any app user enters the code in the 'Join a Group' screen to join
+- Codes do not expire
+- Maximum 12 active members enforced at join time — joining a full group returns a friendly error
+
+**Secondary: Deep-link invite URL**
+- Format: `[app-domain]/join/[invite_code]`
+- Opens the app (or app store if not installed) and pre-fills the group code
+- Can be disabled by the group creator if they want code-only access
+- Sharing the URL triggers the native share sheet — no custom share UI needed
+
+---
+
+### Group Dashboard — Layout and Display
+
+**Access**: A 'My Group' tab or card visible on the main dashboard at all levels. If the user is not in a group, shows an empty state with 'Create a group' and 'Join a group' options.
+
+**Member list display**
+Each row contains:
+- Display name (left)
+- Four pillar indicator dots, colored for active pillars, empty for inactive: Spiritual (purple), Physical (emerald), Nutritional (amber), Personal (blue)
+- Streak count number
+- Today's completion indicator (green checkmark / amber half-circle / empty circle per grace period rule)
+
+**Row ordering**
+- The current user's own row always appears first, slightly highlighted
+- All other members in alphabetical order by display name
+- No sorting by streak, completion, or performance — ever
+
+**Refresh behavior**
+- Group dashboard refreshes automatically when opened
+- Pull-to-refresh available
+- No live/real-time updates — refresh on open is sufficient
+
+---
+
+### Privacy Boundaries — Non-Negotiable
+
+**Members CAN see about each other:**
+- Display name
+- Which pillars are actively tracked (colored dots)
+- Today's completion status (after grace period for 'none')
+- Current streak count
+
+**Members CANNOT see about each other:**
+- Goal text or goal content of any kind
+- Pulse check state
+- Reflection answers
+- Challenge day number
+- Current level
+- Consistency percentage
+- Any historical data beyond today's status
+
+Goal content is always private. The group sees that you showed up — not what you committed to.
+
+---
+
+### Group Management
+
+**Creator permissions**
+- Rename the group
+- Disable/re-enable the invite URL
+- Remove a member (sets group_members.active = false — the removed member is not notified in-app, but their status row stops appearing)
+- Delete the group (sets consistency_groups.active = false — all members lose access)
+
+**Member permissions**
+- Leave the group (sets their own group_members.active = false)
+- Cannot remove other members
+- Cannot rename the group
+
+**Multi-group membership**
+- A user can belong to multiple groups
+- Each group has its own tab or selector within the Group View
+- group_daily_status writes to all groups the user belongs to on each check-in
+
+---
+
+### Notifications for Groups
+
+| Notification | Trigger | Tone |
+|---|---|---|
+| 'Someone joined your group' | New member joins | Celebratory — '[Name] just joined [Group name]' |
+| 'Your group is checking in' | 8:00 PM if user has not checked in AND at least one group member has | Gentle — '[X] people in [Group name] have checked in today. Still time to join them.' |
+| 'Full group day' | All members complete on same day | Celebratory — 'Everyone in [Group name] showed up today. That's a full group day.' |
+
+The 8:00 PM group nudge only fires if the user has not already received an evening check-in notification from the standard notification system. No duplicate notifications.
+
+---
+
+### Empty and Edge Case States
+
+**User not in any group**
+'You're not in a Consistency Group yet. Groups are small — up to 12 people — and private. Everyone sees a simple checkmark each day. Nothing more.'
+Two buttons: 'Create a group' and 'Join a group with a code'
+
+**User in a group with only themselves**
+'Waiting for others to join. Share your group code: [CODE]'
+Show the code prominently with a copy button and share button.
+
+**All members have 'none' status at 9:01 PM**
+No shaming language. No 'nobody checked in today.' Simply show the empty circles with a quiet note: 'Tomorrow is a new day.'
+
+**Member leaves mid-challenge**
+Their row disappears from the group view immediately. No announcement to the group.
+
+---
+
 ## Tech Stack
 
 | Layer | Technology | Version |
@@ -1078,6 +1260,51 @@ Router: App Router (Next.js 14, `/app` directory)
 | status | text, default 'active' — 'active' \| 'completed' \| 'released' \| 'expired' |
 | created_at | timestamptz |
 | updated_at | timestamptz |
+
+**consistency_groups** — See Consistency Groups section for full feature spec.
+
+| Column | Type |
+|--------|------|
+| id | uuid, PK |
+| name | text — group name, max 30 characters |
+| created_by | text — Clerk user_id of creator |
+| invite_code | text, unique — format `[WORD]-[4CHARS]` e.g. `RIVER-4K2M` |
+| invite_url_enabled | boolean, default true |
+| max_members | integer, default 12 |
+| created_at | timestamptz |
+| active | boolean, default true |
+
+**group_members**
+
+| Column | Type |
+|--------|------|
+| id | uuid, PK |
+| group_id | uuid, FK → consistency_groups |
+| user_id | text — Clerk user_id |
+| display_name | text — snapshot from user_profile.name at join time |
+| joined_at | timestamptz |
+| active | boolean, default true — false when member leaves or is removed |
+
+**group_daily_status** — Written by `submitCheckin` for every group the user belongs to.
+
+| Column | Type |
+|--------|------|
+| id | uuid, PK |
+| group_id | uuid, FK → consistency_groups |
+| user_id | text |
+| status_date | date |
+| completion_status | text — `'full'` \| `'partial'` \| `'none'` |
+| streak_count | integer |
+| active_pillars | text[] — pillar names currently tracked by this user |
+| updated_at | timestamptz |
+| *constraint* | unique (group_id, user_id, status_date) |
+
+**Write pattern for group_daily_status in `submitCheckin`:**
+1. Fetch all group_ids where this user_id has an active group_members row
+2. For each group_id, upsert group_daily_status for today
+3. completion_status: `'full'` if all active pillars complete, `'partial'` if some
+4. Write current streak_count and active_pillars from current challenge
+5. Must not block check-in save — use Promise.all or fire-and-forget; group status write must never cause a check-in to fail
 
 ---
 
