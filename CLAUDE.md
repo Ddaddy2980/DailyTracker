@@ -28,11 +28,12 @@ Read this file at the start of every session along with PRODUCT.md. These are yo
 ## Branch Rules
 
 - Never commit directly to `main`
-- All v2 work happens on branch: `v2-rebuild`
-- Create feature sub-branches off `v2-rebuild` for each build step:
-  e.g. `v2-rebuild/database-migration`, `v2-rebuild/onboarding-flow`
-- When David says "this is ready", merge the feature branch into `v2-rebuild` — not into `main`
-- Only merge `v2-rebuild` into `main` when David explicitly says "ready to go live"
+- All active development happens on branch: `v2-phase5`
+- Create feature sub-branches off `v2-phase5` for each build step:
+  e.g. `step-43-duration-goal-card`, `step-44-sub-destination-modal`
+- When David says "this is ready", merge the feature branch into `v2-phase5` — not into `main`
+- Only merge `v2-phase5` into `main` when David explicitly says "ready to go live"
+- `v2-rebuild` is retired — do not use it as a base for new work
 
 ---
 
@@ -42,11 +43,13 @@ Read this file at the start of every session along with PRODUCT.md. These are yo
 
 ```
 /app
-  /dashboard          — existing tracker (preserve, do not refactor unless asked)
-  /onboarding         — Level 1 onboarding flow (new)
-  /challenge          — active challenge view (new)
-  /api                — API routes
-    /supabase         — Supabase helper routes if needed
+  /dashboard              — existing tracker (preserve, do not refactor unless asked)
+  /onboarding             — Level 1 onboarding flow (new)
+  /challenge              — active challenge view (new)
+  /consistency-profile    — Consistency Profile assessment flow
+  /profile                — Five-Pillar Dashboard
+  /api                    — API routes
+    /supabase             — Supabase helper routes if needed
 
 /components
   /ui                 — reusable UI primitives (buttons, cards, inputs)
@@ -130,7 +133,7 @@ type RewardType =
   | 'soloing_badge'
   | 'orchestrating_badge'
 
-type PillarName = 'spiritual' | 'physical' | 'nutritional' | 'personal'
+type PillarName = 'spiritual' | 'physical' | 'nutritional' | 'personal' | 'missional'
 
 type LevelName = 'Tuning' | 'Jamming' | 'Grooving' | 'Soloing' | 'Orchestrating'
 ```
@@ -265,6 +268,7 @@ export const VIDEO_LIBRARY = {
   - Physical: `emerald-*`
   - Nutritional: `amber-*`
   - Personal: `blue-*`
+  - Missional: `teal-*` (primary: `teal-600` / `#0d9488`)
 
 ---
 
@@ -288,6 +292,15 @@ Unless David explicitly asks:
 - Do not modify `checkRootedMilestone()` in `/lib/milestones.ts` without David's explicit direction — this function has been fully tested against 8 scenarios including a regression test for the carried-forward goal fix
 - Do not modify the `createDestinationGoal` upsert logic or the `rooted_badge` wiring in `submitCheckin` without David's explicit direction
 - Do not modify `checkRootedMilestone()` in `/lib/milestones.ts` without David's explicit direction — this function has been fully tested against 8 scenarios including a regression test for the carried-forward goal fix
+- Do not change the `late_rescue` cron schedule in `vercel.json` without first confirming the correct UTC offset. Current value is `45 1 * * *` — this is a known error. Correct value is `45 3 * * *` (9:45 PM CST = 03:45 UTC). Fix before go-live.
+---
+
+## Known Deferred Items
+
+- `?addPillar` query param — written by `TuningComplete` and `JammingComplete` on Next Pillar Invitation accept. Jamming and Grooving onboarding flows do not yet consume it. When wired, the onboarding flow must pre-select the invited pillar for goal setup rather than presenting a cold start.
+- `GroovingCompletionScreen` — Next Pillar Invitation step not yet wired. Safe to defer because `INVITATION_THRESHOLDS[3]` is undefined and the DB field is never written for level-3 users until that threshold is defined.
+- Monthly Pillar Check — stagnation fallback not yet implemented. If `resolveNextPillarInvitation` returns null (no Dormant pillar, no gap), no monthly pillar question is shown. A future step may add a stagnation check targeting the lowest gauge-score pillar when no gap or Dormant pillar exists.
+- Jamming cron morning tone adaptation — the Level 2 cron morning block still sends a static `JAMMING_NOTIFICATIONS` message regardless of pillar state. Adaptive tone for Level 2 is deferred to a future step.
 
 ---
 
@@ -311,6 +324,14 @@ At the end of each session:
 
 ---
 
+## Known Deferred Items
+
+- `?addPillar` query param — written by `TuningComplete` and `JammingComplete` on Next Pillar Invitation accept. Jamming and Grooving onboarding flows do not yet consume it. When wired, the onboarding flow must pre-select the invited pillar for goal setup rather than presenting a cold start.
+- `GroovingCompletionScreen` — Next Pillar Invitation Step not yet wired. Safe to defer because `INVITATION_THRESHOLDS[3]` is undefined and the DB field is never written for level-3 users until that threshold is defined.
+- Monthly Pillar Check stagnation variant — `resolveNextPillarInvitation()` returns `null` when all active pillars are at the same level (no gap, none dormant), so the monthly check is skipped. A future step may introduce a stagnation check that targets the lowest gauge-score pillar in this scenario. Do not implement until David explicitly requests it.
+
+---
+
 ## The Build Sequence (Reference)
 
 Build in this order. Do not skip ahead.
@@ -325,7 +346,7 @@ Build in this order. Do not skip ahead.
 - [x] Step 6 — Gamification: rewards, badges, streak visual, Day 7 celebration sequence
 - [x] Step 7 — Migrate existing tracker: wrap /app/dashboard inside new level-aware shell
 
-### Phase 2 — Jamming Level (CURRENT)
+### Phase 2 — Jamming Level (COMPLETE)
 
 - [x] Step 8 — Database migration: add pulse_checks table + new user_profile fields
 - [x] Step 9 — Tuning completion + transition screen: celebration, share card, rest day option, Jamming invitation
@@ -337,7 +358,20 @@ Build in this order. Do not skip ahead.
 - [x] Step 15 — Jamming video additions: J1–J7 video cards with pulse-state triggers
 - [x] Step 16 — Jamming completion sequence: badge, stats, share card, Grooving invitation
 
-### Phase 3 — Grooving Level (CURRENT)
+### Phase 2.5 — Consistency Groups (Cross-Level Feature)
+
+This feature is available at all levels from Tuning onward. It is built here because its group_daily_status write must be wired into submitCheckin, which is touched again in Grooving. Build it once in the right place.
+
+- [x] Step 16a — Database migration: add consistency_groups, group_members, group_daily_status tables
+- [x] Step 16b — Group creation flow: name input, invite code generation, creator management screen
+- [x] Step 16c — Group join flow: code entry screen, deep-link URL handler (/join/[inviteCode]), join confirmation
+- [x] Step 16d — Group dashboard: member list with pillar dots, completion indicators, streak counts, grace period logic
+- [x] Step 16e — submitCheckin integration: write/upsert group_daily_status for all active groups on every check-in
+- [x] Step 16f — Group management: rename, remove member, leave group, archive/delete group
+- [x] Step 16g — Group notifications: member joined (pending_join_notification), full-group-day celebration flag (group_daily_flags)
+- [x] Step 16h — Multi-group support: selector UI when user belongs to more than one group
+
+### Phase 3 — Grooving Level (COMPLETE)
 
 - [x] Step 17 — Database migration: add grooving_circle_members, destination_goals, weekly_reflections, challenge_pauses tables + new user_profile fields
 - [x] Step 18 — Jamming completion + Grooving transition: "What changed?" reflection, Grooving invitation, challenge length choice
@@ -347,18 +381,44 @@ Build in this order. Do not skip ahead.
 - [x] Step 22 — Rooted milestone engine: Day 40–50 detection logic, celebration sequence, destination goal introduction bridge
 - [x] Step 23 — Destination goal system: setup flow, dashboard layer above duration goals, weekly check-in integration
 - [x] Step 24 — 25/5 focus exercise: full exercise UI, save top 5 to user_profile, link to destination goals
-- [ ] Step 25 — Deeper weekly reflection: rotating questions, full reflection flow, destination goal check-in, pulse check integration
-- [ ] Step 26 — Grooving Circle: member management, weekly digest generation, encouragement reply system
-- [ ] Step 27 — Life interruption pause system: pause activation, streak preservation, end date extension, return flow
-- [ ] Step 28 — Grooving video additions: G1–G8, G-Return, pulse response variants
-- [ ] Step 29 — Grooving notification system: reduced cadence, habit calendar pattern alerts, Rooted milestone push
-- [ ] Step 30 — Grooving completion sequence: badge, full stats, 25/5 review, destination goal status, Soloing invitation
+- [x] Step 25 — Deeper weekly reflection: rotating questions, full reflection flow, destination goal check-in, pulse check integration
+- [x] Step 26 — Grooving Circle: member management, weekly digest generation, encouragement reply system
+- [x] Step 27 — Life interruption pause system: pause activation, streak preservation, end date extension, return flow
+- [x] Step 28 — Grooving video additions: G1–G8, G-Return, pulse response variants
+- [x] Step 29 — Grooving notification system: reduced cadence, habit calendar pattern alerts, Rooted milestone push
+- [x] Step 30 — Grooving completion sequence: badge, full stats, 25/5 review, destination goal status, Soloing invitation
 
-### Phase 4 — Soloing Level (FUTURE)
+### Phase 4 — Pillar Architecture & Consistency Profile (COMPLETE)
 
-### Phase 5 — Orchestrating Level (FUTURE)
+This phase restructures the app's core model from a single-ladder system to a per-pillar level architecture. Every new user enters through the Consistency Profile. The Unified Challenge Container governs all active pillars simultaneously.
+
+- [x] Step 31 — Database migration: create pillar_levels table (includes gauge_score column), consistency_profile_sessions table (includes missional_score column alongside the four existing pillar score columns), duration_goal_destinations table. Add new columns to user_profile (consistency_profile_completed, life_on_purpose_score, next_pillar_invitation_pillar, last_pillar_check_at) and challenges (pillar_level_snapshot). Add sub_destination_statuses column to weekly_reflections.
+- [x] Step 32 — Pillar operating state logic: build /lib/pillar-state.ts. Function takes a user's pillar_levels rows and returns the operating state for each pillar (Anchored / Developing / Building / Dormant). Used at challenge start and in dashboard rendering.
+- [x] Step 33 — Consistency Profile flow: build /app/consistency-profile. 20-question assessment (5 pillars × 4 questions), one pillar at a time in order: Spiritual → Physical → Nutritional → Personal → Missional. Score each pillar 0–12. Write results to consistency_profile_sessions and seed pillar_levels table with one row per pillar. Set consistency_profile_completed = true on user_profile.
+- [x] Step 34 — Pillar Portrait screen: post-Profile output screen. Display all five pillars with starting level name and status phrase. Personalized statement honoring strong pillars. Development focus identification. Single agency question. Save focus selection to consistency_profile_sessions.focus_pillar_selected.
+- [x] Step 35 — Routing update: update root layout / middleware to route new users to /consistency-profile instead of directly to /onboarding. After Profile completion, route to appropriate onboarding based on lowest-level active pillar.
+- [x] Step 36 — Unified Challenge Container: update challenge creation logic to snapshot all active pillar levels and operating states into challenges.pillar_level_snapshot at challenge start. Challenge duration is determined by highest-development pillar level.
+- [x] Step 37 — Adapted daily check-in: update check-in component to render pillar cards based on operating state. Anchored → compact muted card. Developing → full card. Building → prominent gamified card. Dormant → not shown.
+- [x] Step 38 — Five-Pillar Dashboard: build /app/profile. Each pillar card displays its level name, operating state, and Consistency Gauge. Dormant pillars shown in muted state with quiet invitation. Life on Purpose Score shown only when all five pillars are active.
+- [x] Step 39 — Consistency Gauge engine: build the per-pillar gauge calculation logic. Each pillar gauge combines weekly duration goal consistency performance and a rolling weighted average of historical weekly performance. Gauge recalculates weekly. Persist current gauge score per pillar to pillar_levels.gauge_score. Life on Purpose Score is the simple average of all five pillar gauge scores, persisted to user_profile.life_on_purpose_score.
+- [x] Step 40 — Next Pillar Invitation: build post-challenge invitation logic. Fires when any pillar is Dormant or two or more levels below the user's highest. Clears next_pillar_invitation_pillar after user responds.
+- [x] Step 41 — Monthly Pillar Check: add conditional pillar question to weekly reflection flow. Enforces 30-day cadence via last_pillar_check_at. Targets most underdeveloped or Dormant pillar.
+- [x] Step 42 — Adaptive morning notification: update notification content to adapt tone based on pillar mix (Building present → motivational, all Developing → coaching, all Anchored → reflective).
+
+### Phase 5 — Sub-Destination Goals (CURRENT)
+
+- [ ] Step 43 — Duration goal card update
+- [ ] Step 44 — Sub-destination setup modal
+- [ ] Step 45 — Weekly reflection update
+- [ ] Step 46 — Expiry and completion logic
+- [ ] Step 47 — G6b video card
+- [ ] Step 48 — Sub-destination expiry notification
+
+### Phase 6 — Soloing Level (FUTURE)
+
+### Phase 7 — Orchestrating Level (FUTURE)
 
 ---
 
-*This file was last updated: March 2026*
+*This file was last updated: April 2026 — Phase 4 complete, Phase 5 active*
 *Do not modify this file without David's direction*

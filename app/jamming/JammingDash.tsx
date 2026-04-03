@@ -6,8 +6,9 @@ import { submitCheckin } from '@/app/actions'
 import type {
   Challenge, UserProfile, DayStatus, RewardType,
   PendingPulseCheck, PulseCheck as PulseCheckRecord, PulseState,
-  GroupWithMembers, ChallengeEntry,
+  GroupWithMembers, ChallengeEntry, PillarLevel, PillarName,
 } from '@/lib/types'
+import { resolveNextPillarInvitation } from '@/lib/next-pillar-invitation'
 import AppHeader          from '@/components/shared/AppHeader'
 import BottomNav          from '@/components/shared/BottomNav'
 import type { BottomNavTab } from '@/components/shared/BottomNav'
@@ -39,13 +40,14 @@ interface Props {
   pulseHistory:      PulseCheckRecord[]
   watchedVideoIds:   string[]
   groups:            GroupWithMembers[]
+  pillarLevels:      PillarLevel[]
 }
 
 type ActiveTab = 'today' | 'history' | 'groups' | 'videos' | 'goals'
 
 export default function JammingDash({
   challenge, profile, entries, dayStatuses, todayCompletions, streak, dayNumber, today,
-  earnedRewards, pendingPulse, pulseHistory, watchedVideoIds, groups,
+  earnedRewards, pendingPulse, pulseHistory, watchedVideoIds, groups, pillarLevels,
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -54,8 +56,9 @@ export default function JammingDash({
   const [activeTab, setActiveTab]             = useState<ActiveTab>('today')
   const [newRewards, setNewRewards]           = useState<RewardType[]>([])
   const [showPulse, setShowPulse]             = useState(!!pendingPulse)
-  const [showComplete, setShowComplete]       = useState(false)
+  const [showComplete, setShowComplete]         = useState(false)
   const [groovingEligible, setGroovingEligible] = useState(false)
+  const [invitedPillar, setInvitedPillar]       = useState<PillarName | null>(null)
 
   // History edit state
   const [historyEditDate, setHistoryEditDate]               = useState<string | null>(null)
@@ -93,6 +96,7 @@ export default function JammingDash({
 
       if (awarded.includes('jamming_badge')) {
         setGroovingEligible(eligible)
+        setInvitedPillar(resolveNextPillarInvitation(pillarLevels))
         setShowComplete(true)
       } else if (awarded.length > 0) {
         setNewRewards(awarded)
@@ -301,6 +305,8 @@ export default function JammingDash({
           pillarGoals={pillarGoals}
           pulseHistory={pulseHistory}
           groovingEligible={groovingEligible}
+          invitedPillar={invitedPillar}
+          pillarLevels={pillarLevels}
         />
       )}
 

@@ -3,6 +3,8 @@ import { createServerSupabaseClient } from '@/lib/supabase'
 import { JAMMING_NOTIFICATIONS, GROOVING_NOTIFICATIONS, NOTIFICATION_CADENCE, GROUP_NOTIFICATIONS } from '@/lib/constants'
 import { todayStr } from '@/lib/constants'
 import { autoResumePausedChallenges } from '@/app/actions'
+import { resolveMorningTone } from '@/lib/morning-tone'
+import type { PillarLevel } from '@/lib/types'
 
 // Called by Vercel Cron at:
 //   7:00 AM  → time=morning
@@ -240,13 +242,23 @@ export async function POST(req: NextRequest) {
     if (grMorningChallenges && grMorningChallenges.length > 0) {
       const grMorningUserIds = grMorningChallenges.map(c => c.user_id as string)
 
-      const { data: grMorningProfiles } = await sb
-        .from('user_profile')
-        .select('user_id, rooted_milestone_date, rooted_milestone_fired, rooted_goal_id, last_pattern_alert_at')
-        .in('user_id', grMorningUserIds)
+      const [{ data: grMorningProfiles }, { data: grPillarLevels }] = await Promise.all([
+        sb.from('user_profile')
+          .select('user_id, rooted_milestone_date, rooted_milestone_fired, rooted_goal_id, last_pattern_alert_at')
+          .in('user_id', grMorningUserIds),
+        sb.from('pillar_levels')
+          .select('user_id, pillar, level, operating_state, gauge_score')
+          .in('user_id', grMorningUserIds),
+      ])
       const grMorningProfileMap = new Map(
         (grMorningProfiles ?? []).map(p => [p.user_id as string, p])
       )
+      const grPillarLevelsMap = new Map<string, PillarLevel[]>()
+      for (const row of (grPillarLevels ?? [])) {
+        const uid = row.user_id as string
+        if (!grPillarLevelsMap.has(uid)) grPillarLevelsMap.set(uid, [])
+        grPillarLevelsMap.get(uid)!.push(row as PillarLevel)
+      }
 
       // Fetch group_daily_status for last 21 days — used for pattern detection.
       // Only 'none' and 'partial' rows needed; de-dup by (user_id, status_date) in memory.
@@ -303,8 +315,22 @@ export async function POST(req: NextRequest) {
         const dayNumber = Math.max(Math.floor((todayMs - startMs) / 86_400_000) + 1, 1)
         const durationDays = challenge.duration_days as number
 
-        // Morning anchor — all tiers, contemplative tone
-        notifications.push({ userId, message: GROOVING_NOTIFICATIONS.morning_anchor({ dayNumber, durationDays }) })
+        // Morning anchor — tone adapts to pillar operating states
+        const userPillarLevels = grPillarLevelsMap.get(userId) ?? []
+        const { tone, highestDevelopingLevel } = resolveMorningTone(userPillarLevels)
+        let morningMessage: string
+        switch (tone) {
+          case 'motivational':
+            morningMessage = GROOVING_NOTIFICATIONS.morning_anchor_motivational({ dayNumber, durationDays })
+            break
+          case 'coaching':
+            morningMessage = GROOVING_NOTIFICATIONS.morning_anchor_coaching({ dayNumber, durationDays, highestLevel: highestDevelopingLevel ?? 3 })
+            break
+          case 'reflective':
+            morningMessage = GROOVING_NOTIFICATIONS.morning_anchor_reflective()
+            break
+        }
+        notifications.push({ userId, message: morningMessage })
         sent++
 
         if (!profile) continue

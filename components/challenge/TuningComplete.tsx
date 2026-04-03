@@ -1,13 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { clearNextPillarInvitation } from '@/app/actions'
+import {
+  getInvitationCopy,
+  isPillarDormant,
+  getStrongPillarNames,
+  PILLAR_DISPLAY_NAMES,
+} from '@/lib/next-pillar-invitation'
+import type { PillarName, PillarLevel } from '@/lib/types'
 
 interface Props {
   daysCompleted:  number
   consistencyPct: number
   pillars:        string[]
   pillarGoals:    Record<string, string>
+  invitedPillar:  PillarName | null
+  pillarLevels:   PillarLevel[]
 }
 
 const SCRIPTURE = {
@@ -16,18 +26,28 @@ const SCRIPTURE = {
 }
 
 const PILLAR_LABEL: Record<string, string> = {
-  spiritual: 'Spiritual', physical: 'Physical',
-  nutritional: 'Nutritional', personal: 'Personal',
+  spiritual:   'Spiritual',
+  physical:    'Physical',
+  nutritional: 'Nutritional',
+  personal:    'Personal',
+  missional:   'Missional',
 }
 
-export default function TuningComplete({ daysCompleted, consistencyPct, pillars, pillarGoals }: Props) {
-  const router = useRouter()
-  const [step, setStep]         = useState<1 | 2>(1)
-  const [duration, setDuration] = useState<14 | 21>(21)
+// Accent colour per pillar — border + ring + text
+const PILLAR_ACCENT: Record<string, { border: string; ring: string; label: string; bg: string }> = {
+  spiritual:   { border: 'border-purple-700', ring: 'ring-purple-500',  label: 'text-purple-400',  bg: 'bg-purple-950'  },
+  physical:    { border: 'border-emerald-700', ring: 'ring-emerald-500', label: 'text-emerald-400', bg: 'bg-emerald-950' },
+  nutritional: { border: 'border-amber-700',   ring: 'ring-amber-500',   label: 'text-amber-400',   bg: 'bg-amber-950'   },
+  personal:    { border: 'border-blue-700',     ring: 'ring-blue-500',    label: 'text-blue-400',    bg: 'bg-blue-950'    },
+  missional:   { border: 'border-teal-700',     ring: 'ring-teal-500',    label: 'text-teal-400',    bg: 'bg-teal-950'    },
+}
 
-  function handleStartJamming() {
-    router.push(`/jamming/onboarding?duration=${duration}`)
-  }
+export default function TuningComplete({
+  daysCompleted, consistencyPct, pillars, pillarGoals, invitedPillar, pillarLevels,
+}: Props) {
+  const router = useRouter()
+  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [isPending, startTransition] = useTransition()
 
   // ── Step 1: Celebration ──────────────────────────────────────────────────────
   if (step === 1) {
@@ -104,6 +124,97 @@ export default function TuningComplete({ daysCompleted, consistencyPct, pillars,
   }
 
   // ── Step 2: Jamming invitation ───────────────────────────────────────────────
+  if (step === 2) {
+    function handleStartJamming() {
+      if (invitedPillar) {
+        setStep(3)
+      } else {
+        router.push('/jamming/onboarding')
+      }
+    }
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center px-4 overflow-y-auto py-8">
+        <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-sm" />
+
+        <div className="relative w-full max-w-sm space-y-4">
+
+          <div className="text-center space-y-2">
+            <div className="text-5xl">🎸</div>
+            <h1 className="text-2xl font-black text-white leading-tight">
+              You&apos;ve tuned your instrument.
+            </h1>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Now it&apos;s time to play.
+            </p>
+          </div>
+
+          {/* Carry-forward goals */}
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-2">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
+              Your Tuning goal carries forward
+            </p>
+            {pillars.map(p => (
+              <div key={p} className="flex items-start gap-2">
+                <span className="text-xs font-bold text-slate-500 uppercase mt-0.5 w-20 shrink-0">
+                  {PILLAR_LABEL[p] ?? p}
+                </span>
+                <span className="text-sm text-white">{pillarGoals[p] ?? '—'}</span>
+              </div>
+            ))}
+            <p className="text-xs text-slate-500 pt-1">A second pillar is added in setup.</p>
+          </div>
+
+          <p className="text-center text-xs text-slate-500 leading-relaxed px-2">
+            Two pillars is harder than one. It&apos;s supposed to feel harder before it feels easier — that&apos;s Jamming.
+          </p>
+
+          <button
+            onClick={handleStartJamming}
+            className="w-full py-4 bg-purple-600 hover:bg-purple-500 rounded-2xl font-black text-lg text-white transition-colors"
+          >
+            {invitedPillar ? 'What\'s next? →' : 'Start Jamming →'}
+          </button>
+
+          <button
+            onClick={() => setStep(1)}
+            className="w-full py-2 text-slate-500 text-sm hover:text-slate-400 transition-colors"
+          >
+            ← Back
+          </button>
+
+        </div>
+      </div>
+    )
+  }
+
+  // ── Step 3: Next Pillar Invitation ───────────────────────────────────────────
+  // Only reached when invitedPillar is non-null (guarded by Step 2 logic above).
+  if (!invitedPillar) {
+    router.push('/jamming/onboarding')
+    return null
+  }
+
+  const isDormant       = isPillarDormant(invitedPillar, pillarLevels)
+  const strongNames     = getStrongPillarNames(pillarLevels)
+  const invitedName     = PILLAR_DISPLAY_NAMES[invitedPillar]
+  const copy            = getInvitationCopy(invitedPillar, isDormant, strongNames, invitedName)
+  const accent          = PILLAR_ACCENT[invitedPillar] ?? PILLAR_ACCENT.spiritual
+
+  function handleAccept() {
+    startTransition(async () => {
+      await clearNextPillarInvitation()
+      router.push(`/jamming/onboarding?addPillar=${invitedPillar}`)
+    })
+  }
+
+  function handleDismiss() {
+    startTransition(async () => {
+      await clearNextPillarInvitation()
+      router.push('/jamming/onboarding')
+    })
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 overflow-y-auto py-8">
       <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-sm" />
@@ -111,68 +222,45 @@ export default function TuningComplete({ daysCompleted, consistencyPct, pillars,
       <div className="relative w-full max-w-sm space-y-4">
 
         <div className="text-center space-y-2">
-          <div className="text-5xl">🎸</div>
+          <div className="text-5xl">👀</div>
           <h1 className="text-2xl font-black text-white leading-tight">
-            You&apos;ve tuned your instrument.
+            One more thing.
           </h1>
-          <p className="text-slate-400 text-sm leading-relaxed">
-            Now it&apos;s time to play.
+        </div>
+
+        {/* Invitation card */}
+        <div className={`${accent.bg} border-2 ${accent.border} rounded-2xl p-5 space-y-3`}>
+          <p className={`text-xs font-bold uppercase tracking-widest ${accent.label}`}>
+            {invitedName} Pillar
+          </p>
+          <h2 className="text-lg font-black text-white leading-snug">
+            {copy.heading}
+          </h2>
+          <p className="text-slate-300 text-sm leading-relaxed">
+            {copy.body}
           </p>
         </div>
-
-        {/* Carry-forward goals */}
-        <div className="bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-2">
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-            Your Tuning goal carries forward
-          </p>
-          {pillars.map(p => (
-            <div key={p} className="flex items-start gap-2">
-              <span className="text-xs font-bold text-slate-500 uppercase mt-0.5 w-20 shrink-0">
-                {PILLAR_LABEL[p] ?? p}
-              </span>
-              <span className="text-sm text-white">{pillarGoals[p] ?? '—'}</span>
-            </div>
-          ))}
-          <p className="text-xs text-slate-500 pt-1">A second pillar is added in setup.</p>
-        </div>
-
-        {/* Duration choice */}
-        <div className="space-y-2">
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Choose your length</p>
-          <div className="grid grid-cols-2 gap-3">
-            {([14, 21] as const).map(d => (
-              <button
-                key={d}
-                onClick={() => setDuration(d)}
-                className={`py-4 rounded-2xl font-black text-lg transition-all border-2 ${
-                  duration === d
-                    ? 'bg-purple-600 border-purple-500 text-white'
-                    : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'
-                }`}
-              >
-                {d} days
-                <p className={`text-xs font-medium mt-1 ${duration === d ? 'text-purple-300' : 'text-slate-600'}`}>
-                  {d === 14 ? 'Build confidence' : 'Ready to push'}
-                </p>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <p className="text-center text-xs text-slate-500 leading-relaxed px-2">
-          Two pillars is harder than one. It&apos;s supposed to feel harder before it feels easier — that&apos;s Jamming.
-        </p>
 
         <button
-          onClick={handleStartJamming}
-          className="w-full py-4 bg-purple-600 hover:bg-purple-500 rounded-2xl font-black text-lg text-white transition-colors"
+          onClick={handleAccept}
+          disabled={isPending}
+          className="w-full py-4 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 rounded-2xl font-black text-lg text-white transition-colors"
         >
-          Start Jamming →
+          Yes, let&apos;s add it →
         </button>
 
         <button
-          onClick={() => setStep(1)}
-          className="w-full py-2 text-slate-500 text-sm hover:text-slate-400 transition-colors"
+          onClick={handleDismiss}
+          disabled={isPending}
+          className="w-full py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 border border-slate-700 rounded-2xl font-bold text-sm text-slate-300 transition-colors"
+        >
+          Not yet
+        </button>
+
+        <button
+          onClick={() => setStep(2)}
+          disabled={isPending}
+          className="w-full py-2 text-slate-500 text-sm hover:text-slate-400 disabled:opacity-30 transition-colors"
         >
           ← Back
         </button>

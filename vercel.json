@@ -1,0 +1,24 @@
+{
+  "crons": [
+    {
+      "path": "/api/notifications/cron?time=morning",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/notifications/cron?time=evening",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/notifications/cron?time=late_rescue",
+      "schedule": "45 1 * * *"
+    },
+    {
+      "path": "/api/notifications/cron?time=mid_week",
+      "schedule": "0 18 * * 3"
+    },
+    {
+      "path": "/api/gauge/recalculate",
+      "schedule": "0 6 * * 0"
+    }
+  ]
+}

@@ -6,7 +6,7 @@ import { submitCheckin } from '@/app/actions'
 import type {
   Challenge, UserProfile, DayStatus, RewardType,
   PendingPulseCheck, PulseCheck as PulseCheckRecord, PulseState,
-  DestinationGoal, FocusTop5Item, GroupWithMembers,
+  DestinationGoal, FocusTop5Item, GroupWithMembers, PillarLevel,
 } from '@/lib/types'
 import type { PauseStatus } from '@/app/actions'
 import AppHeader   from '@/components/shared/AppHeader'
@@ -50,12 +50,15 @@ interface Props {
   watchedVideoIds:      string[]
   patternAlertDay:      string | null
   rootedMilestoneToday: boolean
+  pillarLevels:         PillarLevel[]
+  lastPillarCheckAt:    string | null
 }
 
 export default function GroovingDash({
   challenge, profile, dayStatuses, pillarDayData, todayCompletions, streak, dayNumber, today,
   earnedRewards, pendingPulse, pulseHistory, newPillars, destinationGoals, focusTop5, groups,
   pauseStatus, watchedVideoIds, patternAlertDay, rootedMilestoneToday,
+  pillarLevels, lastPillarCheckAt,
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -184,11 +187,13 @@ export default function GroovingDash({
                   checkInComplete={alreadySaved}
                   notificationTier={profile.notification_tier}
                   dayNumber={dayNumber}
+                  durationDays={challenge.duration_days}
                   pillars={pillars}
                   missedYesterday={false}
                   level={3}
                   patternAlertDay={patternAlertDay}
                   rootedMilestoneToday={rootedMilestoneToday}
+                  pillarLevels={pillarLevels}
                   onPatternAlertCta={() => setActiveTab('calendar')}
                 />
 
@@ -254,6 +259,8 @@ export default function GroovingDash({
                         destinationGoals={destinationGoals}
                         level={3}
                         watchedVideoIds={watchedVideoIds}
+                        pillarLevels={pillarLevels}
+                        lastPillarCheckAt={lastPillarCheckAt}
                         onDone={() => { setShowPulse(false); router.refresh() }}
                       />
                     : <PulseCheckCard

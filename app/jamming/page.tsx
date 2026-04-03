@@ -10,8 +10,9 @@ import {
   getWatchedVideoIds,
 } from '@/app/actions'
 import { getMyGroups, getGroupWithMembers } from '@/app/actions-groups'
+import { createServerSupabaseClient } from '@/lib/supabase'
 import { todayStr } from '@/lib/constants'
-import type { ChallengeEntry, DayStatus, RewardType, GroupWithMembers } from '@/lib/types'
+import type { ChallengeEntry, DayStatus, RewardType, GroupWithMembers, PillarLevel } from '@/lib/types'
 import JammingDash from './JammingDash'
 
 // ── Helpers (mirrors challenge/page.tsx) ─────────────────────────────────────
@@ -85,6 +86,8 @@ export default async function JammingPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
+  const sb = createServerSupabaseClient()
+
   const [profile, challenge] = await Promise.all([
     getUserProfile(),
     getActiveChallenge(),
@@ -130,6 +133,12 @@ export default async function JammingPage() {
     durationDays,
   )
 
+  const { data: pillarLevelRows } = await sb
+    .from('pillar_levels')
+    .select('*')
+    .eq('user_id', userId)
+  const pillarLevels = (pillarLevelRows ?? []) as PillarLevel[]
+
   const earnedRewardTypes = earnedRewards.map(r => r.reward_type) as RewardType[]
 
   return (
@@ -147,6 +156,7 @@ export default async function JammingPage() {
       pulseHistory={pulseHistory}
       watchedVideoIds={watchedVideoIds}
       groups={groups}
+      pillarLevels={pillarLevels}
     />
   )
 }

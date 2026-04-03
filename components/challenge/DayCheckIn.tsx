@@ -4,13 +4,14 @@ import Image from 'next/image'
 import type { PillarName } from '@/lib/types'
 
 interface Props {
-  pillars:      string[]
-  pillarGoals:  Record<string, string>
-  completions:  Record<string, boolean>
-  isPending:    boolean
-  alreadySaved: boolean
-  onToggle:     (pillar: string) => void
-  onSave:       () => void
+  pillars:        string[]
+  pillarGoals:    Record<string, string>
+  completions:    Record<string, boolean>
+  isPending:      boolean
+  alreadySaved:   boolean
+  onToggle:       (pillar: string) => void
+  onSave:         () => void
+  pillarStates?:  Partial<Record<string, 'anchored' | 'developing' | 'building' | 'dormant'>>
 }
 
 const PILLAR_UI: Record<PillarName, { label: string; icon: string; card: string }> = {
@@ -18,12 +19,23 @@ const PILLAR_UI: Record<PillarName, { label: string; icon: string; card: string 
   physical:    { label: 'Physical',    icon: '/Physical_Icon_Bk.png',    card: 'pillar-physical'    },
   nutritional: { label: 'Nutritional', icon: '/Nutritional_Icon_Bk.png', card: 'pillar-nutritional' },
   personal:    { label: 'Personal',    icon: '/Personal_Icon_Bk.png',    card: 'pillar-personal'    },
+  missional:   { label: 'Missional',   icon: '',                         card: 'pillar-missional'   },
 }
 
 const DEFAULT_UI = { label: 'Goal', icon: '', card: 'bg-gray-700' }
 
+function getPillarVariant(
+  pillar: string,
+  pillarStates?: Partial<Record<string, 'anchored' | 'developing' | 'building' | 'dormant'>>
+): 'anchored' | 'developing' | 'building' {
+  const state = pillarStates?.[pillar]
+  if (state === 'anchored') return 'anchored'
+  if (state === 'developing') return 'developing'
+  return 'building'
+}
+
 export default function DayCheckIn({
-  pillars, pillarGoals, completions, isPending, alreadySaved, onToggle, onSave,
+  pillars, pillarGoals, completions, isPending, alreadySaved, onToggle, onSave, pillarStates,
 }: Props) {
   const allDone = pillars.every(p => completions[p])
   const anyDone = pillars.some(p => completions[p])
@@ -35,10 +47,85 @@ export default function DayCheckIn({
       </p>
 
       {pillars.map(pillar => {
-        const ui       = PILLAR_UI[pillar as PillarName] ?? DEFAULT_UI
+        const ui      = PILLAR_UI[pillar as PillarName] ?? DEFAULT_UI
         const complete = completions[pillar] ?? false
-        const goal     = pillarGoals[pillar] ?? ''
+        const goal    = pillarGoals[pillar] ?? ''
+        const variant = getPillarVariant(pillar, pillarStates)
 
+        // Anchored — compact card, no goal text (pillar is habitual)
+        if (variant === 'anchored') {
+          return (
+            <button
+              key={pillar}
+              onClick={() => onToggle(pillar)}
+              disabled={alreadySaved && !complete}
+              className={`w-full text-left p-4 rounded-2xl border-2 border-transparent transition-all active:scale-95 ${ui.card}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                  complete
+                    ? 'bg-emerald-500 border-emerald-400'
+                    : 'border-white/60 bg-transparent'
+                }`}>
+                  {complete && (
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {ui.icon && (
+                    <Image src={ui.icon} width={20} height={20} alt={ui.label} className="invert" />
+                  )}
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-white">
+                    {ui.label}
+                  </p>
+                </div>
+              </div>
+            </button>
+          )
+        }
+
+        // Developing — full card, slightly muted
+        if (variant === 'developing') {
+          return (
+            <button
+              key={pillar}
+              onClick={() => onToggle(pillar)}
+              disabled={alreadySaved && !complete}
+              className={`w-full text-left p-4 rounded-2xl border-2 border-transparent transition-all active:scale-95 opacity-90 ${ui.card}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                  complete
+                    ? 'bg-emerald-500 border-emerald-400'
+                    : 'border-white/60 bg-transparent'
+                }`}>
+                  {complete && (
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    {ui.icon && (
+                      <Image src={ui.icon} width={20} height={20} alt={ui.label} className="invert" />
+                    )}
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-white">
+                      {ui.label}
+                    </p>
+                  </div>
+                  <p className="text-sm font-semibold leading-snug text-white/80">
+                    {goal}
+                  </p>
+                </div>
+              </div>
+            </button>
+          )
+        }
+
+        // Building (default) — full card, full prominence
         return (
           <button
             key={pillar}

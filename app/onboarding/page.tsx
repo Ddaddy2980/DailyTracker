@@ -9,6 +9,9 @@ export default async function OnboardingPage() {
 
   const [profile, challenge] = await Promise.all([getUserProfile(), getActiveChallenge()])
 
+  // Must complete Consistency Profile before onboarding
+  if (!profile?.consistency_profile_completed) redirect('/consistency-profile')
+
   if (profile?.onboarding_completed) {
     redirect(challenge?.is_continuous ? '/journey' : '/dashboard')
   }

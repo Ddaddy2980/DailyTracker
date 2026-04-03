@@ -12,6 +12,7 @@ const PILLAR_UI: Record<PillarName, { label: string; icon: string; accentVar: st
   physical:    { label: 'Physical',    icon: '/Physical_Icon_Bk.png',    accentVar: '--pillar-physical-accent'    },
   nutritional: { label: 'Nutritional', icon: '/Nutritional_Icon_Bk.png', accentVar: '--pillar-nutritional-accent' },
   personal:    { label: 'Personal',    icon: '/Personal_Icon_Bk.png',    accentVar: '--pillar-personal-accent'    },
+  missional:   { label: 'Missional',   icon: '',                         accentVar: '--pillar-missional-accent'   },
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────

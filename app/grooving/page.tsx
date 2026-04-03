@@ -11,10 +11,11 @@ import {
   getDestinationGoals,
   getPauseStatus,
   getWatchedVideoIds,
+  getPillarLevels,
 } from '@/app/actions'
 import { getMyGroups, getGroupWithMembers } from '@/app/actions-groups'
 import { todayStr } from '@/lib/constants'
-import type { ChallengeEntry, DayStatus, RewardType, GroupWithMembers } from '@/lib/types'
+import type { ChallengeEntry, DayStatus, RewardType, GroupWithMembers, PillarLevel } from '@/lib/types'
 
 import GroovingDash from './GroovingDash'
 
@@ -144,7 +145,7 @@ export default async function GroovingPage() {
   const today        = todayStr()
   const durationDays = challenge.duration_days
 
-  const [entries, earnedRewards, pendingPulse, pulseHistory, lastJamming, destinationGoals, myGroups, pauseStatus, watchedVideoIds] = await Promise.all([
+  const [entries, earnedRewards, pendingPulse, pulseHistory, lastJamming, destinationGoals, myGroups, pauseStatus, watchedVideoIds, pillarLevels] = await Promise.all([
     getChallengeEntries(challenge.start_date, challenge.end_date),
     getEarnedRewards(challenge.id),
     getPendingPulseCheck({
@@ -158,6 +159,7 @@ export default async function GroovingPage() {
     getMyGroups(),
     getPauseStatus(challenge.id),
     getWatchedVideoIds(),
+    getPillarLevels(),
   ])
   const groupsData = await Promise.all(myGroups.map(g => getGroupWithMembers(g.id)))
   const groups     = groupsData.filter((g): g is GroupWithMembers => g !== null)
@@ -213,6 +215,8 @@ export default async function GroovingPage() {
       watchedVideoIds={watchedVideoIds}
       patternAlertDay={patternAlertDay}
       rootedMilestoneToday={rootedMilestoneToday}
+      pillarLevels={pillarLevels}
+      lastPillarCheckAt={profile.last_pillar_check_at ?? null}
     />
   )
 }

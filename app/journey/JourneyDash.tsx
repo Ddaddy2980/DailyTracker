@@ -406,6 +406,8 @@ export default function JourneyDash({
                         destinationGoals={destinationGoals}
                         level={3}
                         watchedVideoIds={watchedVideoIds}
+                        pillarLevels={[]}
+                        lastPillarCheckAt={null}
                         onDone={() => { setShowPulse(false); router.refresh() }}
                       />
                     : <PulseCheckCard

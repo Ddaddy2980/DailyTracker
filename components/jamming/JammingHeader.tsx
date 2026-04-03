@@ -5,6 +5,7 @@ const PILLAR_COLOR: Record<PillarName, string> = {
   physical:    'text-[#6b8dd6]',
   nutritional: 'text-[#d4863a]',
   personal:    'text-[#5aab6e]',
+  missional:   'text-teal-400',
 }
 
 interface Props {
