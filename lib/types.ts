@@ -34,6 +34,11 @@ export interface UserProfile {
   journey_start_date:    string | null
   journey_total_days:    number | null
   journey_level_preview: JourneyLevelPreview[]
+  // Phase 4 — Pillar Architecture
+  consistency_profile_completed:  boolean
+  life_on_purpose_score:          number | null
+  next_pillar_invitation_pillar:  string | null
+  last_pillar_check_at:           string | null
 }
 
 export interface Challenge {
@@ -63,6 +68,8 @@ export interface Challenge {
   jamming_phase2_unlocked:   boolean
   jamming_phase2_accepted:   boolean
   pending_journey_event:     PendingJourneyEvent | null
+  // Phase 4 — Pillar Architecture
+  pillar_level_snapshot: Record<string, { level: number; state: OperatingState }> | null
 }
 
 // Step 27 — one row per pause attempt; written by pauseChallenge, closed by resumeChallenge.
@@ -96,9 +103,24 @@ export type RewardType =
   | 'soloing_badge'
   | 'orchestrating_badge'
 
-export type PillarName = 'spiritual' | 'physical' | 'nutritional' | 'personal'
+export type PillarName = 'spiritual' | 'physical' | 'nutritional' | 'personal' | 'missional'
 
 export type LevelName = 'Tuning' | 'Jamming' | 'Grooving' | 'Soloing' | 'Orchestrating'
+
+// Phase 4 — Pillar Architecture
+export type OperatingState = 'anchored' | 'developing' | 'building' | 'dormant'
+
+export interface PillarLevel {
+  id:              string
+  user_id:         string
+  pillar:          PillarName
+  level:           number
+  operating_state: OperatingState
+  profile_score:   number | null
+  gauge_score:     number | null
+  assessed_at:     string | null
+  updated_at:      string
+}
 
 // Lightweight entry type used by the challenge dashboard.
 // Reads only the columns needed to determine per-pillar completion.

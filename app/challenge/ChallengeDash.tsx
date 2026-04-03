@@ -58,6 +58,12 @@ export default function ChallengeDash({
   const alreadySaved  = pillars.every(p => todayCompletions[p])
   const todayComplete = pillars.every(p => completions[p])
 
+  const pillarStates = challenge.pillar_level_snapshot
+    ? Object.fromEntries(
+        Object.entries(challenge.pillar_level_snapshot).map(([k, v]) => [k, v.state])
+      )
+    : undefined
+
   function handleToggle(pillar: string) {
     if (alreadySaved) return
     setCompletions(prev => ({ ...prev, [pillar]: !prev[pillar] }))
@@ -176,6 +182,7 @@ export default function ChallengeDash({
               alreadySaved={alreadySaved}
               onToggle={handleToggle}
               onSave={handleSave}
+              pillarStates={pillarStates}
             />
             <VideoSection
               dayNumber={dayNumber}
@@ -211,6 +218,7 @@ export default function ChallengeDash({
                 alreadySaved={false}
                 onToggle={handleHistoryEditToggle}
                 onSave={handleHistoryEditSave}
+                pillarStates={pillarStates}
               />
             </>
           ) : (

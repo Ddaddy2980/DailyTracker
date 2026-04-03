@@ -17,7 +17,9 @@ import type {
   DestinationGoal, FocusTop5Item, WeeklyReflection,
   DestinationGoalCheckInStatus, CompletionStatus, GroupDailyFlags,
   ChallengePause, PendingJourneyEvent,
+  PillarName,
 } from '@/lib/types'
+import { resolveOperatingState } from '@/lib/pillar-state'
 import { checkRootedMilestone } from '@/lib/milestones'
 import {
   calculateCurrentDay,
@@ -2058,4 +2060,123 @@ export async function updatePillarGoals(
   revalidatePath('/challenge')
   revalidatePath('/jamming')
   revalidatePath('/grooving')
+}
+
+// ─── Consistency Profile (Phase 4) ───────────────────────────────────────────
+
+function scoreToLevel(score: number): number {
+  if (score <= 3) return 1
+  if (score <= 6) return 2
+  if (score <= 9) return 3
+  return 4
+}
+
+export async function saveConsistencyProfile(scores: {
+  spiritual:           number
+  physical:            number
+  nutritional:         number
+  personal:            number
+  missional:           number
+  focusPillarSelected: PillarName | null
+}): Promise<{ success: boolean; error?: string }> {
+  const { userId } = await auth()
+  if (!userId) return { success: false, error: 'Not authenticated.' }
+
+  const sb = createServerSupabaseClient()
+
+  // 1 — Insert session row
+  const { error: sessionErr } = await sb
+    .from('consistency_profile_sessions')
+    .insert({
+      user_id:               userId,
+      spiritual_score:       scores.spiritual,
+      physical_score:        scores.physical,
+      nutritional_score:     scores.nutritional,
+      personal_score:        scores.personal,
+      missional_score:       scores.missional,
+      focus_pillar_selected: scores.focusPillarSelected,
+    })
+
+  if (sessionErr) {
+    console.error('saveConsistencyProfile session:', sessionErr)
+    return { success: false, error: 'Failed to save profile session.' }
+  }
+
+  // 2 — Upsert pillar_levels (one row per pillar)
+  const pillars: PillarName[] = ['spiritual', 'physical', 'nutritional', 'personal', 'missional']
+  const pillarRows = pillars.map((pillar) => {
+    const score = scores[pillar]
+    const level = scoreToLevel(score)
+    return {
+      user_id:         userId,
+      pillar,
+      level,
+      operating_state: resolveOperatingState(level),
+      profile_score:   score,
+      gauge_score:     null as number | null,
+      assessed_at:     new Date().toISOString(),
+      updated_at:      new Date().toISOString(),
+    }
+  })
+
+  const { error: pillarErr } = await sb
+    .from('pillar_levels')
+    .upsert(pillarRows, { onConflict: 'user_id,pillar' })
+
+  if (pillarErr) {
+    console.error('saveConsistencyProfile pillar_levels:', pillarErr)
+    return { success: false, error: 'Failed to save pillar levels.' }
+  }
+
+  // 3 — Mark profile complete on user_profile
+  const { error: profileErr } = await sb
+    .from('user_profile')
+    .update({
+      consistency_profile_completed: true,
+      updated_at:                    new Date().toISOString(),
+    })
+    .eq('user_id', userId)
+
+  if (profileErr) {
+    console.error('saveConsistencyProfile user_profile:', profileErr)
+    return { success: false, error: 'Failed to update profile.' }
+  }
+
+  revalidatePath('/consistency-profile')
+  revalidatePath('/onboarding')
+  return { success: true }
+}
+
+export async function saveFocusPillar(
+  focusPillar: PillarName
+): Promise<{ success: boolean; error?: string }> {
+  const { userId } = await auth()
+  if (!userId) return { success: false, error: 'Not authenticated.' }
+
+  const sb = createServerSupabaseClient()
+
+  const { data: session, error: fetchErr } = await sb
+    .from('consistency_profile_sessions')
+    .select('id')
+    .eq('user_id', userId)
+    .order('completed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (fetchErr || !session) {
+    return { success: false, error: 'No profile session found.' }
+  }
+
+  const { error: updateErr } = await sb
+    .from('consistency_profile_sessions')
+    .update({ focus_pillar_selected: focusPillar })
+    .eq('id', session.id)
+
+  if (updateErr) {
+    console.error('saveFocusPillar:', updateErr)
+    return { success: false, error: 'Failed to save focus pillar.' }
+  }
+
+  revalidatePath('/consistency-profile/portrait')
+  return { success: true }
 }
