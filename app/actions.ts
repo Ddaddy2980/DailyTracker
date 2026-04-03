@@ -17,7 +17,7 @@ import type {
   DestinationGoal, FocusTop5Item, WeeklyReflection,
   DestinationGoalCheckInStatus, CompletionStatus, GroupDailyFlags,
   ChallengePause, PendingJourneyEvent,
-  PillarName,
+  PillarName, PillarLevel,
 } from '@/lib/types'
 import { resolveOperatingState } from '@/lib/pillar-state'
 import { checkRootedMilestone } from '@/lib/milestones'
@@ -1442,6 +1442,33 @@ export async function getDestinationGoals(challengeId: string): Promise<Destinat
 
   if (error) { console.error('getDestinationGoals:', error); return [] }
   return (data ?? []) as DestinationGoal[]
+}
+
+export async function getPillarLevels(): Promise<PillarLevel[]> {
+  const { userId } = await auth()
+  if (!userId) return []
+
+  const sb = createServerSupabaseClient()
+  const { data, error } = await sb
+    .from('pillar_levels')
+    .select('*')
+    .eq('user_id', userId)
+
+  if (error) { console.error('getPillarLevels:', error); return [] }
+  return (data ?? []) as PillarLevel[]
+}
+
+export async function clearNextPillarInvitation(): Promise<void> {
+  const { userId } = await auth()
+  if (!userId) return
+
+  const sb = createServerSupabaseClient()
+  const { error } = await sb
+    .from('user_profile')
+    .update({ next_pillar_invitation_pillar: null })
+    .eq('user_id', userId)
+
+  if (error) console.error('clearNextPillarInvitation:', error)
 }
 
 /**

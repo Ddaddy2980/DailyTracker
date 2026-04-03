@@ -295,6 +295,15 @@ Unless David explicitly asks:
 
 ---
 
+## Known Deferred Items
+
+- `?addPillar` query param — written by `TuningComplete` and `JammingComplete` on Next Pillar Invitation accept. Jamming and Grooving onboarding flows do not yet consume it. When wired, the onboarding flow must pre-select the invited pillar for goal setup rather than presenting a cold start.
+- `GroovingCompletionScreen` — Next Pillar Invitation step not yet wired. Safe to defer because `INVITATION_THRESHOLDS[3]` is undefined and the DB field is never written for level-3 users until that threshold is defined.
+- Monthly Pillar Check — stagnation fallback not yet implemented. If `resolveNextPillarInvitation` returns null (no Dormant pillar, no gap), no monthly pillar question is shown. A future step may add a stagnation check targeting the lowest gauge-score pillar when no gap or Dormant pillar exists.
+- Jamming cron morning tone adaptation — the Level 2 cron morning block still sends a static `JAMMING_NOTIFICATIONS` message regardless of pillar state. Adaptive tone for Level 2 is deferred to a future step.
+
+---
+
 ## How To Handle Uncertainty
 
 - If a task is ambiguous, ask one clarifying question before writing code — not five
@@ -383,10 +392,10 @@ This phase restructures the app's core model from a single-ladder system to a pe
 - [x] Step 36 — Unified Challenge Container: update challenge creation logic to snapshot all active pillar levels and operating states into challenges.pillar_level_snapshot at challenge start. Challenge duration is determined by highest-development pillar level.
 - [x] Step 37 — Adapted daily check-in: update check-in component to render pillar cards based on operating state. Anchored → compact muted card. Developing → full card. Building → prominent gamified card. Dormant → not shown.
 - [x] Step 38 — Five-Pillar Dashboard: build /app/profile. Each pillar card displays its level name, operating state, and Consistency Gauge. Dormant pillars shown in muted state with quiet invitation. Life on Purpose Score shown only when all five pillars are active.
-- [ ] Step 39 — Consistency Gauge engine: build the per-pillar gauge calculation logic. Each pillar gauge combines weekly duration goal consistency performance and a rolling weighted average of historical weekly performance. Gauge recalculates weekly. Persist current gauge score per pillar to pillar_levels.gauge_score. Life on Purpose Score is the simple average of all five pillar gauge scores, persisted to user_profile.life_on_purpose_score.
-- [ ] Step 40 — Next Pillar Invitation: build post-challenge invitation logic. Fires when any pillar is Dormant or two or more levels below the user's highest. Clears next_pillar_invitation_pillar after user responds.
-- [ ] Step 41 — Monthly Pillar Check: add conditional pillar question to weekly reflection flow. Enforces 30-day cadence via last_pillar_check_at. Targets most underdeveloped or Dormant pillar.
-- [ ] Step 42 — Adaptive morning notification: update notification content to adapt tone based on pillar mix (Building present → motivational, all Developing → coaching, all Anchored → reflective).
+- [x] Step 39 — Consistency Gauge engine: build the per-pillar gauge calculation logic. Each pillar gauge combines weekly duration goal consistency performance and a rolling weighted average of historical weekly performance. Gauge recalculates weekly. Persist current gauge score per pillar to pillar_levels.gauge_score. Life on Purpose Score is the simple average of all five pillar gauge scores, persisted to user_profile.life_on_purpose_score.
+- [x] Step 40 — Next Pillar Invitation: build post-challenge invitation logic. Fires when any pillar is Dormant or two or more levels below the user's highest. Clears next_pillar_invitation_pillar after user responds.
+- [x] Step 41 — Monthly Pillar Check: add conditional pillar question to weekly reflection flow. Enforces 30-day cadence via last_pillar_check_at. Targets most underdeveloped or Dormant pillar.
+- [x] Step 42 — Adaptive morning notification: update notification content to adapt tone based on pillar mix (Building present → motivational, all Developing → coaching, all Anchored → reflective).
 
 ### Phase 5 — Sub-Destination Goals (NEXT AFTER PHASE 4)
 
@@ -403,5 +412,5 @@ This phase restructures the app's core model from a single-ladder system to a pe
 
 ---
 
-*This file was last updated: March 2026*
+*This file was last updated: April 2026*
 *Do not modify this file without David's direction*

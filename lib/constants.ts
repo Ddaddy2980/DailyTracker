@@ -469,6 +469,27 @@ export const GROOVING_NOTIFICATIONS = {
   morning_anchor: (ctx: { dayNumber: number; durationDays: number }) =>
     `Day ${ctx.dayNumber} of ${ctx.durationDays}. What will today build toward?`,
 
+  // ── Adaptive morning anchor — Step 42 ────────────────────────────────────
+  // Three tone variants selected by resolveMorningTone() based on pillar mix.
+
+  /** Any pillar Building (Tuning) — encouragement-forward, day-specific. */
+  morning_anchor_motivational: (ctx: { dayNumber: number; durationDays: number }) =>
+    `Day ${ctx.dayNumber} of ${ctx.durationDays}. You're building something — and today is part of it.`,
+
+  /**
+   * All active pillars Developing — coaching tone calibrated to highest level.
+   * highestLevel >= 3 (Grooving): contemplative.
+   * highestLevel === 2 (Jamming-context): peer-tone.
+   */
+  morning_anchor_coaching: (ctx: { dayNumber: number; durationDays: number; highestLevel: number }) =>
+    ctx.highestLevel >= 3
+      ? `Day ${ctx.dayNumber} of ${ctx.durationDays}. What will today build toward?`
+      : `Day ${ctx.dayNumber} of ${ctx.durationDays}. Keep the streak alive.`,
+
+  /** All active pillars Anchored — verbatim from PRODUCT.md. */
+  morning_anchor_reflective: () =>
+    `Another day to build the life you've already been building.`,
+
   evening_checkin: () =>
     `How did your pillars go today? Still time to check in.`,
 
