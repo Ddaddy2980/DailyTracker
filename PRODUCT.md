@@ -2,11 +2,15 @@
 
 This file is the authoritative source of truth for this product. Read this file at the start of every Claude Code session before writing any code.
 
+*Last updated: April 2026 — v2 incorporating Consistency Profile, Pillar-by-Pillar Architecture, Sub-Destination Goals, and Steering Mechanism*
+
 ---
 
 ## What This App Is
 
-The Daily Consistency Tracker is a faith-integrated habit-formation web app built around a single premise: lifestyle changes that become lifestyle habits result in lifelong transformation. The app guides users through a progressive level system — from first-time habit builders to people who coach others — using a framework of duration goals (not destination goals) across four pillars of life.
+The Daily Consistency Tracker is a faith-integrated habit-formation web app built around a single premise: lifestyle changes that become lifestyle habits result in lifelong transformation. The app guides users through a progressive level system — from first-time habit builders to people who coach others — using a framework of duration goals (not destination goals) across five pillars of life.
+
+The app meets users wherever they are. New users complete a Consistency Profile that assigns each pillar an independent starting level, honoring habits already built while investing coaching energy where genuine growth is needed. The ultimate destination is Soloing level in all five pillars — a life fully living on purpose.
 
 The app is owned and operated by David under Altared Life, LLC.
 
@@ -26,7 +30,7 @@ This app teaches and builds the *how* — Living on Purpose — as the essential
 
 - **Destination goals** target an endpoint ("run a marathon", "lose 20 lbs") — they produce the **Rollercoaster Effect**: begin, endure, arrive, return.
 - **Duration goals** target consistency over time ("walk 20 minutes every day") — they produce lifestyle change and genuine habit formation.
-- Every goal in this app is a duration goal.
+- Every primary goal in this app is a duration goal. At Grooving level and above, users may optionally attach a **sub-destination goal** to any duration goal — a short-term, time-bound direction that gives the habit a place to aim. Sub-destination goals do not replace duration habits; they ride on top of them.
 
 ### The ACT Test
 
@@ -44,78 +48,364 @@ Every duration goal must pass three criteria before being saved:
 4. The Loss of Focus (25/5 Rule)
 5. The Power of Habits (works for and against)
 
+### The Five-Pillar Vision
+
+The ultimate purpose of this app is to walk with every user until they reach Soloing level in all five pillars — until every area of their life is living on purpose. People do not build the five pillars at the same pace. This is not a character flaw — it is the normal, uneven reality of human development. The app honors where users are, builds on what they have already built, and steers them — gently and intentionally — toward wholeness across every pillar.
+
+Every coaching decision, every steering mechanism, and every level advancement in the app points toward this horizon. The app does not say this as pressure. It says it as a promise: *this is where we are walking together.*
+
 ---
 
-## The Four Pillars
+## The Five Pillars
 
-| Pillar | Focus | Examples |
-|--------|-------|---------|
-| Spiritual | Faith, reflection, connection to God | Scripture, prayer, devotional |
-| Physical | Body stewardship, movement, health | Exercise, walking, sleep, steps |
-| Nutritional | Fueling the body well | Water intake, vegetables, protein, fasting |
-| Personal | Whole-person development | Reading, writing, creativity, emotional health |
+| Pillar | Color | Hex | Focus | Examples |
+|--------|-------|-----|-------|---------|
+| Spiritual | Purple (`purple-600`) | `#9333ea` | Faith, reflection, connection to God | Scripture, prayer, devotional |
+| Physical | Emerald (`emerald-600`) | `#059669` | Body stewardship, movement, health | Exercise, walking, sleep, steps |
+| Nutritional | Amber (`amber-500`) | `#f59e0b` | Fueling the body well | Water intake, vegetables, protein, fasting |
+| Personal | Blue (`blue-600`) | `#2563eb` | Whole-person development | Reading, writing, creativity, emotional health |
+| Missional | Teal (`teal-600`) | `#0d9488` | Outward living — investing in the lives of others | Daily prayer for a specific person, intentional encouragement, acts of service, meaningful spiritual conversations |
+
+The Spiritual pillar is the foundation on which all others rest. It shapes how users see themselves, treat others, and respond to adversity. The app presents this conviction with pastoral warmth — never as pressure, always as invitation.
+
+The Missional pillar is the outward expression of all the others. Where the first four pillars build the person from the inside out, the Missional pillar channels that growth outward into the lives of others. A life that only receives never fully comes alive — like the Dead Sea, it receives the inflow of the Jordan River but has no outlet, and nothing lives in it. A life that gives as it grows — like the Sea of Galilee — teems with life precisely because it flows. The Missional pillar is that outlet.
+
+The framework for the Missional pillar is **Think ONE** — *Our Next Encounter*. Every day is filled with divine appointments. The Think ONE posture trains a person to approach each day with four active orientations: **Be Led** by the Spirit, **Be Listening** for direction, **Be Looking** for opportunity, **Be Loving** longing hearts. These Four B's are the foundation of every Missional duration goal.
+
+---
+
+## The Consistency Profile
+
+### Purpose
+
+The Consistency Profile replaces the assumption that all new users begin at Level 1 (Tuning). It is a brief onboarding inventory — not a test — that evaluates each pillar independently and assigns a starting level per pillar before any goals are set. Users who skip the Profile default to Tuning (Level 1) for all pillars.
+
+**Name:** "Your Consistency Profile"
+**Sub-heading:** "Before we set anything up, let's look at where you already are."
+**Opening line:** "This takes about 3–4 minutes. There are no right or wrong answers — only honest ones."
+
+Do not use the words "test," "assessment," or "quiz." The user should feel seen and honored, not evaluated.
+
+### Structure
+
+Five questions per pillar — four standard dimensions plus one pillar-specific orientation question — twenty questions total. Questions are presented one pillar at a time in this order: Spiritual → Physical → Nutritional → Personal → Missional. Each question measures one of four dimensions:
+
+| Dimension | What It Measures | Why It Matters |
+|-----------|-----------------|---------------|
+| Consistency | How often the practice currently happens | A habit that happens "sometimes" is a destination goal in disguise |
+| Duration | How long it has been sustained | Longevity distinguishes a settled habit from a recent commitment |
+| Independence | Whether it depends on external motivation or goals | Duration goals run on internal motivation — not outcomes |
+| Resilience | What happens when life gets hard | The true test of a habit is whether it survives adversity |
+
+### Question Sets by Pillar
+
+Each pillar receives the same four questions with pillar-specific sub-text. All answer options are A (0 pts) through D (3 pts).
+
+**Answer scale (applies to all questions):**
+
+| Q1 — Consistency | Points |
+|-----------------|--------|
+| A) I don't really have a regular practice here | 0 |
+| B) A few times a week when I think of it | 1 |
+| C) Most days — I miss occasionally | 2 |
+| D) Every day, almost without exception | 3 |
+
+| Q2 — Duration | Points |
+|--------------|--------|
+| A) I'm just getting started or restarting | 0 |
+| B) A few weeks | 1 |
+| C) Several months | 2 |
+| D) More than a year — and it has stayed consistent | 3 |
+
+| Q3 — Independence | Points |
+|------------------|--------|
+| A) Yes — I need a goal, a challenge, or outside pressure to keep going | 0 |
+| B) Sometimes — I slow down without a target | 1 |
+| C) Rarely — it mostly runs on its own | 2 |
+| D) Never — this is simply part of who I am | 3 |
+
+| Q4 — Resilience | Points |
+|----------------|--------|
+| A) It disappears until things settle down | 0 |
+| B) It takes a significant hit | 1 |
+| C) It bends, but I bounce back within a few days | 2 |
+| D) Almost nothing stops it — I find a way | 3 |
+
+**Pillar-specific sub-text for each question:**
+
+*🙏 Spiritual*
+- Q1: "How often do you practice spiritual habits — prayer, Scripture, devotion, reflection — right now?"
+- Q2: "How long have you maintained your current spiritual practice?"
+- Q3: "Does your spiritual practice depend on a church season, a Bible reading plan, or external structure to keep going?"
+- Q4: "When life gets hard — grief, stress, a spiritually dry season — what happens to your spiritual practice?"
+
+*💪 Physical*
+- Q1: "How consistently do you move your body with intention — exercise, walking, stretching — right now?"
+- Q2: "How long have you maintained your current physical practice?"
+- Q3: "Does your physical activity depend on a fitness goal, an event you're training for, or a program with an end date?"
+- Q4: "When life gets hard — travel, illness, a brutal week — what happens to your physical practice?"
+
+*🥗 Nutritional*
+- Q1: "How consistently do you make intentional, health-supporting food and hydration choices right now?"
+- Q2: "How long have you maintained your current nutritional habits?"
+- Q3: "Do your nutritional habits depend on a specific diet, a program, or a season (like January or summer) to stay consistent?"
+- Q4: "When life gets hard — travel, stress, social events — what happens to your nutritional habits?"
+
+*📝 Personal*
+- Q1: "How consistently do you invest in personal development — reading, writing, learning, emotional health, creative expression — right now?"
+- Q2: "How long have you maintained your current personal development habits?"
+- Q3: "Do your personal growth habits depend on a course, a reading challenge, or some other external structure to keep going?"
+- Q4: "When life gets hard — busy seasons, emotional difficulty, family demands — what happens to your personal development habits?"
+
+*🤝 Missional*
+- Q1: "How consistently do you take intentional action to invest in, encourage, or serve someone outside your immediate family — right now?"
+- Q2: "How long have you maintained a regular practice of outward, others-focused living?"
+- Q3: "Does your engagement with others depend on a church program, a serve schedule, or an organized event to keep you outwardly focused?"
+- Q4: "When life gets hard — busy seasons, personal difficulty, emotional drain — what happens to your investment in others?"
+
+### Scoring Scale
+
+Each pillar scores 0–12 points (4 questions × 0–3 pts each). Score maps to a starting level independently per pillar.
+
+| Pillar Score | Starting Level | Level Name | What It Means |
+|-------------|---------------|-----------|---------------|
+| 0–3 | Level 1 | Tuning | Little or no consistent daily practice. Beginning from the foundation. |
+| 4–6 | Level 2 | Jamming | Some consistency present but not yet automatic or resilient. Building on early habits. |
+| 7–9 | Level 3 | Grooving | Real habits with staying power. Deepening what's already forming. |
+| 10–12 | Level 4 | Soloing | A rooted, resilient daily practice. Maintaining, refining, and building from strength. |
+
+Note: Level 5 (Orchestrating) is not assigned through the Consistency Profile. It is earned through demonstrated challenge completion history and invitation.
+
+### The Pillar Portrait — Profile Output Screen
+
+After all five pillar assessments are complete, the user sees the Pillar Portrait: a visual summary of their starting levels. This screen has three jobs — honor what they have built, name what is still developing, and invite them into the work ahead.
+
+**Pillar Portrait screen elements:**
+1. All five pillars displayed with their starting level name and a status phrase:
+   - Soloing: "Rooted & Running"
+   - Grooving: "Building Momentum"
+   - Jamming: "Finding Your Rhythm"
+   - Tuning: "Starting Fresh"
+   - Missional (if Tuning): "Ready to Flow"
+2. A brief personalized statement acknowledging strong pillars: *"You've built something real in [strong pillars]. That foundation matters — and we're going to build on it, not ignore it."*
+3. A clear identification of the development focus: *"[Developing pillars] are your active growth areas. That's where your first challenge will invest the most energy."*
+4. A single agency question: *"Which pillar do you most want to develop right now? You can always add others as you go."*
+
+### The Spiritual Pillar — Special Pastoral Consideration
+
+When a user places significantly lower in Spiritual than their other pillars, the app names this gently and specifically:
+
+*"Your [Physical/Nutritional/Personal] habits are strong. The Spiritual pillar tends to be the one that holds everything else together. Even a small daily practice here can change what the other habits feel like."*
+
+The Spiritual invitation language: *"You've built real discipline in [other pillars]. The Spiritual pillar works the same way — not through willpower or theology, but through small, daily practices that, over time, reshape who you are from the inside out. Whatever your starting point, there is a habit here that will fit."*
+
+The Spiritual pillar gauge on the Five-Pillar Dashboard always shows the gap honestly — the pillar card is visible, the level is named, and the invitation is present. The app does not hide the gap or soften it into invisibility. It simply names it with warmth rather than shame.
+
+---
+
+## Pillar Operating States
+
+At any point in a challenge, each pillar exists in one of four operating states. These states determine coaching level, check-in intensity, and feature activation for that pillar.
+
+| State | Assigned When | App Behavior | Check-In Experience |
+|-------|--------------|-------------|-------------------|
+| **Anchored** | Pillar at Soloing (Level 4) or Orchestrating (Level 5) | Maintenance mode. Goals tracked, no coaching videos. Light weekly check-in only. | Compact card, single tap to confirm. No sub-questions, no reflection prompt. |
+| **Developing** | Pillar at Grooving (Level 3) or Jamming (Level 2) | Full framework active for this level. Coaching, pulse check, weekly reflection all engaged. | Full check-in card, each goal listed, optional reflection sentence. |
+| **Building** | Pillar at Tuning (Level 1) | Full Tuning hand-holding: gamified map, daily videos, morning anchors, celebration sequences. | Prominent, celebratory card with gamified tap and streak visual. |
+| **Dormant** | Pillar not yet selected or tracked | Shown on Five-Pillar Dashboard in muted state with quiet invitation: "This pillar is waiting." | Not included in any active challenge. |
+
+### The Unified Challenge Container
+
+Rather than one challenge level governing the entire app, the app uses a Unified Challenge Container: a single active challenge holding all currently-tracked pillars, each operating at its own level independently. One daily check-in, one dashboard, one weekly reflection — each pillar receiving the coaching level it actually needs.
+
+**Challenge duration for multi-level users:**
+
+| Highest Development Pillar Level | Available Durations | Notes |
+|----------------------------------|--------------------|----|
+| Tuning (Level 1) present | 7 days (required) | If any pillar is Tuning, the challenge runs 7 days. At completion the Tuning pillar advances and the user may restart at a longer duration. |
+| Jamming (Level 2) highest | 14 days | Standard Jamming length. Challenge is always 14 days regardless of whether the user entered Jamming via Tuning or directly via the Consistency Profile. |
+| Grooving (Level 3) highest | 30, 50, or 66 days | Standard Grooving options. |
+| All pillars Anchored | 30, 66, or 100 days | A maintenance challenge. User sets duration; all pillars run in Anchor Mode. |
+
+Anchored pillars always run for the full challenge duration. They do not complete early. When the challenge ends and a Developing pillar advances to Anchored, the user restarts with a new challenge calibrated to their updated pillar profile.
+
+### Daily Check-In Adaptation (Multi-Level Users)
+
+- **Anchored pillars:** Compact, muted card. Single tap confirmation. No coaching content.
+- **Developing pillars:** Full check-in card. Goal-by-goal confirmation. Optional reflection sentence. Appropriate to the pillar's level.
+- **Building pillars (Tuning):** Prominent, celebratory card with gamification and streak visual.
+
+**Morning notification adapts to pillar mix:**
+- Any Building (Tuning) pillar present: motivational day-specific tone referencing the Tuning milestone.
+- All Developing pillars: coaching tone calibrated to the highest Developing pillar's level.
+- All Anchored: reflective tone. *"Another day to build the life you've already been building."*
+
+---
+
+## The Steering Mechanism
+
+The Steering Mechanism is the set of features that keeps the five-pillar vision in front of the user throughout their journey — guiding them toward Soloing in all five without pressure, shame, or abandonment of their strong pillars.
+
+### The Five-Pillar Dashboard
+
+Available from the beginning of every challenge. A primary navigation item — not buried in settings. Shows:
+- Each pillar card with its current level name, operating state (Anchored / Developing / Building / Dormant), and its Consistency Gauge
+- Dormant pillars in muted state with quiet invitation: *"This pillar is waiting."*
+- The Life on Purpose Score — only shown when all five pillars are active (see below)
+
+### Per-Pillar Consistency Gauge
+
+Each pillar card displays a visual gauge — not a letter grade, not a percentage out of 100, but a filling indicator that lives inside the pillar card alongside the level name. The gauge answers one question at a glance: *how consistently am I showing up for this pillar right now, compared to last week?*
+
+**What the gauge measures:**
+The gauge reflects two inputs combined into one score:
+- **Weekly consistency performance** — how many days the user hit their duration goals within this pillar each week. This is the primary driver of movement.
+- **Accumulated track record** — a rolling weighted average where recent weeks count more than older weeks, but long-term history provides cushion. A person on Day 60 who has a bad week absorbs it better than a person on Day 14 who has a bad week — their track record earns them buffer.
+
+**How it moves:**
+- A strong week pushes the gauge upward.
+- A weak week pulls it downward.
+- The longer the track record of good weeks, the more cushion against a hard one. The shorter the history, the more each week matters.
+- The gauge moves in both directions. A person knows when they slacked, and the app does not pretend otherwise. The drop is not a punishment — it is an honest mirror and a challenge to respond this week.
+
+**What the user sees on the pillar card:**
+- The gauge filled to its current position
+- A visible indicator of last week's position — so direction of movement is immediately apparent
+- The current level name (Tuning / Jamming / Grooving / Soloing)
+- No letter grades. No percentage-out-of-100 framing. The gauge is the score.
+
+**Pillar gauges are independent.** A person who hits all their Personal goals but misses four days in Nutritional will see their Personal gauge rise and their Nutritional gauge fall. There is no hiding a struggling pillar behind a strong one. Each pillar is accountable to itself.
+
+**Gauge does not govern level advancement.** The gauge measures consistency health within a level. Level advancement is a separate milestone event governed by challenge completion criteria (see Level System). The gauge can be high but the level not yet advanced; the gauge can be recovering after a hard week while the level holds.
+
+### The Life on Purpose Score
+
+The Life on Purpose Score is the composite of all five pillar gauges — a single reading of whole-life consistency. It appears on the Five-Pillar Dashboard only when all five pillars are active.
+
+**Until all five pillars are active:** The space where the composite score will appear shows a quiet invitation instead: *"Your Life on Purpose Score will appear when all five pillars are active."* This is not a penalty — it is a gentle pull toward whole-life engagement. Dormant pillars are named and invited, not ignored.
+
+**Calculation:** Simple average of the five individual pillar gauge scores.
+
+**The score moves with weekly performance** — just as the individual gauges do. A strong week across all pillars lifts the composite. A hard week in one pillar pulls it. The composite is an honest picture, not a flattering one.
+
+**The score has no ceiling that reads like a grade.** It is displayed as a gauge, not a number. The language of the display is directional: the goal is not to hit 100 — it is to keep moving upward across every pillar.
+
+### The Next Pillar Invitation
+
+Fires after every challenge completion when any pillar is Dormant or significantly behind others.
+
+**Triggers:**
+- One or more pillars are Dormant (never started in the app)
+- One pillar is two or more levels below the user's highest-level pillar
+- User has been at the same level in a pillar for two or more consecutive challenges
+
+**Language — Dormant pillar:**
+*"You've built something real in Physical and Spiritual. But Nutritional has been sitting on the sideline. You don't have to attack it — just bring it into the fold. One small, sustainable goal. That's all it takes to get it started."*
+
+**Language — Dormant Missional pillar (specific):**
+*"Your other pillars are building strong. But the Missional pillar — investing intentionally in the lives of others — hasn't started yet. You don't have to do something dramatic. Think ONE person. One daily habit of noticing, praying, or reaching. That's where it begins."*
+
+**Language — significantly underdeveloped pillar:**
+*"Your Spiritual and Physical pillars are rooted. Personal is building momentum. But Nutritional hasn't had the same attention. Your next challenge is a good time to change that. What's one thing you could do for your nutrition every single day?"*
+
+### The Monthly Pillar Check
+
+Once every 30 days, one additional question is added to the weekly reflection flow, addressing the user's most underdeveloped or Dormant pillar. Not a separate screen — one question embedded in the existing weekly reflection. Cadence stored in `last_pillar_check_at` on user_profile.
+
+Sample questions:
+- *"You haven't started a Nutritional goal yet. Is there something in the way — or is this just not the right time?"*
+- *"Personal is your most underdeveloped pillar. If you were to add one simple habit there, what would it be?"*
+- *"You've been at Jamming in Spiritual for two challenges. What would it take to give it the same attention you give Physical?"*
+- *"The Missional pillar hasn't started yet. Who is one person in your life right now that you could begin praying for intentionally every day?"*
+
+### The Ceiling Conversation
+
+When a user reaches Soloing in all five pillars, the app names it as the most significant moment in the user journey:
+
+*"You've done something most people never do. Every area of your life is living on purpose. The question now isn't whether you can build these habits. It's whether you're willing to help someone else build theirs. That's what Orchestrating is for."*
 
 ---
 
 ## Level System — The Progression Architecture
 
-Users move through five levels based on proven consistency. All new users start at Level 1.
+New users complete the Consistency Profile during onboarding, which assigns a starting level to each pillar independently. Levels are per-pillar — a user can be Grooving in Physical and Tuning in Spiritual at the same time. The app coaches each pillar at its own level simultaneously inside the Unified Challenge Container.
+
+Users who skip the Consistency Profile default to Tuning (Level 1) for all pillars.
 
 ### Level 1 — Tuning
 
-- Challenge length: 7 days
-- Pillars: 1–2 pillars only
-- Goals per pillar: 1 goal
-- Experience: Fully guided, hand-held, gamified
-- Unlock criteria: Complete one 7-day challenge
-- Key features: Onboarding flow, video coaching library, gamified 7-day map, daily notifications, celebration sequence
+- **Challenge length:** 7 days (any pillar at Tuning requires a 7-day challenge)
+- **Duration goals for this pillar:** 1 goal
+- **Experience:** Fully guided, hand-held, gamified. The focus is proving that daily consistency is possible — one pillar, one goal, seven days.
+- **Advancement criteria:** Complete one 7-day challenge with this pillar active
+- **Key features:** Video coaching library, gamified 7-day challenge map, daily notifications, Day 7 celebration sequence
 
 ### Level 2 — Jamming
 
-- Challenge length: 14 or 21 days (user chooses at setup)
-- Pillars: 2–3 pillars
-- Goals per pillar: 1–2 goals
-- Experience: Daily coaching videos (peer tone, not instructional), weekly check-in replaces most daily touchpoints, adaptive pulse check system, accountability partner introduced
-- Unlock criteria: Complete one 7-day Tuning challenge
-- Key features: Tuning→Jamming celebration and transition, lighter onboarding, adaptive pulse check system, accountability partner, weekly summary view, pulse-responsive notifications and videos
+- **Challenge length:** 14 days (when this is the highest active pillar level)
+- **Duration goals for this pillar:** 1–2 goals
+- **Experience:** Peer-tone coaching videos, weekly check-in replaces most daily touchpoints, adaptive pulse check system, accountability partner introduced. The focus is sustaining consistency over a longer haul and learning to recognize how the pillar is doing mid-challenge.
+- **Advancement criteria:** Complete one 14-day Jamming challenge with this pillar active
+- **Key features:** Pulse check system, adaptive notifications, weekly summary view, accountability partner
 
 ### Level 3 — Grooving
 
-- Challenge length: 30, 50, or 66 days (user chooses at setup)
-- Pillars: 3–4 pillars (full access for the first time)
-- Goals per pillar: 1–3 goals
-- Experience: Contemplative coaching tone (not motivational), habit calendar, "habit taken root" celebration at Day 40–50, destination goal introduction, 25/5 focus exercise, deeper weekly reflection, cross-pillar visibility, community witness features
-- Unlock criteria: Complete two Jamming challenges totaling 21+ days
-- Key features: Full four-pillar access, 66-day challenge option, habit calendar, habit formation milestone celebration, destination goal layer, 25/5 exercise, Grooving Circle (community witness), deeper weekly reflection replacing pulse check as primary touchpoint
+- **Challenge length:** 30, 50, or 66 days (when this is the highest active pillar level)
+- **Duration goals for this pillar:** 1–3 goals
+- **Experience:** Contemplative coaching tone. The focus shifts from survival to formation. Duration goals are the foundation; destination goals sit on top of them as optional direction-setters. The weekly check explicitly reinforces that duration goal consistency matters more than destination goal hits — a person who hit their daily duration goal all seven days but missed their destination goal target is succeeding. A person who hit their destination goal three times but only completed their duration goal four days is drifting.
+- **Advancement criteria:** Complete one Grooving challenge of 60+ days with high consistency in duration goals for this pillar. Advancement is earned by proving the duration habit, not by hitting destination targets.
+- **Key features:** Habit calendar, Rooted milestone (Day 40–50), pillar-level destination goals, sub-destination goals within duration goals, 25/5 focus exercise, Grooving Circle, deeper weekly reflection
 
 ### Level 4 — Soloing
 
-- Challenge length: 90 or 100 days
-- Pillars: All 4 pillars
-- Goals per pillar: 2–4 goals
-- Experience: Goal quality refinement, stretch goals, cross-pillar insights, accountability partner
-- Unlock criteria: Complete two 90+ day challenges across all four pillars
+- **Challenge length:** 90 or 100 days (when this is the highest active pillar level)
+- **Duration goals for this pillar:** 2–4 goals
+- **Sub-destination goals:** Up to 2 per duration goal
+- **Experience:** Goal quality refinement, stretch goals, cross-pillar insights. The habit is proven and rooted. The coaching register shifts to stewardship — maintaining, refining, and building from strength.
+- **Advancement criteria:** Complete one Soloing challenge with 80%+ consistency in duration goals for this pillar across 90+ days
 
 ### Level 5 — Orchestrating
 
-- Challenge length: Any length
-- Pillars: All 4 pillars, unlimited goals
-- Experience: Create challenge templates, group challenges, coaching dashboard, legacy stats
-- Unlock criteria: Earned through Level 4 completion + invitation
+- **Challenge length:** Any length
+- **Duration goals for this pillar:** Unlimited
+- **Sub-destination goals:** Unlimited per duration goal
+- **Experience:** Create challenge templates, group challenges, coaching dashboard, legacy stats. The person at Orchestrating in a pillar has not just built the habit — they are ready to help others build it.
+- **Advancement criteria:** Earned through Level 4 completion + invitation
 
 ---
 
 ## Tuning Level — Full Feature Specification
 
-This is the most important level. If a user does not succeed here, they never see the rest of the app.
+This is the most important level to help the user find success. If a user does not succeed here, they never see the rest of the app.
 
-### Onboarding Flow (5 screens, runs once before first challenge)
+### Onboarding Flow (runs once for all new users before any goals are set)
 
-1. **Welcome screen** — "Living on Purpose" vision statement. One compelling sentence before they set any goal.
-2. **Pillar selection question** — "Which area of your life feels most neglected right now?" Answer pre-selects their first pillar.
-3. **Duration vs. destination explainer** — The Rollercoaster Effect illustrated. Must appear before goal setup.
-4. **ACT-guided goal setup** — App walks through A, C, T with plain questions. Pre-written goal suggestions are selectable and editable. No blank fields.
-5. **Challenge start confirmation** — "Your 7-day challenge starts today." Emotional ceremony with challenge card display.
+The onboarding flow is redesigned for v2. The Consistency Profile is now embedded within it. The sequence moves a person from vision → conviction → self-knowledge → goal setup, in that order.
+
+**Screen 1 — Welcome: Living on Purpose**
+"Living on Purpose" vision statement. One compelling sentence before they set any goal. Sets the tone: this app is about building a life, not hitting a target.
+
+**Screen 2 — The Whole-Life Vision**
+A screen or short video introducing the five-pillar framework through the lens of 1 Thessalonians 5:23: *"Now may the God of peace himself sanctify you completely, and may your whole spirit and soul and body be kept blameless at the coming of our Lord Jesus Christ."*
+
+The message: most people live fractured, one-dimensional lives — strong in one area, neglected in others. This app exists to walk with you toward wholeness across every pillar. The five pillars — Spiritual, Physical, Nutritional, Personal, and Missional — cover every dimension of a life lived on purpose. The Missional pillar is introduced here using the river illustration: a life that only receives, like the Dead Sea, eventually becomes stagnant. A life that gives as it grows, like the Sea of Galilee, teems with life. True wholeness flows outward.
+
+Tone: pastoral warmth, not pressure. Invitation, not obligation.
+
+**Screen 3 — Duration vs. Destination**
+The Rollercoaster Effect illustrated. Clear, brief, visual. Must appear before goal setup so the user understands why the app works the way it does. This is the conceptual foundation everything else rests on.
+
+**Screen 4 — Your Consistency Profile**
+The full 20-question Consistency Profile (5 pillars × 4 questions). Presented one pillar at a time. Framing: "Before we set up anything, let's look at where you already are." The user feels seen, not evaluated.
+
+**Screen 5 — Your Pillar Portrait**
+The Profile output screen. All five pillars displayed with starting level name and status phrase. Personalized statement honoring strong pillars. Development focus identified. Single agency question: "Which pillar do you most want to develop right now?"
+
+**Screen 6 — Goal Setup (per pillar)**
+ACT-guided goal setup for each active pillar, starting with the pillar the user selected as their development focus. Pre-written goal suggestions are selectable and editable. No blank fields. The ACT check (Attainable, Challenging, Trackable) walks through one question per criterion.
+
+**Screen 7 — Challenge Start Confirmation**
+"Your challenge starts today." Emotional ceremony with challenge card display showing all active pillars and their goals. The challenge duration is set by the highest-development pillar level present (see Unified Challenge Container).
 
 ### Video Coaching Library (all videos ~60 seconds)
 
@@ -125,11 +415,12 @@ This is the most important level. If a user does not succeed here, they never se
 - A3: "Why small habits are not small" — Day 1
 - A4: "The five attacks against consistency" — Day 1
 
-**Module B — The four pillars**
+**Module B — The five pillars**
 - B1: "Why your spiritual life is the foundation of everything else" — pillar intro
 - B2: "Your body is not separate from your purpose" — pillar intro
 - B3: "What you eat is what you become" — pillar intro
 - B4: "You are more than your to-do list" — pillar intro
+- B5: "Think ONE — living intentionally for others" — Missional pillar intro. Introduces the Four B's (Be Led, Be Listening, Be Looking, Be Loving) and the Think ONE framework. Uses the Sea of Galilee / Dead Sea illustration.
 
 **Module C — Duration goals and the ACT system**
 - C1: "Why destination goals keep failing you" — onboarding
@@ -183,152 +474,66 @@ This is the most important level. If a user does not succeed here, they never se
 
 ## Jamming Level — Full Feature Specification
 
-This is the bridge level. The person has proven they can show up for 7 days. Now they must prove they can carry two pillars over a longer haul — and learn to recognize and name how they are doing mid-challenge.
-
 ### The Core Coaching Message for Jamming
 
 "It's supposed to feel harder before it feels easier. That's not failure — that's Jamming."
 
 Two pillars is not twice as hard — it is four times as hard at first. The app must name this difficulty before the user experiences it, and return to it whenever the pulse check signals struggle.
 
-### Tuning → Jamming Transition Experience
+### Tuning → Jamming Transition Experience (Path A users only)
 
-Trigger: Fires immediately when a Tuning challenge is marked complete.
+Trigger: Fires when a Tuning challenge is marked complete and this pillar advances to Jamming.
 
-1. **Full Tuning completion celebration screen**
-   - Tuning badge displayed prominently
-   - Stats: 7 days completed, pillar(s), consistency percentage
-   - Galatians 6:9 scripture card
-   - Tone: "You did something most people never do."
+1. Full Tuning completion celebration screen — Tuning badge, stats, Galatians 6:9 scripture card
+2. Shareable completion card — "I just finished my Tuning challenge — 7 days, [pillar name], [app name]"
+3. Rest day option — "Start Jamming today — or take a day to breathe." Invitation waits up to 3 days.
+4. Jamming invitation card
 
-2. **Shareable completion card**
-   - "I just finished my Tuning challenge — 7 days, [pillar name], [app name]"
-   - One-tap share to social or text
-   - Word-of-mouth acquisition built into the celebration moment
+Path B users (entering Jamming directly via Consistency Profile) do not see this transition. They receive a Jamming-entry welcome screen instead: *"You've already built consistency here. This 14-day challenge is about proving it holds — and going deeper."*
 
-3. **Rest day option**
-   - "Start Jamming today — or take a day to breathe."
-   - Jamming invitation waits up to 3 days before a gentle nudge appears
-   - Do not force an immediate start; giving the choice respects the accomplishment
+### Two Entry Paths into Jamming
 
-4. **Jamming invitation card**
-   - "You've tuned your instrument. Now it's time to play."
-   - Brief description of what Jamming is and what's different
-   - Challenge length choice presented here: 14 days or 21 days
-   - "14 days if you want to build confidence. 21 days if you're ready to push."
+**Path A — Via Tuning:** The user completed a 7-day Tuning challenge and has been invited into Jamming. Their 14-day Jamming challenge brings their total in-app journey to 21 days.
 
-5. **Carry-forward of Tuning goal**
-   - Tuning goal pre-populated as first Jamming goal
-   - User confirms or adjusts — does not rebuild from scratch
-   - Honors what was already built
+**Path B — Via Consistency Profile:** The user's Consistency Profile placed them at Jamming level in this pillar. Their 14-day Jamming challenge is their first challenge in the app for this pillar. The app acknowledges their prior consistency: *"You've already built something here. This challenge is about proving it holds over time."*
 
-### Jamming Onboarding Flow (3 screens — lighter than Tuning)
+In both cases the Jamming challenge is 14 days. The onboarding tone and coaching content adapts slightly based on entry path — Path A users receive the Tuning→Jamming transition celebration; Path B users receive a Jamming-entry welcome that honors their existing habits without assuming beginner context.
 
-**Screen 1 — Challenge length choice**
-- Present 14-day and 21-day options with honest framing
-- Brief explanation of what each length does for habit formation
-- No right or wrong answer — both are wins
+### Jamming Onboarding Flow (3 screens)
 
-**Screen 2 — Second pillar introduction**
-- App suggests the next pillar based on what was NOT chosen in Tuning
-- One-sentence explanation of why this pillar matters
-- ACT check is lighter: one question only ("Can you do this on the worst day of the year?") — not the full three-step walk-through
-- Pre-written goal suggestions are still available and selectable
+1. **Challenge confirmation** — 14-day challenge. No length choice — Jamming is always 14 days.
+2. **Goal setup / carry-forward review** — For Path A users: Tuning goal pre-populated; user confirms or adjusts, second pillar introduced. For Path B users: ACT-guided goal setup for this pillar at Jamming level; pre-written suggestions appropriate to Jamming experience.
+3. **Accountability partner setup** — Name and contact (email or phone). Optional.
 
-**Screen 3 — The honest warning**
-- "Two pillars is harder than one. It's supposed to feel harder before it feels easier."
-- Names the difficulty before it arrives — the most important coaching moment in Jamming onboarding
-- Introduces the pulse check: "Once a week we'll ask how you're doing. Your answer adjusts how we support you."
+### Pulse Check System
 
-**Accountability partner invitation** (optional — presented on Screen 3)
-- "Who in your life would celebrate this with you?"
-- One person: name + contact (email or phone)
-- Partner visibility: weekly summary only — not daily check-ins
-- Introduced here for the first time; not available in Tuning
+Three states: Smooth Sailing, Rough Waters, Taking On Water.
 
-**Updated purpose statement**
-- Show the user what they wrote in Tuning
-- "Does this still capture your why? Update it or keep it."
-- Their own words shown back to them on hard days
+Triggers: scheduled weekly, missed day, partial completion.
 
-### Pulse Check System — Adaptive Coaching
-
-The pulse check is the most innovative feature in the app. It replaces fixed support levels with a responsive system that meets each user where they actually are each week.
-
-**Three Pulse States**
-
-| State | User says | App response |
-|-------|-----------|--------------|
-| Smooth Sailing | "I've got this. Habits are forming." | Reduce to morning anchor notification only. Surface encouragement video (J4). Back off coaching tone. |
-| Rough Waters | "It's hard but I'm still in it." | Maintain standard support. Surface relevant recovery video (J5). Add mid-week encouragement message. |
-| Taking On Water | "I'm struggling and close to quitting." | Escalate to full Tuning-level notification cadence. Surface J6 + C4. Offer goal revision. Offer temporary pillar reduction. Personal-feeling message. |
-
-**Pulse Check Cadence — Hybrid Model**
-
-The cadence is intelligent, not fixed. Default is weekly. Event triggers fire additional checks when warning signals appear.
-
-*Scheduled weekly check (every 7 days)*
-- Anchored to the weekly summary view
-- Full context available: days completed per pillar, reflection field, pulse question
-- The primary pastoral moment of the week
-
-*Event trigger 1 — Missed day*
-- Fires the next time the user opens the app after any missed check-in
-- Single question only — no weekly summary attached
-- Prompt: "Yesterday slipped. How are you feeling about the challenge right now?"
-- Catches the slide at the exact moment it is most actionable
-
-*Event trigger 2 — Two consecutive partial completions*
-- Fires on Day 3 of the pattern if the user completed only part of their goals on Days 1 and 2
-- Lightweight — the three-state pulse question only, no full weekly summary
-- Early warning before the pattern becomes a dropout
-
-*Cooldown rule — CRITICAL*
-- Never show two pulse checks within 48 hours, even if multiple triggers fire simultaneously
-- Priority order: missed day trigger wins over partial completion trigger; scheduled weekly wins over both if same day
-- Users who are Smooth Sailing never see an unscheduled pulse check
-
-**Pulse Check Decision Logic**
-
-After every daily check-in saves, the app evaluates silently:
-1. Is today a scheduled weekly pulse day?
-2. Was yesterday a missed day?
-3. Are the last two days both partial completions?
-
-If any check is true AND `last_pulse_check_at` was more than 48 hours ago → queue a pulse check. Queue appears at the top of the next app open (or immediately after check-in if in-app). Response is recorded → `notification_tier` updated → adaptive video queued.
+*Cooldown rule — CRITICAL* — Never show two pulse checks within 48 hours. Priority order: missed day trigger > partial completion trigger; scheduled weekly wins over both if same day. Smooth Sailing users never see an unscheduled pulse check.
 
 ### Jamming Challenge Map and Milestones
 
-Named milestones (21-day version; 14-day version ends at Day 14)
-
 | Day | Name | Notes |
 |-----|------|-------|
-| 1 | Reentry | Welcome back. Two pillars starts now. |
+| 1 | Reentry | Welcome back. The Jamming load starts now. |
 | 2 | Two Pillars | The new load is real. Acknowledge it. |
-| 3 | Hard Again | Same hard-day pattern as Tuning. Tone shift: "You knew this was coming." |
-| 7 | Pulse Check 1 | Weekly summary + first pulse check. Support level adjusts. |
-| 9 | Halfway (21-day) | "You've done this before. You know how to finish." Reference Tuning completion. |
-| 14 | Done (14-day) OR Pulse Check 2 (21-day) | Completion sequence OR second weekly pulse check |
-| 18 | Almost (21-day) | Final push. Three days left. |
-| 21 | Done (21-day) | Full Jamming completion sequence |
-
-Day 3 milestone message: "Hard again. You knew it was coming — and you showed up anyway. That's the difference between someone who wants to change and someone who actually does."
-
-Day 9 milestone message (21-day): "Halfway. You finished Tuning. You know what it feels like to complete something. Use that."
+| 3 | Hard Again | "You knew this was coming." |
+| 7 | Pulse Check 1 | Weekly summary + first pulse check. |
+| 9 | Halfway | Reference prior challenge or Consistency Profile score. |
+| 13 | Almost | Final push. One day left. |
+| 14 | Done | Full Jamming completion sequence. |
 
 ### Video Coaching Library — Jamming Additions
-
-**Tone shift from Tuning to Jamming**
-- Tuning: teaching mode, hand-holding, anticipatory, foundational
-- Jamming: coaching mode, alongside, responsive to current state, experiential (references what they've already done)
 
 **J Series — Core Jamming Videos**
 
 | ID | Title | Trigger |
 |----|-------|---------|
 | J1 | "Welcome to Jamming. Here's what's different." | Jamming onboarding |
-| J2 | "Why adding a second pillar feels like starting over (and why it's not)" | Day 1–2 of Jamming |
-| J3 | "The weekly check-in: why reviewing matters more than tracking" | Day 6 (before first pulse check) |
+| J2 | "Why adding a second pillar feels like starting over (and why it's not)" | Day 1–2 |
+| J3 | "The weekly check-in: why reviewing matters more than tracking" | Day 6 |
 | J7 | "Jamming complete. You've built something real." | Jamming completion |
 
 **Pulse Response Videos**
@@ -339,38 +544,27 @@ Day 9 milestone message (21-day): "Halfway. You finished Tuning. You know what i
 | J5 | "Still in it means you're winning" | Pulse = Rough Waters |
 | J6 | "Let's make this survivable" | Pulse = Taking On Water |
 
-Video J1 notes: Acknowledges what they proved in Tuning. Sets honest expectations. "Two pillars is not twice as hard — it's four times as hard at first. That's not a warning. That's a promise that it gets better."
-
-Video J4 notes: Reflective, not instructional. Invites them to notice early signs of identity shift — not just habit completion. "You're not just completing a checklist. Something is changing in you."
-
-Video J5 notes: Validates the struggle without dramatizing it. "The person who keeps showing up in rough waters becomes the person who knows how to navigate them. That person is you."
-
-Video J6 notes: Pastoral, direct, no shame. Presents goal revision and pillar reduction as wisdom, not retreat. "A good sailor doesn't drown trying to prove a point. They adjust the sails."
-
 ### Notification System — Jamming (Adaptive by Pulse State)
 
 | Notification | Time | Trigger condition |
 |-------------|------|------------------|
-| Morning anchor | 7:00 AM | All users, daily — references day number and both pillar names |
-| Evening check-in | 8:00 PM | Rough Waters + Taking On Water users only |
-| Mid-week encouragement | Wednesday | Rough Waters + Taking On Water users only |
+| Morning anchor | 7:00 AM | All users daily |
+| Evening check-in | 8:00 PM | Rough Waters + Taking On Water only |
+| Mid-week encouragement | Wednesday | Rough Waters + Taking On Water only |
 | Late rescue | 9:45 PM | Rough Waters + Taking On Water, if not checked in |
-| Weekly check-in prompt | Day 7 / Day 14 | All users — "2 minutes. See your week and tell us how you're feeling." |
-| Accountability partner update | Weekly | If partner set — factual, celebratory summary of the week |
-| Miss-day recovery | Morning after missed day | Grace tone always. "Yesterday slipped — it happens. What matters is today." |
-| Jamming completion | Immediate | Full sequence: video + Jamming badge + share card + Grooving invitation |
+| Weekly check-in prompt | Day 7 / Day 14 | All users |
+| Accountability partner update | Weekly | If partner set |
+| Miss-day recovery | Morning after missed day | Grace tone always |
+| Jamming completion | Immediate | Full sequence |
 
-**`notification_tier` values and what triggers them**
-- `minimal` — Smooth Sailing: morning anchor only
-- `standard` — Rough Waters: morning + evening + mid-week
-- `full` — Taking On Water: full Tuning-level cadence + personal message
+**`notification_tier` values:** `minimal` (Smooth Sailing), `standard` (Rough Waters), `full` (Taking On Water)
 
 ### Jamming Completion Sequence
 
-1. Jamming badge awarded ("You've been Jamming")
-2. Completion stats: days completed, pillars, consistency percentage, pulse check history
-3. Shareable card: "I just finished my Jamming challenge — [days] days, [pillars], [app name]"
-4. Grooving invitation: "You've proven consistency across two pillars. Grooving is for people ready to lock this in for good. Are you ready?"
+1. Jamming badge awarded
+2. Completion stats: days, pillars, consistency %, pulse check history
+3. Shareable card
+4. Grooving invitation
 
 ---
 
@@ -378,159 +572,164 @@ Video J6 notes: Pastoral, direct, no shame. Presents goal revision and pillar re
 
 ### The Identity of This Level
 
-Grooving is the first level where survival is no longer the question. The person has proven across two levels that they can show up. The coaching register shifts entirely — from motivational to contemplative. The app is no longer saying "keep going, you can do this." It is saying "look at what is forming in you."
+Grooving is the first level where survival is no longer the question. The coaching register shifts entirely — from motivational to contemplative. The app is no longer saying "keep going, you can do this." It is saying "look at what is forming in you."
 
-The two primary retention risks at this level are isolation (the bigger of the two) and life interruption. The design must address both directly: isolation through community witness features, life interruption through a robust recovery and pause system that does not shame a person for a season of life.
-
-**The Core Coaching Message for Grooving**
-
-"You are no longer building a habit. You are becoming a person who has these habits. That is a different thing entirely."
-
----
+**The Core Coaching Message for Grooving:** "You are no longer building a habit. You are becoming a person who has these habits. That is a different thing entirely."
 
 ### Jamming → Grooving Transition Experience
 
-Trigger: Fires when a Jamming challenge is marked complete AND the user has completed two Jamming challenges totaling 21+ days.
+Trigger: Fires when a 14-day Jamming challenge is marked complete for this pillar.
 
-1. **Full Jamming completion celebration screen**
-   - Jamming badge displayed with Tuning badge alongside — the collection grows
-   - Stats: days completed, pillars, consistency percentage, pulse check history across the challenge
-   - Tone: "You didn't just finish — you built something across two pillars over [X] days. That is real."
+- **Path A users** (came through Tuning): 21 total days in app for this pillar at time of Grooving invitation.
+- **Path B users** (entered via Consistency Profile): 14 total days in app for this pillar at time of Grooving invitation. The app acknowledges this: *"You came in with a foundation already built. You've now proven it in the app. Grooving is where it goes deeper."*
 
-2. **The "What changed?" reflection prompt**
-   - Single open-ended question before the Grooving invitation appears
-   - "In one sentence — what is different about you since you started Tuning?"
-   - Their answer is saved and shown back at key moments during Grooving
-   - This is the first time the app asks a backward-looking identity question, not just a forward-looking goal question
+1. Full Jamming completion celebration screen — Jamming badge alongside Tuning badge.
+2. **"What changed?" reflection prompt** — "In one sentence — what is different about you since you started Tuning?" Saved and shown back at key moments.
+3. **Grooving invitation card** — Challenge length choice: 30, 50, or 66 days. "30 days if you want a strong win. 50 days to go deeper. 66 days if you're ready to make this permanent."
+4. **Carry-forward of Jamming goals** — All proven goals pre-populated. User reviews and confirms.
 
-3. **Grooving invitation card**
-   - "You've found the rhythm. Now it's time to lock it in."
-   - Brief honest description: longer challenge, more pillars, a new kind of question the app will ask
-   - Challenge length choice: 30 days, 50 days, or 66 days
-   - "30 days if you want a strong win. 50 days to go deeper. 66 days if you're ready to make this permanent."
-
-4. **Carry-forward of Jamming goals**
-   - All proven Jamming goals pre-populated as Grooving starting goals
-   - User reviews and confirms — can adjust any goal or add new ones
-   - Tone: "These are yours. You earned them. Adjust anything that needs to change."
-
----
-
-### Grooving Onboarding Flow (3 screens — lightest onboarding yet)
+### Grooving Onboarding Flow (3 screens)
 
 **Screen 1 — Challenge length and pillar selection**
-- Present 30, 50, and 66-day options with the honest framing above
-- Introduce full four-pillar access for the first time
-- If user is not yet tracking all four pillars, the fourth pillar is presented as a new invitation — not a requirement
-- ACT check for any new goals: one question only, same as Jamming
+- 30, 50, 66-day options. Introduce full five-pillar access for the first time, including the Missional pillar. ACT check for new goals: one question only.
 
 **Screen 2 — The 25/5 Focus Exercise**
-- Introduced here for the first time as a standalone feature
-- Framing: "Before you set your direction, you need to know what actually matters."
-- Full exercise presented on screen:
-  1. "Write down 25 things you want to accomplish in the next 2–5 years."
-  2. "Circle the five most important and number them 1–5."
-  3. "Your top five are your focus. The other 20 will keep you from your top five if you let them."
-- The user's top 5 are saved to their profile
-- This list becomes the reference point for destination goal introduction later in the challenge
-- The 25/5 exercise is not required to proceed — but strongly encouraged with a brief explanation of why it matters at this stage
+- Full exercise: write 25 things to accomplish in the next 2–5 years, circle and rank top 5.
+- Top 5 saved to profile. Reference point for destination goal introduction later.
+- Optional but strongly encouraged.
 
 **Screen 3 — Introducing the Grooving Circle**
-- "Consistency over 30–66 days is hard to sustain alone. The people who finish are usually the people who feel witnessed."
-- Introduce the Grooving Circle: a small, private group of up to 5 people who receive a weekly summary of the user's consistency
-- Distinct from the Jamming accountability partner (one person, weekly summary only)
-- Grooving Circle members see: days completed per pillar, current streak, one optional reflection sentence
-- Members do NOT see: individual goals, pulse state, personal notes
-- Setting up the Circle is optional but presented as the strongest predictor of Grooving completion
-
----
+- Up to 5 people who receive weekly consistency summary.
+- Members see: days completed per pillar, current streak, one optional reflection sentence.
+- Members do NOT see: individual goals, pulse state, personal notes.
+- Optional but presented as the strongest predictor of Grooving completion.
 
 ### The Habit Calendar
 
-The habit calendar is the signature visual feature of Grooving — the first time the user can see their consistency as a pattern across weeks rather than a streak count.
-
-**What it shows**
-- A grid view of every day in the challenge
-- Each day color-coded by completion state: full completion, partial completion, missed, future
-- Each pillar has its own color lane within the day cell (Spiritual: purple, Physical: emerald, Nutritional: amber, Personal: blue)
-- Streaks visible as unbroken color runs
-- Patterns visible across weeks — the person can see with their own eyes that Thursdays are hard, or that Week 3 always dips
-
-**What it does**
-- Clicking any completed day shows that day's goals and reflection (if entered)
-- Weekly summary view accessible from the calendar
-- "Your strongest pillar" and "your most consistent day of the week" calculated and displayed
-- Pattern insight appears at Week 4: "You've missed [day of week] three weeks in a row. Want to adjust your goal for that day?"
-
-**Where it lives**
-- Accessible from the Grooving dashboard as a primary navigation item — not buried
-- Weekly summary view links to the calendar with the relevant week highlighted
-
----
+- Grid view of every day in the challenge, color-coded by completion state: full, partial, missed, future
+- Each pillar has its own color lane within the day cell
+- Clicking any completed day shows goals and reflection for that day
+- "Your strongest pillar" and "most consistent day of the week" calculated and displayed
+- Pattern insight at Week 4: "You've missed [day] three weeks in a row. Want to adjust your goal for that day?"
+- Accessible as a primary navigation item — not buried
 
 ### The "Habit Taken Root" Milestone — Day 40–50
 
-This is the most important milestone in the entire app — the moment research identifies as genuine habit formation. The app must name it explicitly and celebrate it as the threshold it actually is.
-
-**Detection logic**
+**Detection logic:**
 - Runs silently after every check-in between Days 40 and 50
-- Triggers when: user has completed their primary goal (carried from Tuning) for 40+ consecutive or near-consecutive days (allowing for up to 3 missed days in the window)
-- Only fires once per challenge — the first qualifying goal to hit the threshold
+- Triggers when: user has completed their primary goal for 40+ consecutive or near-consecutive days (allowing up to 3 missed days in the window)
+- Only fires once per challenge — first qualifying goal to hit the threshold
 
-**The celebration sequence**
-1. Full-screen milestone moment — distinct from any other celebration in the app
-2. Message: "Something just happened. [Goal name] is no longer something you're trying to do. It's something you do. Research calls this habit formation. You just crossed the line."
-3. The specific goal is named and highlighted — this is personal, not generic
-4. A "Rooted" badge awarded — visually distinct from level completion badges
-5. Their original "Why this matters to me" statement shown back to them
-6. The "What changed?" reflection from the Jamming→Grooving transition shown back to them
-7. Optional: one-sentence reflection prompt — "Now that this is part of who you are — what's next?"
+**Celebration sequence:**
+1. Full-screen milestone moment
+2. Message: "Something just happened. [Goal name] is no longer something you're trying to do. It's something you do."
+3. "Rooted" badge awarded
+4. Original "Why this matters to me" statement shown back
+5. "What changed?" reflection from Jamming→Grooving transition shown back
+6. Optional reflection prompt: "Now that this is part of who you are — what's next?"
 
-**The transition into destination goals**
+**The transition into destination goals:**
 - The "what's next?" question is the natural bridge
-- Immediately after the Rooted milestone celebration, the app introduces destination goals for the first time
+- Immediately after the Rooted milestone, the app introduces pillar-level destination goals. Sub-destination goals within individual duration goals are available from the start of Grooving level — they do not require the Rooted milestone to unlock.
 - Framing: "You've built the how. Duration goals got you here. Now let's talk about where here can take you."
-- The user's 25/5 top five list (if completed) is shown alongside this introduction
-- Destination goal setup is optional — they can decline and continue the challenge without one
-- If they set one, it lives as a separate layer above their duration goals — it does not replace them
+- 25/5 top five list shown alongside this introduction
+- Both types of destination goals are optional — they live above duration goals and do not replace them
 
----
+### Pillar-Level Destination Goals (Grooving+)
 
-### Destination Goal Introduction
+Timing: Offered after the Rooted milestone fires. If not fired by Day 50, offered at Day 50 weekly check-in.
 
-Timing: Offered after the Rooted milestone fires (Day 40–50). If the Rooted milestone has not fired by Day 50, offered at the weekly check-in on Day 50 regardless.
+**Framing:** "A duration goal asks: what can I do every day? A destination goal asks: where is every day taking me? You've answered the first question. Here's the second."
 
-**Framing on screen**
-
-"A duration goal asks: what can I do every day? A destination goal asks: where is every day taking me? You've answered the first question. Here's the second."
-
-**How it works in the app**
 - One destination goal per pillar maximum at Grooving level
-- Destination goals are displayed above duration goals on the dashboard — the direction above the daily practice
-- A destination goal has: a name, a target date, and a connection to one of their 25/5 top five items (optional link)
-- Progress toward a destination goal is NOT tracked by the app — that is intentional
-- The app only asks at each weekly check-in: "Are you still moving toward [destination goal]? Yes / Slowly / No"
-- This keeps destination goals directional rather than performative — the duration habits are still doing the actual work
+- Displayed above duration goals on the dashboard — the direction above the daily practice
+- Attributes: goal name, optional target date, optional link to 25/5 top five
+- Progress NOT tracked — intentionally directional
+- Weekly check-in: "Are you still moving toward [destination goal]? Yes / Slowly / No"
 
-**What the app does NOT do**
-- Does not turn destination goals into another checklist
-- Does not create streaks or completion tracking for destination goals
-- Does not penalize or flag if a destination goal is not reached — it is a compass, not a finish line
+The app does NOT turn destination goals into a checklist, does NOT create streaks for them, and does NOT penalize if a destination goal is not reached.
 
----
+### Sub-Destination Goals Within Duration Goals
+
+Sub-destination goals are short-term, time-bound directions attached to individual duration goals. They give the duration habit a place to aim right now, without replacing the daily discipline being built.
+
+**The two-question model:**
+
+| Duration Goal Answers | Sub-Destination Goal Answers |
+|-----------------------|------------------------------|
+| What can I do every day? | Where is every day taking me right now? |
+| How do I keep going? | What am I building toward in the next 30–60 days? |
+| What is my baseline commitment? | What is the current direction of this commitment? |
+
+**Key distinction:** The Rollercoaster Effect occurs when a destination goal IS the habit. It does NOT occur when a destination goal sits on top of an already-established habit. Sub-destination goals are available from the start of Grooving level. The weekly reflection actively monitors whether the person is prioritizing their duration goals over their sub-destination targets — if the sub-destination is pulling focus away from the daily habit, the app names it and redirects.
+
+**Availability by level:**
+
+| Level | Available | Limit |
+|-------|-----------|-------|
+| Tuning (Level 1) | No | — |
+| Jamming (Level 2) | No | — |
+| Grooving (Level 3) | Yes — available from challenge start | 1 per duration goal |
+| Soloing (Level 4) | Yes | 2 per duration goal |
+| Orchestrating (Level 5) | Yes | Unlimited |
+
+**Setup flow:**
+
+Entry point: Within the duration goal card on the Grooving dashboard. A quiet CTA appears below the goal name: *"→ Add a direction to this habit"*
+
+Three setup fields: Direction Name (plain-language description), Frequency Target (2x–7x per week), Time Window (14–66 days).
+
+Confirmation screen shows: "Your habit: [goal name] / Your current direction: [direction name] / Important: Your daily habit continues whether or not you hit the target on any given week."
+
+**Dashboard display:**
+```
+PHYSICAL
+Exercise at least 15 minutes every day        [check]
+→ Direction: Strength training 3×/week — Day 12 of 30
+```
+
+Tapping the sub-destination line expands to show: goal name, frequency target, days remaining, "Release this direction" option. When no sub-destination is active: quiet CTA "→ Add a direction to this habit."
+
+**Weekly check-in integration (Step 6 of weekly reflection):**
+- "Are you on track with [direction name]? Yes / Slowly / No"
+- Responses are informational only — do NOT affect pulse state, notification tier, or challenge status.
+
+**End states:**
+
+| End State | How It Triggers | App Response |
+|-----------|----------------|-------------|
+| Completed | User marks complete, or time window ends with "Yes" at final weekly check-in | Brief celebration inside goal card. Prompt to set a new direction. Duration goal continues unchanged. |
+| Released | User manually releases mid-challenge | Quiet removal. "Direction released. Your habit continues." |
+| Expired | Time window ends without completion or release | Quiet expiry. Weekly check-in: "Your direction has ended. Would you like to set a new one?" |
+
+**Non-negotiable design rules:**
+1. The duration goal is always primary. Sub-destination goals never appear as daily check-in items.
+2. Missing the sub-destination never penalizes the challenge. No streak impact, no consistency percentage impact, no pulse state change, no notification escalation.
+3. Language is always directional, never performative. Use: "direction," "aiming toward," "moving toward." Never: "goal completed," "goal failed," "performance."
+4. Sub-destination goals are optional and quiet. The CTA must never feel mandatory.
+5. When a sub-destination ends, the duration habit continues without interruption.
 
 ### Deeper Weekly Reflection — Grooving Format
 
-At Grooving, the weekly check-in expands beyond the pulse check. The pulse check remains (same three states, same hybrid cadence) but is preceded by a brief reflection layer.
+**The core coaching conviction of the Grooving weekly check:**
+Duration goal consistency is always more important than destination goal performance. The weekly reflection must reinforce this clearly and repeatedly. A person who completed their duration goal every day but missed their destination goal target is succeeding. A person who hit their destination target but only completed their duration goal four of seven days is drifting — and the app names this gently. The destination goal gives the duration habit direction. It does not replace it. If those two things ever compete, the duration habit wins.
 
-**Weekly reflection structure (appears every 7 days)**
-1. Habit calendar summary — visual week review, one tap to see the full calendar
-2. Pillar performance — days completed per pillar this week, comparison to previous week
-3. One reflection question — rotates weekly from a curated set (see below)
-4. Pulse check — same three-state question as Jamming, same adaptive response logic
-5. Destination goal check-in (if set) — "Are you still moving toward [goal]? Yes / Slowly / No"
+**Weekly reflection structure (every 7 days):**
+1. Habit calendar summary — visual week review
+2. Pillar performance — days completed per pillar, comparison to previous week. Duration goal completion is shown first and prominently. Destination goal status is shown below it as secondary context.
+3. One reflection question — rotates weekly from curated set
+4. Pulse check — same three-state question, same adaptive response logic
+5. Pillar-level destination goal check-in (if set) — "Are you still moving toward [goal]? Yes / Slowly / No" — shown after duration performance review, never before
+6. Sub-destination check-in (for each active sub-goal) — "Are you on track with [direction name]? Yes / Slowly / No" *(informational only — does not affect pulse state, notification tier, or challenge status)*
+7. Monthly Pillar Check question *(if 30-day cadence has elapsed)*
 
-**Rotating weekly reflection questions (sample set — build full library of 10)**
+**If a user hits their destination goal but misses duration goal days:**
+The app addresses this directly with a coaching note — not shame, but clarity: *"You hit your [destination] target this week — that's real. And you completed your daily habit [X] of 7 days. The daily habit is what makes [destination] stick long-term. This week, let's focus on the daily practice first."*
+
+**If a user hits duration goals but misses destination target:**
+The app affirms the right priority: *"You showed up [X] of 7 days for [pillar]. That's what this is about. Your [direction] goal is still in front of you — and the habit you're building is exactly what makes it reachable."*
+
+**Rotating weekly reflection questions (library of 10):**
 - "Which pillar felt most alive this week — and why do you think that is?"
 - "What was the hardest moment this week, and what got you through it?"
 - "Is there anything about your goals that needs to change to stay honest?"
@@ -542,72 +741,42 @@ At Grooving, the weekly check-in expands beyond the pulse check. The pulse check
 - "Who in your life has noticed something different about you? What did they see?"
 - "If your habits are building something — what is it building toward?"
 
----
-
 ### The Grooving Circle — Community Witness Feature
 
-**What it is**
+A small, private group of up to 5 people who receive a weekly digest of the user's consistency. Not a social feed. A witnessed practice.
 
-A small, private group of up to 5 people who receive a weekly digest of the user's consistency. Not a social feed. Not public. A witnessed practice.
-
-**What Circle members receive (weekly, automated)**
+**What Circle members receive (weekly, automated):**
 - "[Name] completed [X] of [Y] days this week across [pillar count] pillars"
 - Current streak length
-- One sentence from the user's weekly reflection (optional — user chooses to share or not each week)
-- No goals, no pulse state, no personal notes
+- One sentence from weekly reflection (optional — user chooses each week)
 
-**What Circle members can do**
-- Reply with a brief encouragement (text notification to the user only — not a feed)
-- Nothing else — no likes, no comments visible to others, no performance metrics
+**What Circle members can do:** Reply with a brief encouragement (text notification to user only). Nothing else.
 
-**Why this design**
-
-The 30–50 demographic does not want a social feed around their personal growth. They want to feel that a few trusted people know what they're doing and are quietly cheering. The Circle creates witness without performance pressure.
-
-**Circle management**
-- User adds members by name and contact (email or phone) — same mechanism as accountability partner
-- Members do not need an app account — they receive a simple weekly email or text
-- User can remove members at any time with no notification to the removed member
-
----
+**Circle management:** User adds members by name and contact (email or phone). Members do not need an app account.
 
 ### Life Interruption Recovery System
 
-For a 30–66 day challenge, a significant life interruption — illness, travel, family crisis, work emergency — is statistically likely. The app must handle this gracefully or lose the person permanently.
+**Challenge pause feature:**
+- Pause for up to 14 days. Extends challenge end date. Streak preserved.
+- Reason required: Travel, Illness, Family, Work, Other. One use per challenge.
+- Grooving Circle receives: "[Name] has paused their challenge. They'll be back soon."
 
-**Challenge pause feature (new at Grooving level)**
-- User can pause their challenge for up to 14 days
-- Pause extends the challenge end date by the number of paused days
-- Streak is preserved during a pause — it does not count as missed days
-- Pause requires a brief reason selection: Travel, Illness, Family, Work, Other
-- Grooving Circle members receive a single notification: "[Name] has paused their challenge. They'll be back soon."
-- Pause can only be used once per challenge — prevents it from becoming an avoidance mechanism
-
-**Return from pause**
-- On return, the app surfaces a brief re-entry moment: "Welcome back. [X] days paused. Your challenge continues where you left off."
-- Day 1 back is treated as a milestone — same energy as the original Day 1
-- Video G-series has a specific return video (G-Return) for this moment
-
----
+**Return from pause:** "Welcome back. [X] days paused. Your challenge continues where you left off." Day 1 back is treated as a milestone.
 
 ### Video Coaching Library — Grooving Additions
-
-**Tone shift from Jamming to Grooving**
-- Jamming: coaching mode, responsive, experiential, "I see what you're going through"
-- Grooving: contemplative, identity-focused, "I see who you are becoming"
-- Videos are fewer but deeper — less daily hand-holding, more meaningful milestone moments
 
 **G Series — Core Grooving Videos**
 
 | ID | Title | Trigger |
 |----|-------|---------|
 | G1 | "Welcome to Grooving. The question changes here." | Grooving onboarding |
-| G2 | "Why the 25/5 exercise will change how you see your time" | 25/5 screen in onboarding |
-| G3 | "What the habit calendar is really showing you" | First time habit calendar is opened |
-| G4 | "The people who finish are the people who feel witnessed" | Grooving Circle setup screen |
-| G5 | "Something just happened — your habit has taken root" | Rooted milestone (Day 40–50) |
-| G6 | "From how to where — introducing destination goals" | Post-Rooted milestone, destination goal introduction |
-| G7 | "What to do when life interrupts your challenge" | Challenge pause feature activation |
+| G2 | "Why the 25/5 exercise will change how you see your time" | 25/5 screen |
+| G3 | "What the habit calendar is really showing you" | First calendar open |
+| G4 | "The people who finish are the people who feel witnessed" | Grooving Circle setup |
+| G5 | "Something just happened — your habit has taken root" | Rooted milestone |
+| G6 | "From how to where — introducing destination goals" | Post-Rooted, pillar-level destination goal introduction. Tone: expansive, not prescriptive. Covers pillar-level destination goals. References 25/5 top five if completed. |
+| G6b | "Setting a direction within your daily habit" | When user first taps "Add a direction to this habit." Tone: practical and grounding. Covers sub-destination goals, distinguishes from pillar-level goals. |
+| G7 | "What to do when life interrupts your challenge" | Challenge pause activation |
 | G-Return | "Welcome back. You didn't quit — you paused." | Return from pause |
 | G8 | "Grooving complete. Look at what you've built." | Grooving completion |
 
@@ -619,51 +788,30 @@ For a 30–66 day challenge, a significant life interruption — illness, travel
 | G-Rough | "Long challenges have hard weeks. This is one of them." | Pulse = Rough Waters |
 | G-Water | "Let's figure out what this challenge needs to look like for you to finish it." | Pulse = Taking On Water |
 
-**Video G5 notes — the most important video in the Grooving library**
-
-This is the Rooted milestone video. It should feel like the person is being told something true about themselves that they may not have fully seen yet. Not a congratulations — a revelation. "You crossed a line this week that most people never cross. What you've been doing is no longer an effort. It's an expression of who you are."
-
-**Video G6 notes — destination goal introduction**
-
-The bridge from duration to destination. Tone is expansive, not prescriptive. "Your habits have been building a foundation. Now let's talk about what you want to build on it." Reference their 25/5 top five if completed. Do not pressure — invite.
-
----
-
 ### Notification System — Grooving
-
-Grooving reduces overall notification frequency. The person has earned a lighter touch. Pulse-adaptive logic from Jamming carries forward with the same three tiers.
 
 | Notification | Time | Trigger condition |
 |-------------|------|-------------------|
-| Morning anchor | 7:00 AM | All users, daily — tone shifts to reflective ("What will today build toward?") |
+| Morning anchor | 7:00 AM | All users daily — reflective tone |
 | Evening check-in | 8:00 PM | Rough Waters + Taking On Water only |
-| Weekly reflection prompt | Day 7, 14, 21... | All users — "Your weekly reflection is ready." |
-| Habit calendar insight | When pattern detected | "You've missed [day] three weeks running. Want to look at that?" |
-| Rooted milestone alert | Day 40–50 trigger | "[Goal] has taken root. Open the app — something worth seeing." |
+| Weekly reflection prompt | Day 7, 14, 21… | All users |
+| Habit calendar insight | When pattern detected | "You've missed [day] three weeks running." |
+| Rooted milestone alert | Day 40–50 trigger | "[Goal] has taken root. Open the app." |
 | Destination goal check-in | Weekly, if set | Included in weekly reflection flow |
-| Grooving Circle digest send | Weekly | Automated to Circle members — not a user notification |
-| Life interruption pause confirmation | On pause activation | "Challenge paused. [End date] extended to [new date]. Your streak is safe." |
+| Sub-destination expiry reminder | Weekly | In weekly reflection if sub-destination window is within 7 days of expiry. Not a standalone push. |
+| Grooving Circle digest send | Weekly | Automated to Circle members |
+| Life interruption pause confirmation | On pause activation | "Challenge paused. Streak is safe." |
 | Return from pause | On return | "Welcome back. Day [X] of [total] continues now." |
 | Grooving completion | Immediate | Full completion sequence |
 
----
-
 ### Grooving Completion Sequence
 
-1. Grooving badge awarded — visually the most substantial badge yet
-2. Full stats display
-   - Total days, pillars, consistency percentage
-   - Rooted milestone date and which goal crossed the line
-   - Habit calendar summary — the whole challenge in one view
-   - 25/5 top five shown: "These are still your five. Are they still right?"
-   - "What changed?" reflection from the beginning of Grooving, shown back
-3. Destination goal status (if set): "You set out to move toward [goal]. Are you closer? Yes / Somewhat / Not yet" — no judgment, just honest inventory
-4. Shareable card: "I just finished a [30/50/66]-day Grooving challenge across [X] pillars."
-5. Soloing invitation: "You've built habits. You've found your rhythm. Soloing is for people ready to sharpen what they've built — and start leading others through it. Are you ready?"
-
-**Unlock Criteria for Soloing**
-
-Complete one Grooving challenge of 60+ days with 80%+ consistency across all tracked pillars.
+1. Grooving badge awarded
+2. Full stats: total days, pillars, consistency %, Rooted milestone date, habit calendar summary, 25/5 top five shown
+3. "What changed?" reflection shown back
+4. Destination goal status (if set): "You set out to move toward [goal]. Are you closer? Yes / Somewhat / Not yet"
+5. Shareable card
+6. Soloing invitation
 
 ---
 
@@ -687,7 +835,7 @@ Router: App Router (Next.js 14, `/app` directory)
 
 ### Existing Tables (do not modify structure — only add to)
 
-**daily_entries** — Stores one row per user per day. All pillar data stored as JSONB.
+**daily_entries** — One row per user per day. All pillar data stored as JSONB.
 
 | Column | Type |
 |--------|------|
@@ -706,23 +854,23 @@ Router: App Router (Next.js 14, `/app` directory)
 | tiered_selections | jsonb |
 | created_at, updated_at | timestamptz |
 
-**user_config** — One row per user. Stores name, challenge start date, and duration.
+**user_config** — One row per user.
 
 | Column | Type |
 |--------|------|
 | id | uuid, PK |
-| user_id | text, unique — Clerk user ID |
+| user_id | text, unique |
 | name | text, default 'Champion' |
 | start_date | date |
 | duration | integer, default 100 |
 | created_at, updated_at | timestamptz |
 
-**user_goals** — One row per user. Stores all pillar goals as JSONB arrays.
+**user_goals** — One row per user. All pillar goals as JSONB arrays.
 
 | Column | Type |
 |--------|------|
 | id | uuid, PK |
-| user_id | text, unique — Clerk user ID |
+| user_id | text, unique |
 | spiritual | jsonb array |
 | physical | jsonb array |
 | exercise_types | jsonb array |
@@ -731,7 +879,7 @@ Router: App Router (Next.js 14, `/app` directory)
 | personal | jsonb array |
 | updated_at | timestamptz |
 
-**weekly_notes** — One row per user per week. Stores weekly reflection notes.
+**weekly_notes** — One row per user per week.
 
 | Column | Type |
 |--------|------|
@@ -741,19 +889,35 @@ Router: App Router (Next.js 14, `/app` directory)
 | notes | text |
 | updated_at | timestamptz |
 
-### New Tables Required for v2 (to be added via migration)
+---
+
+### New Tables Required for v2 (add via migration)
 
 **user_profile**
 
 | Column | Type |
 |--------|------|
 | id | uuid, PK |
-| user_id | text, unique — Clerk user ID |
-| current_level | integer, default 1 |
+| user_id | text, unique |
+| current_level | integer, default 1 — *deprecated; run in parallel with pillar_levels during migration* |
 | onboarding_completed | boolean, default false |
 | purpose_statement | text |
-| selected_pillars | jsonb — array of pillar names |
+| selected_pillars | jsonb |
 | accountability_user_id | text, nullable |
+| notification_tier | text, default 'standard' — 'minimal' \| 'standard' \| 'full' |
+| last_pulse_check_at | timestamptz, nullable |
+| accountability_partner_name | text, nullable |
+| accountability_partner_contact | text, nullable |
+| focus_list_25 | jsonb, nullable |
+| focus_top_5 | jsonb, nullable — always `FocusTop5Item[] \| null` with `{ rank, text }` format |
+| what_changed_reflection | text, nullable |
+| rooted_milestone_fired | boolean, default false |
+| rooted_milestone_date | date, nullable |
+| rooted_goal_id | text, nullable |
+| consistency_profile_completed | boolean, default false |
+| life_on_purpose_score | integer, nullable — composite of all five pillar gauge scores; only calculated and displayed when all five pillars are active |
+| next_pillar_invitation_pillar | text, nullable — cleared after user responds |
+| last_pillar_check_at | timestamptz, nullable — enforces 30-day Monthly Pillar Check cadence |
 | created_at, updated_at | timestamptz |
 
 **challenges**
@@ -766,8 +930,9 @@ Router: App Router (Next.js 14, `/app` directory)
 | duration_days | integer |
 | start_date | date |
 | end_date | date |
-| status | text — 'active', 'completed', 'abandoned' |
+| status | text — 'active' \| 'completed' \| 'abandoned' |
 | pillar_goals | jsonb — snapshot of goals at challenge start |
+| pillar_level_snapshot | jsonb, nullable — each pillar's level and operating_state at challenge start. Example: `{ "spiritual": { "level": 5, "state": "anchored" }, "physical": { "level": 4, "state": "anchored" }, "nutritional": { "level": 3, "state": "developing" }, "personal": { "level": 3, "state": "developing" } }` |
 | days_completed | integer, default 0 |
 | consistency_pct | numeric, default 0 |
 | created_at, updated_at | timestamptz |
@@ -778,9 +943,9 @@ Router: App Router (Next.js 14, `/app` directory)
 |--------|------|
 | id | uuid, PK |
 | user_id | text |
-| video_id | text — e.g. 'A1', 'D3', 'C4' |
+| video_id | text — e.g. 'A1', 'G6b' |
 | watched_at | timestamptz |
-| triggered_by | text — 'onboarding', 'day_1', 'day_3', etc. |
+| triggered_by | text |
 
 **daily_reflections**
 
@@ -788,7 +953,7 @@ Router: App Router (Next.js 14, `/app` directory)
 |--------|------|
 | id | uuid, PK |
 | user_id | text |
-| challenge_id | uuid, FK to challenges |
+| challenge_id | uuid, FK → challenges |
 | day_number | integer |
 | reflection_text | text |
 | created_at | timestamptz |
@@ -799,11 +964,9 @@ Router: App Router (Next.js 14, `/app` directory)
 |--------|------|
 | id | uuid, PK |
 | user_id | text |
-| reward_type | text — 'tuning_badge', 'day3_survival', 'halfway', 'day7_complete', etc. |
-| challenge_id | uuid, FK to challenges, nullable |
+| reward_type | text — 'tuning_badge' \| 'day3_survival' \| 'halfway' \| 'day7_complete' \| 'rooted' \| etc. |
+| challenge_id | uuid, FK → challenges, nullable |
 | earned_at | timestamptz |
-
-### Additional Tables for Jamming Level
 
 **pulse_checks**
 
@@ -811,26 +974,11 @@ Router: App Router (Next.js 14, `/app` directory)
 |--------|------|
 | id | uuid, PK |
 | user_id | text |
-| challenge_id | uuid, FK to challenges |
+| challenge_id | uuid, FK → challenges |
 | week_number | integer |
 | pulse_state | text — 'smooth_sailing' \| 'rough_waters' \| 'taking_on_water' |
 | trigger_type | text — 'scheduled_weekly' \| 'missed_day' \| 'partial_completion' |
 | recorded_at | timestamptz |
-
-### Additional Fields for Jamming Level
-
-Add to **user_profile** table:
-
-| Column | Type |
-|--------|------|
-| notification_tier | text, default 'standard' — 'minimal' \| 'standard' \| 'full' |
-| last_pulse_check_at | timestamptz, nullable — enforces 48-hour cooldown between pulse checks |
-| accountability_partner_name | text, nullable |
-| accountability_partner_contact | text, nullable — email or phone |
-
----
-
-### Additional Tables for Grooving Level
 
 **grooving_circle_members**
 
@@ -843,17 +991,17 @@ Add to **user_profile** table:
 | added_at | timestamptz |
 | active | boolean, default true |
 
-**destination_goals**
+**destination_goals** — Pillar-level destination goals (Grooving+)
 
 | Column | Type |
 |--------|------|
 | id | uuid, PK |
 | user_id | text |
-| challenge_id | uuid, FK to challenges |
+| challenge_id | uuid, FK → challenges |
 | pillar | text — 'spiritual' \| 'physical' \| 'nutritional' \| 'personal' |
 | goal_name | text |
 | target_date | date, nullable |
-| focus_item_rank | integer, nullable — links to which of the 25/5 top five this connects to (1–5) |
+| focus_item_rank | integer, nullable — links to 25/5 top five (1–5) |
 | status | text, default 'active' — 'active' \| 'reached' \| 'released' |
 | created_at, updated_at | timestamptz |
 
@@ -863,11 +1011,12 @@ Add to **user_profile** table:
 |--------|------|
 | id | uuid, PK |
 | user_id | text |
-| challenge_id | uuid, FK to challenges |
+| challenge_id | uuid, FK → challenges |
 | week_number | integer |
-| reflection_question | text — the question that was asked |
+| reflection_question | text |
 | reflection_answer | text, nullable |
 | destination_goal_status | text, nullable — 'yes' \| 'slowly' \| 'no' |
+| sub_destination_statuses | jsonb, nullable — array: `[{ "sub_destination_id": "uuid", "status": "yes" \| "slowly" \| "no" }]` |
 | share_with_circle | boolean, default false |
 | created_at | timestamptz |
 
@@ -877,24 +1026,58 @@ Add to **user_profile** table:
 |--------|------|
 | id | uuid, PK |
 | user_id | text |
-| challenge_id | uuid, FK to challenges |
+| challenge_id | uuid, FK → challenges |
 | pause_reason | text — 'travel' \| 'illness' \| 'family' \| 'work' \| 'other' |
 | paused_at | timestamptz |
 | resumed_at | timestamptz, nullable |
-| days_paused | integer, nullable — calculated on resume |
+| days_paused | integer, nullable |
 
-### Additional Fields for Grooving Level
-
-Add to **user_profile** table:
+**pillar_levels** — Per-pillar level tracking. Replaces single current_level in user_profile.
 
 | Column | Type |
 |--------|------|
-| focus_list_25 | jsonb, nullable — stores the full 25-item list from the 25/5 exercise |
-| focus_top_5 | jsonb, nullable — stores the ranked top 5 items |
-| what_changed_reflection | text, nullable — the Jamming→Grooving transition reflection answer |
-| rooted_milestone_fired | boolean, default false — prevents the milestone from firing twice |
-| rooted_milestone_date | date, nullable |
-| rooted_goal_id | text, nullable — which goal crossed the habit formation threshold |
+| id | uuid, PK |
+| user_id | text |
+| pillar | text — 'spiritual' \| 'physical' \| 'nutritional' \| 'personal' |
+| level | integer, default 1 — 1 (Tuning) through 5 (Orchestrating) |
+| operating_state | text, default 'building' — 'anchored' \| 'developing' \| 'building' \| 'dormant' |
+| profile_score | integer, nullable — Consistency Profile score (0–12) for this pillar. Null if user skipped Profile. |
+| gauge_score | integer, nullable — current Consistency Gauge score for this pillar. Recalculated weekly. Null until first week closes. |
+| assessed_at | timestamptz, nullable |
+| updated_at | timestamptz |
+
+**consistency_profile_sessions** — One row per completed Profile session.
+
+| Column | Type |
+|--------|------|
+| id | uuid, PK |
+| user_id | text |
+| spiritual_score | integer — 0–12 |
+| physical_score | integer — 0–12 |
+| nutritional_score | integer — 0–12 |
+| personal_score | integer — 0–12 |
+| missional_score | integer — 0–12 |
+| focus_pillar_selected | text, nullable — pillar user selected as development focus |
+| completed_at | timestamptz |
+
+**duration_goal_destinations** — Sub-destination goals within individual duration goals (Grooving+)
+
+| Column | Type |
+|--------|------|
+| id | uuid, PK |
+| user_id | text |
+| challenge_id | uuid, FK → challenges |
+| duration_goal_ref | text — references the goal within user_goals JSONB (pillar + index or goal identifier) |
+| pillar | text — 'spiritual' \| 'physical' \| 'nutritional' \| 'personal' |
+| direction_name | text |
+| frequency_target | integer — times per week (2–7) |
+| frequency_unit | text, default 'weekly' |
+| window_days | integer — 14–66 |
+| start_date | date |
+| end_date | date — calculated: start_date + window_days |
+| status | text, default 'active' — 'active' \| 'completed' \| 'released' \| 'expired' |
+| created_at | timestamptz |
+| updated_at | timestamptz |
 
 ---
 
@@ -902,9 +1085,19 @@ Add to **user_profile** table:
 
 ```
 /app
-  /dashboard        — main tracker view (existing)
-  (future routes added here as v2 is built)
+  /dashboard          — main tracker view (existing); pillar cards adapted per operating state
+  /profile            — Five-Pillar Dashboard with per-pillar Consistency Gauges and Life on Purpose Score (when all five pillars active)
+  /consistency-profile — Onboarding assessment flow (new users)
+  /onboarding         — Level 1 onboarding flow
+  /challenge          — active challenge view
+  /api                — API routes
 ```
+
+**Component-level changes (no new routes):**
+- Duration goal card: updated to display active sub-destination and "Add a direction" CTA
+- Weekly reflection: updated to include sub-destination check-in and Monthly Pillar Check
+- Sub-destination setup: modal/bottom sheet triggered from goal card — not a new page
+- Daily check-in: pillar cards adapt rendering based on operating state (Anchored / Developing / Building)
 
 ---
 
@@ -913,15 +1106,16 @@ Add to **user_profile** table:
 - Repo: Ddaddy2980/DailyTracker
 - URL: https://github.com/Ddaddy2980/DailyTracker
 - Production branch: main
-- Active development branch: v2-rebuild (create before starting)
+- Active development branch: v2-rebuild
 
 ---
 
 ## Current Users
 
-App is in private testing with 2 users (David + 1 tester). Not yet open to the public.
+App is in private testing with David only. Fresh start — existing data wiped and replaced with new v2 schema.
 
 ---
 
-*Last updated: March 2026*
+*Last updated: April 2026*
 *Maintained by: David / Altared Life, LLC*
+*v2 additions: Consistency Profile, Pillar-by-Pillar Architecture, Steering Mechanism, Sub-Destination Goals*
