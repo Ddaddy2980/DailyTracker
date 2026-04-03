@@ -17,10 +17,16 @@ import type {
   DestinationGoal, FocusTop5Item, WeeklyReflection,
   DestinationGoalCheckInStatus, CompletionStatus, GroupDailyFlags,
   ChallengePause, PendingJourneyEvent,
-  PillarName,
+  PillarName, PillarLevel,
 } from '@/lib/types'
 import { resolveOperatingState } from '@/lib/pillar-state'
 import { checkRootedMilestone } from '@/lib/milestones'
+import {
+  resolveNextPillarInvitation,
+  meetsRollingWindowThreshold,
+  INVITATION_THRESHOLDS,
+} from '@/lib/next-pillar-invitation'
+import { type GaugeEntryRow } from '@/lib/gauge-engine'
 import {
   calculateCurrentDay,
   calculateJourneyPreview,
@@ -89,6 +95,7 @@ const PILLAR_COL: Record<string, string> = {
   physical:    'physical_goals',
   nutritional: 'nutritional',
   personal:    'personal',
+  missional:   'missional',
 }
 
 export async function getActiveChallenge(): Promise<Challenge | null> {
@@ -577,6 +584,105 @@ async function processJourneyMilestones(
   }
 }
 
+// ─── Next Pillar Invitation (Step 40) ─────────────────────────────────────────
+
+/**
+ * On every check-in: resolves which pillar (if any) warrants an invitation,
+ * evaluates the rolling window threshold, and writes the result to
+ * user_profile.next_pillar_invitation_pillar.
+ *
+ * Guards:
+ *   - Skips if an invitation is already pending (never overwrites).
+ *   - Skips if no threshold config exists for this level (e.g. Grooving, deferred).
+ *   - Skips if the rolling window threshold is not yet met.
+ *
+ * Private — called fire-and-forget from submitCheckin on every check-in.
+ * Swallows all errors so it never blocks or fails the check-in.
+ */
+async function computeAndWriteNextPillarInvitation(
+  userId: string,
+  level:  number,
+  today:  string,   // ISO date — the date of the check-in being submitted
+): Promise<void> {
+  try {
+    const sb = createServerSupabaseClient()
+
+    // ── Guard: skip if an invitation is already pending ──────────────────────
+    const { data: profile } = await sb
+      .from('user_profile')
+      .select('next_pillar_invitation_pillar')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (profile?.next_pillar_invitation_pillar) return
+
+    // ── Guard: skip if no threshold is defined for this level ────────────────
+    const thresholdConfig = INVITATION_THRESHOLDS[level]
+    if (!thresholdConfig) return
+
+    // ── Resolve which pillar should be invited ───────────────────────────────
+    const { data: pillarRows } = await sb
+      .from('pillar_levels')
+      .select('*')
+      .eq('user_id', userId)
+
+    const invitation = resolveNextPillarInvitation((pillarRows ?? []) as PillarLevel[])
+    if (!invitation) return
+
+    // ── Fetch rolling window entries (14 days covers both 7-day and 14-day windows) ──
+    const todayMs      = new Date(today + 'T00:00:00Z').getTime()
+    const windowStart  = new Date(todayMs - 13 * 86_400_000).toISOString().slice(0, 10)
+
+    const { data: entryRows } = await sb
+      .from('daily_entries')
+      .select('entry_date, spiritual, physical_goals, nutritional, personal, missional')
+      .eq('user_id', userId)
+      .gte('entry_date', windowStart)
+      .lte('entry_date', today)
+
+    // ── Guard: skip if rolling window threshold is not met ───────────────────
+    const { windowDays, minCompletions } = thresholdConfig
+    if (
+      !meetsRollingWindowThreshold(
+        (entryRows ?? []) as GaugeEntryRow[],
+        invitation,
+        today,
+        windowDays,
+        minCompletions,
+      )
+    ) return
+
+    // ── Write the invitation ─────────────────────────────────────────────────
+    await sb
+      .from('user_profile')
+      .update({
+        next_pillar_invitation_pillar: invitation,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+  } catch (err) {
+    console.error('computeAndWriteNextPillarInvitation (silent):', err)
+  }
+}
+
+/**
+ * Clears next_pillar_invitation_pillar after the user responds — either by
+ * accepting the invitation or dismissing it.
+ */
+export async function clearNextPillarInvitation(): Promise<void> {
+  const { userId } = await auth()
+  if (!userId) return
+
+  const sb = createServerSupabaseClient()
+  await sb
+    .from('user_profile')
+    .update({
+      next_pillar_invitation_pillar: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', userId)
+}
+
 // Maps milestone day numbers to reward types earned on that day
 const DAY_REWARDS: Partial<Record<number, RewardType[]>> = {
   1: ['day1_complete'],
@@ -619,7 +725,7 @@ export async function submitCheckin(data: {
   // Recalculate days_completed from actual entries (idempotent)
   const { data: allEntries } = await sb
     .from('daily_entries')
-    .select('entry_date, spiritual, physical_goals, nutritional, personal')
+    .select('entry_date, spiritual, physical_goals, nutritional, personal, missional')
     .eq('user_id', userId)
     .gte('entry_date', data.startDate)
     .lte('entry_date', data.endDate)
@@ -767,6 +873,10 @@ export async function submitCheckin(data: {
   // Process continuous journey milestones (level advancement, evaluations).
   // Fire-and-forget: errors are caught inside — this never blocks or fails the check-in.
   void processJourneyMilestones(userId, data.challengeId, data.date)
+
+  // Evaluate rolling window threshold for Next Pillar Invitation on every check-in.
+  // Fire-and-forget: errors are caught inside — this never blocks or fails the check-in.
+  void computeAndWriteNextPillarInvitation(userId, level, data.date)
 
   return {
     newRewards,
@@ -1276,6 +1386,9 @@ export async function saveWeeklyReflectionWithPulse(data: {
   pulseState:              PulseState
   destinationGoalStatus:   DestinationGoalCheckInStatus | null
   shareWithCircle:         boolean
+  // Monthly Pillar Check — present only when the 30-day cadence check fired this session
+  pillarCheckPillar?:      string | null
+  pillarCheckAnswer?:      string | null
 }): Promise<void> {
   const { userId } = await auth()
   if (!userId) throw new Error('Unauthorized')
@@ -1283,7 +1396,7 @@ export async function saveWeeklyReflectionWithPulse(data: {
   const sb  = createServerSupabaseClient()
   const now = new Date().toISOString()
 
-  // 1. Save the weekly reflection record
+  // 1. Save the weekly reflection record (includes pillar check fields when present)
   const { error: reflectionErr } = await sb.from('weekly_reflections').insert({
     user_id:                 userId,
     challenge_id:            data.challengeId,
@@ -1292,6 +1405,8 @@ export async function saveWeeklyReflectionWithPulse(data: {
     reflection_answer:       data.reflectionAnswer,
     destination_goal_status: data.destinationGoalStatus,
     share_with_circle:       data.shareWithCircle,
+    pillar_check_pillar:     data.pillarCheckPillar ?? null,
+    pillar_check_answer:     data.pillarCheckAnswer ?? null,
     created_at:              now,
   })
   if (reflectionErr) throw new Error(`saveWeeklyReflection insert: ${reflectionErr.message}`)
@@ -1307,14 +1422,20 @@ export async function saveWeeklyReflectionWithPulse(data: {
   })
   if (pulseErr) throw new Error(`saveWeeklyReflection pulse insert: ${pulseErr.message}`)
 
-  // 3. Update notification_tier + last_pulse_check_at on user_profile
+  // 3. Update notification_tier + last_pulse_check_at on user_profile.
+  //    When the monthly pillar check fired, also stamp last_pillar_check_at.
+  const profileUpdate: Record<string, unknown> = {
+    notification_tier:   PULSE_TIER[data.pulseState],
+    last_pulse_check_at: now,
+    updated_at:          now,
+  }
+  if (data.pillarCheckPillar) {
+    profileUpdate.last_pillar_check_at = now
+  }
+
   const { error: profileErr } = await sb
     .from('user_profile')
-    .update({
-      notification_tier:   PULSE_TIER[data.pulseState],
-      last_pulse_check_at: now,
-      updated_at:          now,
-    })
+    .update(profileUpdate)
     .eq('user_id', userId)
   if (profileErr) throw new Error(`saveWeeklyReflection profile update: ${profileErr.message}`)
 
@@ -1442,6 +1563,20 @@ export async function getDestinationGoals(challengeId: string): Promise<Destinat
 
   if (error) { console.error('getDestinationGoals:', error); return [] }
   return (data ?? []) as DestinationGoal[]
+}
+
+export async function getPillarLevels(): Promise<PillarLevel[]> {
+  const { userId } = await auth()
+  if (!userId) return []
+
+  const sb = createServerSupabaseClient()
+  const { data, error } = await sb
+    .from('pillar_levels')
+    .select('*')
+    .eq('user_id', userId)
+
+  if (error) { console.error('getPillarLevels:', error); return [] }
+  return (data ?? []) as PillarLevel[]
 }
 
 /**

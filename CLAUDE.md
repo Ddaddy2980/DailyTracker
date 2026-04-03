@@ -319,6 +319,7 @@ At the end of each session:
 
 - `?addPillar` query param — written by `TuningComplete` and `JammingComplete` on Next Pillar Invitation accept. Jamming and Grooving onboarding flows do not yet consume it. When wired, the onboarding flow must pre-select the invited pillar for goal setup rather than presenting a cold start.
 - `GroovingCompletionScreen` — Next Pillar Invitation Step not yet wired. Safe to defer because `INVITATION_THRESHOLDS[3]` is undefined and the DB field is never written for level-3 users until that threshold is defined.
+- Monthly Pillar Check stagnation variant — `resolveNextPillarInvitation()` returns `null` when all active pillars are at the same level (no gap, none dormant), so the monthly check is skipped. A future step may introduce a stagnation check that targets the lowest gauge-score pillar in this scenario. Do not implement until David explicitly requests it.
 
 ---
 
@@ -392,7 +393,7 @@ This phase restructures the app's core model from a single-ladder system to a pe
 - [x] Step 38 — Five-Pillar Dashboard: build /app/profile. Each pillar card displays its level name, operating state, and Consistency Gauge. Dormant pillars shown in muted state with quiet invitation. Life on Purpose Score shown only when all five pillars are active.
 - [x] Step 39 — Consistency Gauge engine: build the per-pillar gauge calculation logic. Each pillar gauge combines weekly duration goal consistency performance and a rolling weighted average of historical weekly performance. Gauge recalculates weekly. Persist current gauge score per pillar to pillar_levels.gauge_score. Life on Purpose Score is the simple average of all five pillar gauge scores, persisted to user_profile.life_on_purpose_score.
 - [x] Step 40 — Next Pillar Invitation: build post-challenge invitation logic. Fires when any pillar is Dormant or two or more levels below the user's highest. Clears next_pillar_invitation_pillar after user responds.
-- [ ] Step 41 — Monthly Pillar Check: add conditional pillar question to weekly reflection flow. Enforces 30-day cadence via last_pillar_check_at. Targets most underdeveloped or Dormant pillar.
+- [x] Step 41 — Monthly Pillar Check: add conditional pillar question to weekly reflection flow. Enforces 30-day cadence via last_pillar_check_at. Targets most underdeveloped or Dormant pillar.
 - [ ] Step 42 — Adaptive morning notification: update notification content to adapt tone based on pillar mix (Building present → motivational, all Developing → coaching, all Anchored → reflective).
 
 ### Phase 5 — Sub-Destination Goals (NEXT AFTER PHASE 4)
@@ -410,5 +411,5 @@ This phase restructures the app's core model from a single-ladder system to a pe
 
 ---
 
-*This file was last updated: March 2026*
+*This file was last updated: April 2026*
 *Do not modify this file without David's direction*
