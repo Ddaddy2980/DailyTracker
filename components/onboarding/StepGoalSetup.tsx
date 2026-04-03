@@ -20,15 +20,15 @@ interface PillarGoalState {
 
 const PILLAR_LABEL: Record<PillarName, string> = {
   spiritual: 'Spiritual', physical: 'Physical',
-  nutritional: 'Nutritional', personal: 'Personal',
+  nutritional: 'Nutritional', personal: 'Personal', missional: 'Missional',
 }
 const PILLAR_COLOR: Record<PillarName, string> = {
   spiritual: 'text-purple-400', physical: 'text-emerald-400',
-  nutritional: 'text-amber-400', personal: 'text-blue-400',
+  nutritional: 'text-amber-400', personal: 'text-blue-400', missional: 'text-teal-400',
 }
 const PILLAR_BORDER: Record<PillarName, string> = {
   spiritual: 'border-purple-500', physical: 'border-emerald-500',
-  nutritional: 'border-amber-500', personal: 'border-blue-500',
+  nutritional: 'border-amber-500', personal: 'border-blue-500', missional: 'border-teal-500',
 }
 const SUGGESTIONS: Record<PillarName, string[]> = {
   spiritual: [
@@ -54,6 +54,12 @@ const SUGGESTIONS: Record<PillarName, string[]> = {
     'Write in a journal each morning',
     'Spend 15 minutes learning something new',
     'Reflect for 10 minutes before bed',
+  ],
+  missional: [
+    'Reach out to one person in your network each day',
+    'Spend 15 minutes on your calling each morning',
+    'Write one sentence about your impact each day',
+    'Do one act of service every day',
   ],
 }
 const ACT_ITEMS: { key: ActKey; letter: string; label: string; desc: string }[] = [

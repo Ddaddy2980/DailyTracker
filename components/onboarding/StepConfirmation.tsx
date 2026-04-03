@@ -17,17 +17,18 @@ interface Props {
 
 const PILLAR_LABEL: Record<PillarName, string> = {
   spiritual: 'Spiritual', physical: 'Physical',
-  nutritional: 'Nutritional', personal: 'Personal',
+  nutritional: 'Nutritional', personal: 'Personal', missional: 'Missional',
 }
 const PILLAR_COLOR: Record<PillarName, string> = {
   spiritual: 'text-purple-400', physical: 'text-emerald-400',
-  nutritional: 'text-amber-400', personal: 'text-blue-400',
+  nutritional: 'text-amber-400', personal: 'text-blue-400', missional: 'text-teal-400',
 }
 const PILLAR_CARD: Record<PillarName, string> = {
   spiritual: 'bg-purple-950 border-purple-800',
   physical:  'bg-emerald-950 border-emerald-800',
   nutritional: 'bg-amber-950 border-amber-800',
   personal:  'bg-blue-950 border-blue-800',
+  missional: 'bg-teal-950 border-teal-800',
 }
 
 function addDays(dateStr: string, days: number): string {

@@ -22,29 +22,32 @@ const ALL_PILLARS: PillarName[] = ['spiritual', 'physical', 'nutritional', 'pers
 
 const PILLAR_LABEL: Record<PillarName, string> = {
   spiritual: 'Spiritual', physical: 'Physical',
-  nutritional: 'Nutritional', personal: 'Personal',
+  nutritional: 'Nutritional', personal: 'Personal', missional: 'Missional',
 }
 const PILLAR_COLOR: Record<PillarName, string> = {
   spiritual: 'text-purple-400', physical: 'text-emerald-400',
-  nutritional: 'text-amber-400', personal: 'text-blue-400',
+  nutritional: 'text-amber-400', personal: 'text-blue-400', missional: 'text-teal-400',
 }
 const PILLAR_BORDER: Record<PillarName, string> = {
   spiritual: 'border-purple-500 bg-purple-950/40',
   physical:  'border-emerald-500 bg-emerald-950/40',
   nutritional: 'border-amber-500 bg-amber-950/40',
   personal:  'border-blue-500 bg-blue-950/40',
+  missional: 'border-teal-500 bg-teal-950/40',
 }
 const PILLAR_DESCRIPTION: Record<PillarName, string> = {
   spiritual:   'The foundation of everything else.',
   physical:    'Your body is not separate from your purpose.',
   nutritional: 'What you eat is what you become.',
   personal:    'You are more than your to-do list.',
+  missional:   'Living out your calling in the world.',
 }
 const SUGGESTIONS: Record<PillarName, string[]> = {
   spiritual:   ['Read one chapter of Scripture every day', 'Spend 10 minutes in prayer each morning', 'Write one sentence of gratitude each day'],
   physical:    ['Walk for 20 minutes every day', 'Exercise for 30 minutes daily', 'Get at least 7 hours of sleep each night'],
   nutritional: ['Eat a vegetable with every meal', 'Drink 64 oz of water every day', 'Eat no added sugar after 7:00 PM'],
   personal:    ['Read for 20 minutes every day', 'Write in a journal each morning', 'Spend 15 minutes learning something new'],
+  missional:   ['Reach out to one person in your network each day', 'Spend 15 minutes on your calling each morning', 'Write one sentence about your impact each day'],
 }
 
 const DURATION_OPTIONS: { days: 30 | 50 | 66; label: string; description: string }[] = [

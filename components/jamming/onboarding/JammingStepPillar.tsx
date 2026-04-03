@@ -11,23 +11,25 @@ interface Props {
 
 const PILLAR_LABEL: Record<PillarName, string> = {
   spiritual: 'Spiritual', physical: 'Physical',
-  nutritional: 'Nutritional', personal: 'Personal',
+  nutritional: 'Nutritional', personal: 'Personal', missional: 'Missional',
 }
 const PILLAR_COLOR: Record<PillarName, string> = {
   spiritual: 'text-purple-400', physical: 'text-emerald-400',
-  nutritional: 'text-amber-400', personal: 'text-blue-400',
+  nutritional: 'text-amber-400', personal: 'text-blue-400', missional: 'text-teal-400',
 }
 const PILLAR_BORDER_ACTIVE: Record<PillarName, string> = {
   spiritual: 'border-purple-500 bg-purple-950',
   physical:  'border-emerald-500 bg-emerald-950',
   nutritional: 'border-amber-500 bg-amber-950',
   personal:  'border-blue-500 bg-blue-950',
+  missional: 'border-teal-500 bg-teal-950',
 }
 const PILLAR_DESCRIPTION: Record<PillarName, string> = {
   spiritual:   'Your spiritual life is the foundation of everything else.',
   physical:    'Your body is not separate from your purpose.',
   nutritional: 'What you eat is what you become.',
   personal:    'You are more than your to-do list.',
+  missional:   'Living out your calling in the world.',
 }
 const SUGGESTIONS: Record<PillarName, string[]> = {
   spiritual: [
@@ -53,6 +55,12 @@ const SUGGESTIONS: Record<PillarName, string[]> = {
     'Write in a journal each morning',
     'Spend 15 minutes learning something new',
     'Reflect for 10 minutes before bed',
+  ],
+  missional: [
+    'Reach out to one person in your network each day',
+    'Spend 15 minutes on your calling each morning',
+    'Write one sentence about your impact each day',
+    'Do one act of service every day',
   ],
 }
 
