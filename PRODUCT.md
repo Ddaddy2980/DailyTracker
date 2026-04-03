@@ -229,6 +229,9 @@ Rather than one challenge level governing the entire app, the app uses a Unified
 
 Anchored pillars always run for the full challenge duration. They do not complete early. When the challenge ends and a Developing pillar advances to Anchored, the user restarts with a new challenge calibrated to their updated pillar profile.
 
+**Duration is fixed — no user choice is presented:**
+Tuning is always 7 days. Jamming is always 14 days. No duration picker is shown at either level's completion screen. The only levels with a duration choice are Grooving (30, 50, or 66 days) and above.
+
 ### Daily Check-In Adaptation (Multi-Level Users)
 
 - **Anchored pillars:** Compact, muted card. Single tap confirmation. No coaching content.
@@ -274,6 +277,13 @@ The gauge reflects two inputs combined into one score:
 - The current level name (Tuning / Jamming / Grooving / Soloing)
 - No letter grades. No percentage-out-of-100 framing. The gauge is the score.
 
+**Advancement threshold (rolling window):**
+The Next Pillar Invitation only fires when a user meets a minimum completion threshold, evaluated against a rolling calendar window — not a single challenge boundary:
+- Tuning (Level 1): 4 or more completions in the last 7 calendar days for that pillar
+- Jamming (Level 2): 10 or more completions in the last 14 calendar days for that pillar
+- Grooving (Level 3): threshold not yet defined — invitation deferred for this level
+Logic lives in `lib/next-pillar-invitation.ts` as `meetsRollingWindowThreshold`. The field `next_pillar_invitation_pillar` is written as soon as the threshold is met on any check-in — not only at challenge completion. The UI surfaces it only at the completion moment.
+
 **Pillar gauges are independent.** A person who hits all their Personal goals but misses four days in Nutritional will see their Personal gauge rise and their Nutritional gauge fall. There is no hiding a struggling pillar behind a strong one. Each pillar is accountable to itself.
 
 **Gauge does not govern level advancement.** The gauge measures consistency health within a level. Level advancement is a separate milestone event governed by challenge completion criteria (see Level System). The gauge can be high but the level not yet advanced; the gauge can be recovering after a hard week while the level holds.
@@ -307,6 +317,8 @@ Fires after every challenge completion when any pillar is Dormant or significant
 
 **Language — significantly underdeveloped pillar:**
 *"Your Spiritual and Physical pillars are rooted. Personal is building momentum. But Nutritional hasn't had the same attention. Your next challenge is a good time to change that. What's one thing you could do for your nutrition every single day?"*
+
+**Implementation note:** The invitation only fires when the rolling window threshold for that level is met (see Consistency Gauge section). Level 3 (Grooving) is currently excluded from the trigger — `INVITATION_THRESHOLDS[3]` is undefined.
 
 ### The Monthly Pillar Check
 
