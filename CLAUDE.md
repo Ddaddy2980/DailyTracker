@@ -28,11 +28,11 @@ Read this file at the start of every session along with PRODUCT.md. These are yo
 ## Branch Rules
 
 - Never commit directly to `main`
-- All active development happens on branch: `v2-phase4`
-- Create feature sub-branches off `v2-phase4` for each build step:
-  e.g. `v2-phase4/step-39-gauge-engine`, `v2-phase4/step-40-profile-dashboard`
-- When David says "this is ready", merge the feature branch into `v2-phase4` — not into `main`
-- Only merge `v2-phase4` into `main` when David explicitly says "ready to go live"
+- All active development happens on branch: `v2-phase5`
+- Create feature sub-branches off `v2-phase5` for each build step:
+  e.g. `step-43-duration-goal-card`, `step-44-sub-destination-modal`
+- When David says "this is ready", merge the feature branch into `v2-phase5` — not into `main`
+- Only merge `v2-phase5` into `main` when David explicitly says "ready to go live"
 - `v2-rebuild` is retired — do not use it as a base for new work
 
 ---
@@ -346,7 +346,7 @@ Build in this order. Do not skip ahead.
 - [x] Step 6 — Gamification: rewards, badges, streak visual, Day 7 celebration sequence
 - [x] Step 7 — Migrate existing tracker: wrap /app/dashboard inside new level-aware shell
 
-### Phase 2 — Jamming Level (CURRENT)
+### Phase 2 — Jamming Level (COMPLETE)
 
 - [x] Step 8 — Database migration: add pulse_checks table + new user_profile fields
 - [x] Step 9 — Tuning completion + transition screen: celebration, share card, rest day option, Jamming invitation
@@ -371,7 +371,7 @@ This feature is available at all levels from Tuning onward. It is built here bec
 - [x] Step 16g — Group notifications: member joined (pending_join_notification), full-group-day celebration flag (group_daily_flags)
 - [x] Step 16h — Multi-group support: selector UI when user belongs to more than one group
 
-### Phase 3 — Grooving Level (CURRENT)
+### Phase 3 — Grooving Level (COMPLETE)
 
 - [x] Step 17 — Database migration: add grooving_circle_members, destination_goals, weekly_reflections, challenge_pauses tables + new user_profile fields
 - [x] Step 18 — Jamming completion + Grooving transition: "What changed?" reflection, Grooving invitation, challenge length choice
@@ -388,7 +388,7 @@ This feature is available at all levels from Tuning onward. It is built here bec
 - [x] Step 29 — Grooving notification system: reduced cadence, habit calendar pattern alerts, Rooted milestone push
 - [x] Step 30 — Grooving completion sequence: badge, full stats, 25/5 review, destination goal status, Soloing invitation
 
-### Phase 4 — Pillar Architecture & Consistency Profile (CURRENT)
+### Phase 4 — Pillar Architecture & Consistency Profile (COMPLETE)
 
 This phase restructures the app's core model from a single-ladder system to a per-pillar level architecture. Every new user enters through the Consistency Profile. The Unified Challenge Container governs all active pillars simultaneously.
 
@@ -405,7 +405,7 @@ This phase restructures the app's core model from a single-ladder system to a pe
 - [x] Step 41 — Monthly Pillar Check: add conditional pillar question to weekly reflection flow. Enforces 30-day cadence via last_pillar_check_at. Targets most underdeveloped or Dormant pillar.
 - [x] Step 42 — Adaptive morning notification: update notification content to adapt tone based on pillar mix (Building present → motivational, all Developing → coaching, all Anchored → reflective).
 
-### Phase 5 — Sub-Destination Goals (NEXT AFTER PHASE 4)
+### Phase 5 — Sub-Destination Goals (CURRENT)
 
 - [ ] Step 43 — Duration goal card update
 - [ ] Step 44 — Sub-destination setup modal
@@ -420,5 +420,5 @@ This phase restructures the app's core model from a single-ladder system to a pe
 
 ---
 
-*This file was last updated: April 2026*
+*This file was last updated: April 2026 — Phase 4 complete, Phase 5 active*
 *Do not modify this file without David's direction*
