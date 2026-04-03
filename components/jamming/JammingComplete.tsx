@@ -2,8 +2,14 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { saveWhatChangedReflection } from '@/app/actions'
-import type { PulseCheck as PulseCheckRecord, PulseState } from '@/lib/types'
+import { saveWhatChangedReflection, clearNextPillarInvitation } from '@/app/actions'
+import {
+  getInvitationCopy,
+  isPillarDormant,
+  getStrongPillarNames,
+  PILLAR_DISPLAY_NAMES,
+} from '@/lib/next-pillar-invitation'
+import type { PulseCheck as PulseCheckRecord, PulseState, PillarName, PillarLevel } from '@/lib/types'
 
 interface Props {
   daysCompleted:    number
@@ -13,17 +19,30 @@ interface Props {
   pillarGoals:      Record<string, string>
   pulseHistory:     PulseCheckRecord[]
   groovingEligible: boolean
+  invitedPillar:    PillarName | null
+  pillarLevels:     PillarLevel[]
 }
 
 const PILLAR_LABEL: Record<string, string> = {
-  spiritual: 'Spiritual', physical: 'Physical',
-  nutritional: 'Nutritional', personal: 'Personal',
+  spiritual:   'Spiritual',
+  physical:    'Physical',
+  nutritional: 'Nutritional',
+  personal:    'Personal',
+  missional:   'Missional',
 }
 const PILLAR_COLOR: Record<string, string> = {
   spiritual:   'text-purple-400',
   physical:    'text-emerald-400',
   nutritional: 'text-amber-400',
   personal:    'text-blue-400',
+  missional:   'text-teal-400',
+}
+const PILLAR_ACCENT: Record<string, { border: string; label: string; bg: string }> = {
+  spiritual:   { border: 'border-purple-700', label: 'text-purple-400',  bg: 'bg-purple-950'  },
+  physical:    { border: 'border-emerald-700', label: 'text-emerald-400', bg: 'bg-emerald-950' },
+  nutritional: { border: 'border-amber-700',   label: 'text-amber-400',   bg: 'bg-amber-950'   },
+  personal:    { border: 'border-blue-700',     label: 'text-blue-400',    bg: 'bg-blue-950'    },
+  missional:   { border: 'border-teal-700',     label: 'text-teal-400',    bg: 'bg-teal-950'    },
 }
 const PULSE_LABEL: Record<PulseState, string> = {
   smooth_sailing:  '⛵ Smooth Sailing',
@@ -48,16 +67,18 @@ const DURATION_OPTIONS = [
 ] as const
 
 export default function JammingComplete({
-  daysCompleted, durationDays, consistencyPct, pillars, pillarGoals, pulseHistory, groovingEligible,
+  daysCompleted, durationDays, consistencyPct, pillars, pillarGoals,
+  pulseHistory, groovingEligible, invitedPillar, pillarLevels,
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
-  // Step 1 = celebration, 2 = "what changed?" (eligible) or "keep jamming" (ineligible), 3 = grooving invite (eligible)
-  const [step, setStep]                 = useState<1 | 2 | 3>(1)
-  const [copied, setCopied]             = useState(false)
-  const [whatChanged, setWhatChanged]   = useState('')
-  const [duration, setDuration]         = useState<30 | 50 | 66>(30)
+  // Step 1 = celebration, 2 = "what changed?" reflection,
+  // 3 = grooving invite (eligible only), 4 = next pillar invitation (conditional)
+  const [step, setStep]               = useState<1 | 2 | 3 | 4>(1)
+  const [copied, setCopied]           = useState(false)
+  const [whatChanged, setWhatChanged] = useState('')
+  const [duration, setDuration]       = useState<30 | 50 | 66>(30)
 
   const shareText = `I just finished my ${durationDays}-day Jamming challenge — ${daysCompleted} days completed, ${pillars.map(p => PILLAR_LABEL[p] ?? p).join(' + ')}, ${consistencyPct}% consistency. Daily Consistency Tracker.`
 
@@ -250,63 +271,153 @@ export default function JammingComplete({
     )
   }
 
-  // ── Step 3: Grooving invitation (eligible only) ───────────────────────────────
+  // ── Step 3: Grooving invitation (eligible only) ──────────────────────────────
+  if (step === 3) {
+    function handleStartGrooving() {
+      if (invitedPillar) {
+        setStep(4)
+      } else {
+        router.push(`/grooving/onboarding?duration=${duration}`)
+      }
+    }
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center px-4 overflow-y-auto py-8">
+        <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-sm" />
+        <div className="relative w-full max-w-sm space-y-4">
+
+          <div className="text-center space-y-2">
+            <div className="text-5xl">🎵</div>
+            <h1 className="text-2xl font-black text-white leading-tight">You&apos;ve found the rhythm.</h1>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Now it&apos;s time to lock it in.
+            </p>
+          </div>
+
+          {/* What Grooving is */}
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-violet-400">Level 3 — Grooving</p>
+            <p className="text-sm text-white leading-relaxed">
+              Longer challenge. More pillars. A new kind of question — not &ldquo;did you do it?&rdquo; but &ldquo;what is forming in you?&rdquo;
+            </p>
+            <div className="space-y-1.5 pt-1">
+              {['Full four-pillar access', 'Habit calendar', 'Weekly reflection replacing daily tracking', 'Grooving Circle — 5 people who witness your progress'].map(item => (
+                <div key={item} className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0 mt-1.5" />
+                  <p className="text-sm text-slate-300">{item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Duration choice */}
+          <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Choose your challenge length</p>
+            {DURATION_OPTIONS.map(opt => (
+              <button
+                key={opt.days}
+                onClick={() => setDuration(opt.days)}
+                className={`w-full flex items-center justify-between rounded-2xl border px-4 py-3 transition-colors text-left ${
+                  duration === opt.days
+                    ? 'bg-violet-950 border-violet-600 text-white'
+                    : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-500'
+                }`}
+              >
+                <span className="font-bold">{opt.label}</span>
+                <span className="text-sm text-slate-400">{opt.description}</span>
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={handleStartGrooving}
+            className="w-full py-4 bg-violet-600 hover:bg-violet-500 rounded-2xl font-black text-lg text-white transition-colors"
+          >
+            {invitedPillar ? 'What\'s next? →' : 'Start Grooving →'}
+          </button>
+
+          <button onClick={() => setStep(2)} className="w-full py-2 text-slate-500 text-sm hover:text-slate-400 transition-colors">
+            ← Back
+          </button>
+
+        </div>
+      </div>
+    )
+  }
+
+  // ── Step 4: Next Pillar Invitation ───────────────────────────────────────────
+  // Only reached when invitedPillar is non-null (guarded by Step 3 logic above).
+  if (!invitedPillar) {
+    router.push(`/grooving/onboarding?duration=${duration}`)
+    return null
+  }
+
+  const isDormant   = isPillarDormant(invitedPillar, pillarLevels)
+  const strongNames = getStrongPillarNames(pillarLevels)
+  const invitedName = PILLAR_DISPLAY_NAMES[invitedPillar]
+  const copy        = getInvitationCopy(invitedPillar, isDormant, strongNames, invitedName)
+  const accent      = PILLAR_ACCENT[invitedPillar] ?? PILLAR_ACCENT.spiritual
+
+  function handleAccept() {
+    startTransition(async () => {
+      await clearNextPillarInvitation()
+      router.push(`/grooving/onboarding?addPillar=${invitedPillar}`)
+    })
+  }
+
+  function handleDismiss() {
+    startTransition(async () => {
+      await clearNextPillarInvitation()
+      router.push(`/grooving/onboarding?duration=${duration}`)
+    })
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 overflow-y-auto py-8">
       <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-sm" />
       <div className="relative w-full max-w-sm space-y-4">
 
         <div className="text-center space-y-2">
-          <div className="text-5xl">🎵</div>
-          <h1 className="text-2xl font-black text-white leading-tight">You&apos;ve found the rhythm.</h1>
-          <p className="text-slate-400 text-sm leading-relaxed">
-            Now it&apos;s time to lock it in.
-          </p>
+          <div className="text-5xl">👀</div>
+          <h1 className="text-2xl font-black text-white leading-tight">
+            One more thing.
+          </h1>
         </div>
 
-        {/* What Grooving is */}
-        <div className="bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3">
-          <p className="text-xs font-bold uppercase tracking-widest text-violet-400">Level 3 — Grooving</p>
-          <p className="text-sm text-white leading-relaxed">
-            Longer challenge. More pillars. A new kind of question — not &ldquo;did you do it?&rdquo; but &ldquo;what is forming in you?&rdquo;
+        {/* Invitation card */}
+        <div className={`${accent.bg} border-2 ${accent.border} rounded-2xl p-5 space-y-3`}>
+          <p className={`text-xs font-bold uppercase tracking-widest ${accent.label}`}>
+            {invitedName} Pillar
           </p>
-          <div className="space-y-1.5 pt-1">
-            {['Full four-pillar access', 'Habit calendar', 'Weekly reflection replacing daily tracking', 'Grooving Circle — 5 people who witness your progress'].map(item => (
-              <div key={item} className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0 mt-1.5" />
-                <p className="text-sm text-slate-300">{item}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Duration choice */}
-        <div className="space-y-2">
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Choose your challenge length</p>
-          {DURATION_OPTIONS.map(opt => (
-            <button
-              key={opt.days}
-              onClick={() => setDuration(opt.days)}
-              className={`w-full flex items-center justify-between rounded-2xl border px-4 py-3 transition-colors text-left ${
-                duration === opt.days
-                  ? 'bg-violet-950 border-violet-600 text-white'
-                  : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-500'
-              }`}
-            >
-              <span className="font-bold">{opt.label}</span>
-              <span className="text-sm text-slate-400">{opt.description}</span>
-            </button>
-          ))}
+          <h2 className="text-lg font-black text-white leading-snug">
+            {copy.heading}
+          </h2>
+          <p className="text-slate-300 text-sm leading-relaxed">
+            {copy.body}
+          </p>
         </div>
 
         <button
-          onClick={() => router.push(`/grooving/onboarding?duration=${duration}`)}
-          className="w-full py-4 bg-violet-600 hover:bg-violet-500 rounded-2xl font-black text-lg text-white transition-colors"
+          onClick={handleAccept}
+          disabled={isPending}
+          className="w-full py-4 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 rounded-2xl font-black text-lg text-white transition-colors"
         >
-          Start Grooving →
+          Yes, let&apos;s add it →
         </button>
 
-        <button onClick={() => setStep(2)} className="w-full py-2 text-slate-500 text-sm hover:text-slate-400 transition-colors">
+        <button
+          onClick={handleDismiss}
+          disabled={isPending}
+          className="w-full py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 border border-slate-700 rounded-2xl font-bold text-sm text-slate-300 transition-colors"
+        >
+          Not yet
+        </button>
+
+        <button
+          onClick={() => setStep(3)}
+          disabled={isPending}
+          className="w-full py-2 text-slate-500 text-sm hover:text-slate-400 disabled:opacity-30 transition-colors"
+        >
           ← Back
         </button>
 

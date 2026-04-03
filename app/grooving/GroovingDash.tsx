@@ -187,11 +187,13 @@ export default function GroovingDash({
                   checkInComplete={alreadySaved}
                   notificationTier={profile.notification_tier}
                   dayNumber={dayNumber}
+                  durationDays={challenge.duration_days}
                   pillars={pillars}
                   missedYesterday={false}
                   level={3}
                   patternAlertDay={patternAlertDay}
                   rootedMilestoneToday={rootedMilestoneToday}
+                  pillarLevels={pillarLevels}
                   onPatternAlertCta={() => setActiveTab('calendar')}
                 />
 

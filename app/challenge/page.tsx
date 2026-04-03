@@ -4,8 +4,9 @@ import {
   getUserProfile, getActiveChallenge, getChallengeEntries, getEarnedRewards, getWatchedVideoIds,
 } from '@/app/actions'
 import { getMyGroups, getGroupWithMembers } from '@/app/actions-groups'
+import { createServerSupabaseClient } from '@/lib/supabase'
 import { todayStr } from '@/lib/constants'
-import type { ChallengeEntry, DayStatus, RewardType, GroupWithMembers } from '@/lib/types'
+import type { ChallengeEntry, DayStatus, RewardType, GroupWithMembers, PillarLevel } from '@/lib/types'
 import ChallengeDash from './ChallengeDash'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -73,6 +74,8 @@ export default async function ChallengePage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
+  const sb = createServerSupabaseClient()
+
   const [profile, challenge, watchedVideoIds] = await Promise.all([
     getUserProfile(),
     getActiveChallenge(),
@@ -81,6 +84,12 @@ export default async function ChallengePage() {
 
   if (!profile) redirect('/sign-in')
   if (!challenge) redirect('/dashboard')   // no active challenge — fall back to v1
+
+  const { data: pillarLevelRows } = await sb
+    .from('pillar_levels')
+    .select('*')
+    .eq('user_id', userId)
+  const pillarLevels = (pillarLevelRows ?? []) as PillarLevel[]
 
   const today   = todayStr()
   const [entries, earnedRewards, myGroups] = await Promise.all([
@@ -123,6 +132,7 @@ export default async function ChallengePage() {
       earnedRewards={earnedRewardTypes}
       watchedVideoIds={watchedVideoIds}
       groups={groups}
+      pillarLevels={pillarLevels}
     />
   )
 }

@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { JAMMING_NOTIFICATIONS, GROOVING_NOTIFICATIONS } from '@/lib/constants'
+import { resolveMorningTone } from '@/lib/morning-tone'
+import type { PillarLevel } from '@/lib/types'
 
 interface Props {
   checkInComplete:     boolean
   notificationTier:    'minimal' | 'standard' | 'full'
   dayNumber:           number
+  durationDays?:       number
   pillars:             string[]
   missedYesterday:     boolean
   // ── Grooving-specific (Step 29) ────────────────────────────────────────────
@@ -14,6 +17,8 @@ interface Props {
   patternAlertDay?:    string | null   // e.g. 'Mondays' — set by server page when pattern detected
   rootedMilestoneToday?: boolean       // rooted_milestone_date = today
   onPatternAlertCta?:  () => void      // called when user clicks 'Review my goals'
+  // ── Step 42 ────────────────────────────────────────────────────────────────
+  pillarLevels?:       PillarLevel[]  // used for adaptive morning tone (level 3 only)
 }
 
 interface BannerContent {
@@ -29,12 +34,14 @@ function getBannerContent(
   checkInComplete:     boolean,
   notificationTier:    'minimal' | 'standard' | 'full',
   dayNumber:           number,
+  durationDays:        number,
   pillars:             string[],
   missedYesterday:     boolean,
   level:               number,
   patternAlertDay:     string | null | undefined,
   rootedMilestoneToday: boolean | undefined,
   onPatternAlertCta:   (() => void) | undefined,
+  pillarLevels:        PillarLevel[],
 ): BannerContent | null {
   // ── Grooving-specific banners (level 3) — highest priority ──────────────────
   if (level === 3) {
@@ -58,6 +65,24 @@ function getBannerContent(
         ctaAction: onPatternAlertCta,
       }
     }
+  }
+
+  // Morning anchor (level 3 only) — 6am–12pm, not yet checked in
+  if (level === 3 && !checkInComplete && hourOfDay >= 6 && hourOfDay < 12) {
+    const { tone, highestDevelopingLevel } = resolveMorningTone(pillarLevels)
+    let message: string
+    switch (tone) {
+      case 'motivational':
+        message = GROOVING_NOTIFICATIONS.morning_anchor_motivational({ dayNumber, durationDays })
+        break
+      case 'coaching':
+        message = GROOVING_NOTIFICATIONS.morning_anchor_coaching({ dayNumber, durationDays, highestLevel: highestDevelopingLevel ?? 3 })
+        break
+      case 'reflective':
+        message = GROOVING_NOTIFICATIONS.morning_anchor_reflective()
+        break
+    }
+    return { message, cta: '', color: 'bg-slate-800 border-slate-600', icon: '🌄' }
   }
 
   // Miss-day recovery — always shown regardless of tier, once per day
@@ -108,8 +133,9 @@ function getBannerContent(
 }
 
 export default function NotificationBanner({
-  checkInComplete, notificationTier, dayNumber, pillars, missedYesterday,
+  checkInComplete, notificationTier, dayNumber, durationDays = 30, pillars, missedYesterday,
   level = 2, patternAlertDay, rootedMilestoneToday, onPatternAlertCta,
+  pillarLevels = [],
 }: Props) {
   const [dismissed, setDismissed] = useState(false)
   const [content,   setContent]   = useState<BannerContent | null>(null)
@@ -117,11 +143,11 @@ export default function NotificationBanner({
   useEffect(() => {
     const hour = new Date().getHours()
     setContent(getBannerContent(
-      hour, checkInComplete, notificationTier, dayNumber, pillars, missedYesterday,
-      level, patternAlertDay, rootedMilestoneToday, onPatternAlertCta,
+      hour, checkInComplete, notificationTier, dayNumber, durationDays, pillars, missedYesterday,
+      level, patternAlertDay, rootedMilestoneToday, onPatternAlertCta, pillarLevels,
     ))
-  }, [checkInComplete, notificationTier, dayNumber, pillars, missedYesterday,
-      level, patternAlertDay, rootedMilestoneToday, onPatternAlertCta])
+  }, [checkInComplete, notificationTier, dayNumber, durationDays, pillars, missedYesterday,
+      level, patternAlertDay, rootedMilestoneToday, onPatternAlertCta, pillarLevels])
 
   if (!content || dismissed) return null
 
