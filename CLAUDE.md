@@ -28,11 +28,12 @@ Read this file at the start of every session along with PRODUCT.md. These are yo
 ## Branch Rules
 
 - Never commit directly to `main`
-- All v2 work happens on branch: `v2-rebuild`
-- Create feature sub-branches off `v2-rebuild` for each build step:
-  e.g. `v2-rebuild/database-migration`, `v2-rebuild/onboarding-flow`
-- When David says "this is ready", merge the feature branch into `v2-rebuild` — not into `main`
-- Only merge `v2-rebuild` into `main` when David explicitly says "ready to go live"
+- All active development happens on branch: `v2-phase4`
+- Create feature sub-branches off `v2-phase4` for each build step:
+  e.g. `v2-phase4/step-39-gauge-engine`, `v2-phase4/step-40-profile-dashboard`
+- When David says "this is ready", merge the feature branch into `v2-phase4` — not into `main`
+- Only merge `v2-phase4` into `main` when David explicitly says "ready to go live"
+- `v2-rebuild` is retired — do not use it as a base for new work
 
 ---
 
@@ -336,6 +337,14 @@ Build in this order. Do not skip ahead.
 - [x] Step 14 — Jamming dashboard: 14/21-day challenge map, named milestones, weekly summary view, pulse history
 - [x] Step 15 — Jamming video additions: J1–J7 video cards with pulse-state triggers
 - [x] Step 16 — Jamming completion sequence: badge, stats, share card, Grooving invitation
+  - [x] Step 16a — Database migration: consistency_groups, group_members, group_daily_status tables
+  - [x] Step 16b — Group creation: invite code generation, CreateGroupModal
+  - [x] Step 16c — Group dashboard query: GroupWithMembers composite type, server-side fetch
+  - [x] Step 16d — GroupCard component: member list, streak display, daily status indicators
+  - [x] Step 16e — GroupView: groups tab integration into ChallengeDash/JammingDash
+  - [x] Step 16f — Group management: GroupManageModal, GroupManageSheet, archive/pause/delete flows
+  - [x] Step 16g — Join notification + full-group-day celebration flag (pending_join_notification, group_daily_flags)
+  - [x] Step 16h — updateGroupDailyStatus: group_daily_status write wired into submitCheckin
 
 ### Phase 3 — Grooving Level (CURRENT)
 
