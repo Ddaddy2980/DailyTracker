@@ -43,11 +43,13 @@ Read this file at the start of every session along with PRODUCT.md. These are yo
 
 ```
 /app
-  /dashboard          — existing tracker (preserve, do not refactor unless asked)
-  /onboarding         — Level 1 onboarding flow (new)
-  /challenge          — active challenge view (new)
-  /api                — API routes
-    /supabase         — Supabase helper routes if needed
+  /dashboard              — existing tracker (preserve, do not refactor unless asked)
+  /onboarding             — Level 1 onboarding flow (new)
+  /challenge              — active challenge view (new)
+  /consistency-profile    — Consistency Profile assessment flow
+  /profile                — Five-Pillar Dashboard
+  /api                    — API routes
+    /supabase             — Supabase helper routes if needed
 
 /components
   /ui                 — reusable UI primitives (buttons, cards, inputs)
@@ -131,7 +133,7 @@ type RewardType =
   | 'soloing_badge'
   | 'orchestrating_badge'
 
-type PillarName = 'spiritual' | 'physical' | 'nutritional' | 'personal'
+type PillarName = 'spiritual' | 'physical' | 'nutritional' | 'personal' | 'missional'
 
 type LevelName = 'Tuning' | 'Jamming' | 'Grooving' | 'Soloing' | 'Orchestrating'
 ```
@@ -266,6 +268,7 @@ export const VIDEO_LIBRARY = {
   - Physical: `emerald-*`
   - Nutritional: `amber-*`
   - Personal: `blue-*`
+  - Missional: `teal-*` (primary: `teal-600` / `#0d9488`)
 
 ---
 
