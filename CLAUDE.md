@@ -363,9 +363,35 @@ Build in this order. Do not skip ahead.
 - [ ] Step 29 — Grooving notification system: reduced cadence, habit calendar pattern alerts, Rooted milestone push
 - [ ] Step 30 — Grooving completion sequence: badge, full stats, 25/5 review, destination goal status, Soloing invitation
 
-### Phase 4 — Soloing Level (FUTURE)
+### Phase 4 — Pillar Architecture & Consistency Profile (CURRENT)
 
-### Phase 5 — Orchestrating Level (FUTURE)
+This phase restructures the app's core model from a single-ladder system to a per-pillar level architecture. Every new user enters through the Consistency Profile. The Unified Challenge Container governs all active pillars simultaneously.
+
+- [x] Step 31 — Database migration: create pillar_levels table (includes gauge_score column), consistency_profile_sessions table (includes missional_score column alongside the four existing pillar score columns), duration_goal_destinations table. Add new columns to user_profile (consistency_profile_completed, life_on_purpose_score, next_pillar_invitation_pillar, last_pillar_check_at) and challenges (pillar_level_snapshot). Add sub_destination_statuses column to weekly_reflections.
+- [x] Step 32 — Pillar operating state logic: build /lib/pillar-state.ts. Function takes a user's pillar_levels rows and returns the operating state for each pillar (Anchored / Developing / Building / Dormant). Used at challenge start and in dashboard rendering.
+- [x] Step 33 — Consistency Profile flow: build /app/consistency-profile. 20-question assessment (5 pillars × 4 questions), one pillar at a time in order: Spiritual → Physical → Nutritional → Personal → Missional. Score each pillar 0–12. Write results to consistency_profile_sessions and seed pillar_levels table with one row per pillar. Set consistency_profile_completed = true on user_profile.
+- [x] Step 34 — Pillar Portrait screen: post-Profile output screen. Display all five pillars with starting level name and status phrase. Personalized statement honoring strong pillars. Development focus identification. Single agency question. Save focus selection to consistency_profile_sessions.focus_pillar_selected.
+- [x] Step 35 — Routing update: update root layout / middleware to route new users to /consistency-profile instead of directly to /onboarding. After Profile completion, route to appropriate onboarding based on lowest-level active pillar.
+- [x] Step 36 — Unified Challenge Container: update challenge creation logic to snapshot all active pillar levels and operating states into challenges.pillar_level_snapshot at challenge start. Challenge duration is determined by highest-development pillar level.
+- [x] Step 37 — Adapted daily check-in: update check-in component to render pillar cards based on operating state. Anchored → compact muted card. Developing → full card. Building → prominent gamified card. Dormant → not shown.
+- [x] Step 38 — Five-Pillar Dashboard: build /app/profile. Each pillar card displays its level name, operating state, and Consistency Gauge. Dormant pillars shown in muted state with quiet invitation. Life on Purpose Score shown only when all five pillars are active.
+- [ ] Step 39 — Consistency Gauge engine: build the per-pillar gauge calculation logic. Each pillar gauge combines weekly duration goal consistency performance and a rolling weighted average of historical weekly performance. Gauge recalculates weekly. Persist current gauge score per pillar to pillar_levels.gauge_score. Life on Purpose Score is the simple average of all five pillar gauge scores, persisted to user_profile.life_on_purpose_score.
+- [ ] Step 40 — Next Pillar Invitation: build post-challenge invitation logic. Fires when any pillar is Dormant or two or more levels below the user's highest. Clears next_pillar_invitation_pillar after user responds.
+- [ ] Step 41 — Monthly Pillar Check: add conditional pillar question to weekly reflection flow. Enforces 30-day cadence via last_pillar_check_at. Targets most underdeveloped or Dormant pillar.
+- [ ] Step 42 — Adaptive morning notification: update notification content to adapt tone based on pillar mix (Building present → motivational, all Developing → coaching, all Anchored → reflective).
+
+### Phase 5 — Sub-Destination Goals (NEXT AFTER PHASE 4)
+
+- [ ] Step 43 — Duration goal card update
+- [ ] Step 44 — Sub-destination setup modal
+- [ ] Step 45 — Weekly reflection update
+- [ ] Step 46 — Expiry and completion logic
+- [ ] Step 47 — G6b video card
+- [ ] Step 48 — Sub-destination expiry notification
+
+### Phase 6 — Soloing Level (FUTURE)
+
+### Phase 7 — Orchestrating Level (FUTURE)
 
 ---
 
