@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
+import { useUser } from '@clerk/nextjs'
 import { saveWeeklyReflectionWithPulse, markVideoWatched } from '@/app/actions'
+import { resolveExpiredDestinationGoals } from '@/lib/destination-goal-expiry'
 import { VIDEO_LIBRARY } from '@/lib/constants'
-import VideoCard from '@/components/challenge/VideoCard'
 import {
   resolveNextPillarInvitation,
   isPillarDormant,
@@ -11,7 +12,17 @@ import {
 } from '@/lib/next-pillar-invitation'
 import type {
   DestinationGoal, PulseState, DestinationGoalCheckInStatus, PillarLevel, PillarName,
+  DurationGoalDestination,
 } from '@/lib/types'
+
+import WeeklyReflectionSummaryStep      from './WeeklyReflectionSummaryStep'
+import WeeklyReflectionQuestionStep     from './WeeklyReflectionQuestionStep'
+import WeeklyReflectionPulseStep        from './WeeklyReflectionPulseStep'
+import WeeklyReflectionDestinationStep  from './WeeklyReflectionDestinationStep'
+import WeeklyReflectionGoalStep         from './WeeklyReflectionGoalStep'
+import WeeklyReflectionPillarCheckStep  from './WeeklyReflectionPillarCheckStep'
+import type { PillarStat }              from './WeeklyReflectionSummaryStep'
+import type { DestinationGoalResponse } from './WeeklyReflectionDestinationStep'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -26,26 +37,6 @@ const REFLECTION_QUESTIONS = [
   'What habit feels most automatic now? What still requires intentional effort?',
   'Who in your life has noticed something different about you? What did they see?',
   "If your habits are building something — what is it building toward?",
-]
-
-const PILLAR_LABEL: Record<string, string> = {
-  spiritual: 'Spiritual', physical: 'Physical',
-  nutritional: 'Nutritional', personal: 'Personal',
-}
-const PILLAR_DOT: Record<string, string> = {
-  spiritual: 'bg-purple-400', physical: 'bg-emerald-400',
-  nutritional: 'bg-amber-400', personal: 'bg-blue-400',
-}
-const PILLAR_BAR: Record<string, string> = {
-  spiritual: 'bg-purple-500', physical: 'bg-emerald-500',
-  nutritional: 'bg-amber-500', personal: 'bg-blue-500',
-}
-
-type PulseOption = { state: PulseState; label: string; body: string; icon: string; ring: string }
-const PULSE_OPTIONS: PulseOption[] = [
-  { state: 'smooth_sailing',  label: 'Smooth Sailing',   body: "I've got this. Habits are forming.",    icon: '⛵', ring: 'border-emerald-500 ring-2 ring-emerald-500 bg-emerald-950' },
-  { state: 'rough_waters',    label: 'Rough Waters',     body: "It's hard but I'm still in it.",        icon: '🌊', ring: 'border-amber-500 ring-2 ring-amber-500 bg-amber-950'     },
-  { state: 'taking_on_water', label: 'Taking On Water',  body: "I'm struggling and close to quitting.", icon: '🆘', ring: 'border-red-500 ring-2 ring-red-500 bg-red-950'           },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -65,14 +56,12 @@ function countDays(dates: string[], pillar: string, data: Record<string, Record<
   return dates.filter(d => data[d]?.[pillar] === true).length
 }
 
-/** Returns true when 30+ days have elapsed since the last pillar check (or it has never fired). */
 function isPillarCheckDue(lastPillarCheckAt: string | null): boolean {
   if (!lastPillarCheckAt) return true
   const daysSince = (Date.now() - new Date(lastPillarCheckAt).getTime()) / 86_400_000
   return daysSince >= 30
 }
 
-/** Generates a contextual question for the target pillar based on its state. */
 function getPillarCheckQuestion(pillar: PillarName, dormant: boolean): string {
   const name = PILLAR_DISPLAY_NAMES[pillar]
   if (dormant) {
@@ -84,29 +73,6 @@ function getPillarCheckQuestion(pillar: PillarName, dormant: boolean): string {
   return `${name} is your most underdeveloped pillar. If you were to add one simple habit there, what would it be?`
 }
 
-// ── Props ─────────────────────────────────────────────────────────────────────
-
-interface Props {
-  challengeId:        string
-  weekNumber:         number
-  pillars:            string[]
-  pillarDayData:      Record<string, Record<string, boolean>>
-  startDate:          string
-  destinationGoals:   DestinationGoal[]
-  level?:             number    // 2 = Jamming, 3 = Grooving; defaults to 3
-  watchedVideoIds?:   string[]
-  pillarLevels:       PillarLevel[]
-  lastPillarCheckAt:  string | null
-  onDone:             () => void
-}
-
-type Step = 'summary' | 'question' | 'pulse' | 'goal' | 'pillar_check'
-
-// ── Component ─────────────────────────────────────────────────────────────────
-
-// Returns the coaching video ID appropriate for the pulse state at a given level.
-// level 3 (Grooving) → G_SMOOTH / G_ROUGH / G_WATER
-// level 2 (Jamming)  → J4 / J5 / J6
 function getPulseVideoId(state: PulseState, lvl: number): string | null {
   if (lvl === 3) {
     if (state === 'smooth_sailing')  return 'G_SMOOTH'
@@ -121,19 +87,53 @@ function getPulseVideoId(state: PulseState, lvl: number): string | null {
   return null
 }
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface Props {
+  challengeId:              string
+  weekNumber:               number
+  pillars:                  string[]
+  pillarDayData:            Record<string, Record<string, boolean>>
+  startDate:                string
+  destinationGoals:         DestinationGoal[]
+  durationGoalDestinations?: DurationGoalDestination[]
+  level?:                   number
+  watchedVideoIds?:         string[]
+  pillarLevels:             PillarLevel[]
+  lastPillarCheckAt:        string | null
+  onDone:                   () => void
+}
+
+type Step = 'summary' | 'question' | 'pulse' | 'destination' | 'goal' | 'pillar_check'
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function WeeklyReflectionFlow({
   challengeId, weekNumber, pillars, pillarDayData, startDate, destinationGoals,
+  durationGoalDestinations = [],
   level = 3, watchedVideoIds = [], pillarLevels, lastPillarCheckAt, onDone,
 }: Props) {
-  const [step, setStep]               = useState<Step>('summary')
-  const [answer, setAnswer]           = useState('')
-  const [pulseState, setPulseState]   = useState<PulseState | null>(null)
-  const [goalStatus, setGoalStatus]   = useState<DestinationGoalCheckInStatus | null>(null)
+  const { user }  = useUser()
+  const userId    = user?.id ?? null
+
+  // Resolve any expired destination goals before the flow renders steps.
+  // Fire-and-forget — must not block the reflection flow from loading.
+  useEffect(() => {
+    if (userId && challengeId) {
+      resolveExpiredDestinationGoals(userId, challengeId).catch(console.error)
+    }
+  }, [userId, challengeId])
+
+  const [step, setStep]                           = useState<Step>('summary')
+  const [answer, setAnswer]                       = useState('')
+  const [pulseState, setPulseState]               = useState<PulseState | null>(null)
+  const [goalStatus, setGoalStatus]               = useState<DestinationGoalCheckInStatus | null>(null)
+  const [destinationResponses, setDestinationResponses] = useState<Record<string, DestinationGoalResponse>>({})
   const [pillarCheckAnswer, setPillarCheckAnswer] = useState('')
-  const [shareCircle, setShareCircle] = useState(false)
-  const [isPending, startTransition]  = useTransition()
-  const [videoWatched, setVideoWatched]   = useState<Set<string>>(new Set(watchedVideoIds))
-  const [, startVideoTransition]          = useTransition()
+  const [shareCircle, setShareCircle]             = useState(false)
+  const [isPending, startTransition]              = useTransition()
+  const [videoWatched, setVideoWatched]           = useState<Set<string>>(new Set(watchedVideoIds))
+  const [, startVideoTransition]                  = useTransition()
 
   function handleVideoWatched(videoId: string) {
     setVideoWatched(prev => new Set([...prev, videoId]))
@@ -142,31 +142,67 @@ export default function WeeklyReflectionFlow({
     })
   }
 
+  // Legacy destination goals (destination_goals table)
   const activeGoals  = destinationGoals.filter(g => g.status === 'active')
   const hasGoals     = activeGoals.length > 0
-  const question     = REFLECTION_QUESTIONS[(weekNumber - 1) % REFLECTION_QUESTIONS.length]
 
-  // Monthly Pillar Check — resolve target once (stable for this render tree)
-  const targetPillar  = resolveNextPillarInvitation(pillarLevels)
-  const showPillarCheck = isPillarCheckDue(lastPillarCheckAt) && targetPillar !== null
-  const targetDormant   = targetPillar ? isPillarDormant(targetPillar, pillarLevels) : false
-  const pillarCheckQuestion = targetPillar
-    ? getPillarCheckQuestion(targetPillar, targetDormant)
-    : ''
+  // Phase 5 duration goal destinations (duration_goal_destinations table)
+  const activeDurationGoals = durationGoalDestinations.filter(g => g.status === 'active')
+  const hasDurationGoals    = activeDurationGoals.length > 0
 
-  // Pillar stats: current week vs previous week
+  const question = REFLECTION_QUESTIONS[(weekNumber - 1) % REFLECTION_QUESTIONS.length]
+
+  // Monthly Pillar Check
+  const targetPillar        = resolveNextPillarInvitation(pillarLevels)
+  const showPillarCheck     = isPillarCheckDue(lastPillarCheckAt) && targetPillar !== null
+  const targetDormant       = targetPillar ? isPillarDormant(targetPillar, pillarLevels) : false
+  const pillarCheckQuestion = targetPillar ? getPillarCheckQuestion(targetPillar, targetDormant) : ''
+
+  // Pillar stats for summary and destination coaching note
   const thisWeekDates = getWeekDates(startDate, weekNumber)
   const prevWeekDates = weekNumber > 1 ? getWeekDates(startDate, weekNumber - 1) : []
-  const pillarStats   = pillars.map(p => ({
-    pillar:    p,
-    thisWeek:  countDays(thisWeekDates, p, pillarDayData),
-    prevWeek:  countDays(prevWeekDates, p, pillarDayData),
+  const pillarStats: PillarStat[] = pillars.map(p => ({
+    pillar:   p,
+    thisWeek: countDays(thisWeekDates, p, pillarDayData),
+    prevWeek: countDays(prevWeekDates, p, pillarDayData),
   }))
 
-  // Pulse coaching video — computed before early returns so it's stable across renders
+  // Pulse coaching video
   const pulseVideoId   = pulseState ? getPulseVideoId(pulseState, level) : null
   const pulseVideo     = pulseVideoId ? VIDEO_LIBRARY.find(v => v.id === pulseVideoId) ?? null : null
   const showPulseVideo = pulseVideo !== null && !videoWatched.has(pulseVideo.id)
+
+  // Step sequencing helpers
+  function stepAfterPulse(): Step {
+    if (hasDurationGoals)   return 'destination'
+    if (hasGoals)           return 'goal'
+    if (showPillarCheck)    return 'pillar_check'
+    return 'pulse' // sentinel — caller submits instead
+  }
+
+  function stepAfterDestination(): Step {
+    if (hasGoals)        return 'goal'
+    if (showPillarCheck) return 'pillar_check'
+    return 'destination' // sentinel — caller submits instead
+  }
+
+  function stepAfterGoal(): Step {
+    if (showPillarCheck) return 'pillar_check'
+    return 'goal' // sentinel — caller submits instead
+  }
+
+  // Map destination responses to the DB shape for saveWeeklyReflectionWithPulse
+  function buildDestinationStatuses(): { destination_goal_id: string; hits_this_week: number; frequency_target: number }[] | null {
+    if (!hasDurationGoals) return null
+    return activeDurationGoals.map(g => {
+      const resp = destinationResponses[g.id]
+      let hits = 0
+      if (resp === 'on_track')      hits = g.frequency_target
+      else if (resp === 'slowly')   hits = Math.floor(g.frequency_target / 2)
+      // 'not_this_week' → 0 (default)
+      return { destination_goal_id: g.id, hits_this_week: hits, frequency_target: g.frequency_target }
+    })
+  }
 
   function submitAll(destStatus: DestinationGoalCheckInStatus | null) {
     if (!pulseState) return
@@ -174,12 +210,12 @@ export default function WeeklyReflectionFlow({
       await saveWeeklyReflectionWithPulse({
         challengeId,
         weekNumber,
-        reflectionQuestion:    question,
-        reflectionAnswer:      answer.trim() || null,
+        reflectionQuestion:       question,
+        reflectionAnswer:         answer.trim() || null,
         pulseState,
-        destinationGoalStatus: destStatus,
-        shareWithCircle:       shareCircle,
-        // Only include pillar check fields when the step was shown
+        destinationGoalStatus:    destStatus,
+        destinationGoalStatuses:  buildDestinationStatuses(),
+        shareWithCircle:          shareCircle,
         ...(showPillarCheck && targetPillar ? {
           pillarCheckPillar: targetPillar,
           pillarCheckAnswer: pillarCheckAnswer.trim() || null,
@@ -189,221 +225,96 @@ export default function WeeklyReflectionFlow({
     })
   }
 
-  // ── Step: Summary ──────────────────────────────────────────────────────────
-  if (step === 'summary') return (
-    <div className="bg-slate-900 border border-slate-700 rounded-3xl p-5 space-y-4">
-      <div className="space-y-1">
-        <p className="text-xs font-bold uppercase tracking-widest text-violet-400">Week {weekNumber} Review</p>
-        <p className="text-white font-bold text-base">How did this week go?</p>
-      </div>
+  // ── Step routing ────────────────────────────────────────────────────────────
 
-      <div className="space-y-2">
-        {pillarStats.map(({ pillar, thisWeek, prevWeek }) => {
-          const delta = thisWeek - prevWeek
-          return (
-            <div key={pillar} className="flex items-center gap-3">
-              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${PILLAR_DOT[pillar] ?? 'bg-slate-500'}`} />
-              <span className="text-slate-300 text-xs font-semibold w-24 shrink-0">
-                {PILLAR_LABEL[pillar] ?? pillar}
-              </span>
-              <div className="flex-1 bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${PILLAR_BAR[pillar] ?? 'bg-slate-500'}`}
-                  style={{ width: `${Math.round((thisWeek / 7) * 100)}%` }}
-                />
-              </div>
-              <span className="text-xs font-bold text-white w-6 text-right shrink-0">{thisWeek}/7</span>
-              {weekNumber > 1 && (
-                <span className={`text-xs w-8 text-right shrink-0 ${delta > 0 ? 'text-emerald-400' : delta < 0 ? 'text-red-400' : 'text-slate-500'}`}>
-                  {delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : '—'}
-                </span>
-              )}
-            </div>
-          )
-        })}
-      </div>
-
-      <button
-        onClick={() => setStep('question')}
-        className="w-full py-3 bg-violet-700 hover:bg-violet-600 text-white font-bold rounded-2xl transition-colors"
-      >
-        Continue →
-      </button>
-    </div>
-  )
-
-  // ── Step: Reflection question ──────────────────────────────────────────────
-  if (step === 'question') return (
-    <div className="bg-slate-900 border border-slate-700 rounded-3xl p-5 space-y-4">
-      <div className="space-y-1">
-        <p className="text-xs font-bold uppercase tracking-widest text-violet-400">Reflect</p>
-        <p className="text-white font-bold text-base leading-snug">{question}</p>
-      </div>
-
-      <textarea
-        value={answer}
-        onChange={e => setAnswer(e.target.value)}
-        placeholder="Take a moment… there's no wrong answer."
-        rows={4}
-        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white
-          placeholder-slate-500 resize-none focus:outline-none focus:border-violet-500 transition-colors"
+  if (step === 'summary') {
+    return (
+      <WeeklyReflectionSummaryStep
+        weekNumber={weekNumber}
+        pillarStats={pillarStats}
+        onContinue={() => setStep('question')}
       />
+    )
+  }
 
-      <button
-        onClick={() => setStep('pulse')}
-        className="w-full py-3 bg-violet-700 hover:bg-violet-600 text-white font-bold rounded-2xl transition-colors"
-      >
-        {answer.trim() ? 'Continue →' : 'Skip →'}
-      </button>
-    </div>
-  )
+  if (step === 'question') {
+    return (
+      <WeeklyReflectionQuestionStep
+        question={question}
+        answer={answer}
+        onAnswerChange={setAnswer}
+        onContinue={() => setStep('pulse')}
+      />
+    )
+  }
 
-  // ── Step: Pulse check ──────────────────────────────────────────────────────
-  if (step === 'pulse') return (
-    <div className="bg-slate-900 border border-slate-700 rounded-3xl p-5 space-y-4">
-      <div className="space-y-1">
-        <p className="text-xs font-bold uppercase tracking-widest text-purple-400">Pulse check</p>
-        <p className="text-white font-bold text-base">How are you feeling about the challenge right now?</p>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        {PULSE_OPTIONS.map(opt => (
-          <button
-            key={opt.state}
-            onClick={() => setPulseState(opt.state)}
-            className={`w-full rounded-2xl border-2 p-4 text-left transition-all ${
-              pulseState === opt.state
-                ? `${opt.ring} ring-offset-2 ring-offset-slate-950`
-                : 'bg-slate-900 border-slate-700 hover:border-slate-500'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">{opt.icon}</span>
-              <div>
-                <p className={`font-black text-sm ${pulseState === opt.state ? 'text-white' : 'text-slate-300'}`}>{opt.label}</p>
-                <p className={`text-xs mt-0.5 ${pulseState === opt.state ? 'text-slate-300' : 'text-slate-500'}`}>{opt.body}</p>
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
-
-      {/* Pulse coaching video — level-aware; disappears once watched */}
-      {showPulseVideo && pulseVideo && (
-        <VideoCard video={pulseVideo} watched={false} onWatched={handleVideoWatched} />
-      )}
-
-      <button
-        onClick={() => {
-          if (hasGoals)          setStep('goal')
-          else if (showPillarCheck) setStep('pillar_check')
-          else                   submitAll(null)
+  if (step === 'pulse') {
+    const next = stepAfterPulse()
+    const hasMore = hasDurationGoals || hasGoals || showPillarCheck
+    return (
+      <WeeklyReflectionPulseStep
+        pulseState={pulseState}
+        onPulseChange={setPulseState}
+        isPending={isPending}
+        pulseVideo={pulseVideo}
+        showPulseVideo={showPulseVideo}
+        videoWatched={videoWatched}
+        onVideoWatched={handleVideoWatched}
+        continueLabel={hasMore ? 'Continue →' : 'Done →'}
+        onContinue={() => {
+          if (hasMore) setStep(next)
+          else submitAll(null)
         }}
-        disabled={!pulseState || isPending}
-        className="w-full py-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-2xl font-bold text-white transition-colors"
-      >
-        {isPending ? 'Saving…' : (hasGoals || showPillarCheck) ? 'Continue →' : 'Done →'}
-      </button>
-    </div>
-  )
-
-  // ── Step: Destination goal check-in ───────────────────────────────────────
-  if (step === 'goal') return (
-    <div className="bg-slate-900 border border-slate-700 rounded-3xl p-5 space-y-4">
-      <div className="space-y-1">
-        <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Direction check</p>
-        <p className="text-white font-bold text-base leading-snug">Are you still moving toward your destination goal{activeGoals.length > 1 ? 's' : ''}?</p>
-      </div>
-
-      {/* Show active goal names */}
-      <div className="space-y-1.5">
-        {activeGoals.map(g => (
-          <p key={g.id} className="text-slate-400 text-sm leading-snug">
-            <span className="text-slate-500 text-xs uppercase tracking-wide">{PILLAR_LABEL[g.pillar] ?? g.pillar}: </span>
-            {g.goal_name}
-          </p>
-        ))}
-      </div>
-
-      <div className="flex flex-col gap-2">
-        {([
-          { value: 'yes',    label: 'Yes — I can feel it',        icon: '✅' },
-          { value: 'slowly', label: 'Slowly — but I haven\'t quit', icon: '🐢' },
-          { value: 'no',     label: 'Not really right now',        icon: '🔄' },
-        ] as { value: DestinationGoalCheckInStatus; label: string; icon: string }[]).map(opt => (
-          <button
-            key={opt.value}
-            onClick={() => setGoalStatus(opt.value)}
-            className={`w-full rounded-2xl border-2 p-4 text-left transition-all ${
-              goalStatus === opt.value
-                ? 'bg-emerald-950 border-emerald-500 ring-2 ring-emerald-500 ring-offset-2 ring-offset-slate-950'
-                : 'bg-slate-900 border-slate-700 hover:border-slate-500'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-xl">{opt.icon}</span>
-              <p className={`font-semibold text-sm ${goalStatus === opt.value ? 'text-white' : 'text-slate-300'}`}>{opt.label}</p>
-            </div>
-          </button>
-        ))}
-      </div>
-
-      {/* Share with Grooving Circle toggle */}
-      {answer.trim() && (
-        <label className="flex items-center gap-3 cursor-pointer">
-          <div
-            role="checkbox"
-            aria-checked={shareCircle}
-            onClick={() => setShareCircle(v => !v)}
-            className={`w-10 h-6 rounded-full transition-colors flex items-center px-1 cursor-pointer ${
-              shareCircle ? 'bg-violet-600' : 'bg-slate-700'
-            }`}
-          >
-            <div className={`w-4 h-4 rounded-full bg-white transition-transform ${shareCircle ? 'translate-x-4' : 'translate-x-0'}`} />
-          </div>
-          <span className="text-slate-400 text-xs leading-snug">
-            Share one sentence from my reflection with my Grooving Circle
-          </span>
-        </label>
-      )}
-
-      <button
-        onClick={() => { if (showPillarCheck) setStep('pillar_check'); else submitAll(goalStatus) }}
-        disabled={!goalStatus || isPending}
-        className="w-full py-3 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-2xl font-bold text-white transition-colors"
-      >
-        {isPending ? 'Saving…' : showPillarCheck ? 'Continue →' : 'Done →'}
-      </button>
-    </div>
-  )
-
-  // ── Step: Monthly Pillar Check ─────────────────────────────────────────────
-  // Shown at most once every 30 days, only when a Dormant or significantly
-  // underdeveloped pillar exists. targetPillar is always non-null here because
-  // showPillarCheck guards navigation into this step.
-  return (
-    <div className="bg-slate-900 border border-slate-700 rounded-3xl p-5 space-y-4">
-      <div className="space-y-1">
-        <p className="text-xs font-bold uppercase tracking-widest text-teal-400">Pillar Check</p>
-        <p className="text-white font-bold text-base leading-snug">{pillarCheckQuestion}</p>
-      </div>
-
-      <textarea
-        value={pillarCheckAnswer}
-        onChange={e => setPillarCheckAnswer(e.target.value)}
-        placeholder="Take a moment to reflect…"
-        rows={4}
-        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white
-          placeholder-slate-500 resize-none focus:outline-none focus:border-teal-500 transition-colors"
       />
+    )
+  }
 
-      <button
-        onClick={() => submitAll(goalStatus)}
-        disabled={isPending}
-        className="w-full py-3 bg-teal-700 hover:bg-teal-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-2xl font-bold text-white transition-colors"
-      >
-        {isPending ? 'Saving…' : pillarCheckAnswer.trim() ? 'Done →' : 'Skip →'}
-      </button>
-    </div>
+  if (step === 'destination') {
+    return (
+      <WeeklyReflectionDestinationStep
+        activeDestinationGoals={activeDurationGoals}
+        pillarStats={pillarStats}
+        isPending={isPending}
+        onContinue={responses => {
+          setDestinationResponses(responses)
+          const next = stepAfterDestination()
+          const hasMore = hasGoals || showPillarCheck
+          if (hasMore) setStep(next)
+          else submitAll(goalStatus)
+        }}
+      />
+    )
+  }
+
+  if (step === 'goal') {
+    const next = stepAfterGoal()
+    const hasMore = showPillarCheck
+    return (
+      <WeeklyReflectionGoalStep
+        activeGoals={activeGoals}
+        goalStatus={goalStatus}
+        onGoalStatusChange={setGoalStatus}
+        shareCircle={shareCircle}
+        onShareCircleChange={setShareCircle}
+        hasAnswer={answer.trim().length > 0}
+        isPending={isPending}
+        continueLabel={hasMore ? 'Continue →' : 'Done →'}
+        onContinue={() => {
+          if (hasMore) setStep(next)
+          else submitAll(goalStatus)
+        }}
+      />
+    )
+  }
+
+  // step === 'pillar_check'
+  return (
+    <WeeklyReflectionPillarCheckStep
+      pillarCheckQuestion={pillarCheckQuestion}
+      pillarCheckAnswer={pillarCheckAnswer}
+      onAnswerChange={setPillarCheckAnswer}
+      isPending={isPending}
+      onDone={() => submitAll(goalStatus)}
+    />
   )
 }

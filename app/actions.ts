@@ -1385,6 +1385,7 @@ export async function saveWeeklyReflectionWithPulse(data: {
   reflectionAnswer:        string | null
   pulseState:              PulseState
   destinationGoalStatus:   DestinationGoalCheckInStatus | null
+  destinationGoalStatuses?: { destination_goal_id: string; hits_this_week: number; frequency_target: number }[] | null
   shareWithCircle:         boolean
   // Monthly Pillar Check — present only when the 30-day cadence check fired this session
   pillarCheckPillar?:      string | null
@@ -1398,16 +1399,17 @@ export async function saveWeeklyReflectionWithPulse(data: {
 
   // 1. Save the weekly reflection record (includes pillar check fields when present)
   const { error: reflectionErr } = await sb.from('weekly_reflections').insert({
-    user_id:                 userId,
-    challenge_id:            data.challengeId,
-    week_number:             data.weekNumber,
-    reflection_question:     data.reflectionQuestion,
-    reflection_answer:       data.reflectionAnswer,
-    destination_goal_status: data.destinationGoalStatus,
-    share_with_circle:       data.shareWithCircle,
-    pillar_check_pillar:     data.pillarCheckPillar ?? null,
-    pillar_check_answer:     data.pillarCheckAnswer ?? null,
-    created_at:              now,
+    user_id:                   userId,
+    challenge_id:              data.challengeId,
+    week_number:               data.weekNumber,
+    reflection_question:       data.reflectionQuestion,
+    reflection_answer:         data.reflectionAnswer,
+    destination_goal_status:   data.destinationGoalStatus,
+    destination_goal_statuses: data.destinationGoalStatuses ?? null,
+    share_with_circle:         data.shareWithCircle,
+    pillar_check_pillar:       data.pillarCheckPillar ?? null,
+    pillar_check_answer:       data.pillarCheckAnswer ?? null,
+    created_at:                now,
   })
   if (reflectionErr) throw new Error(`saveWeeklyReflection insert: ${reflectionErr.message}`)
 
@@ -1655,6 +1657,21 @@ export async function releaseDurationGoalDestination(
     return { success: false, error: 'Failed to release goal.' }
   }
   return { success: true }
+}
+
+// Phase 5 — Step 47: Mark the G6b video as triggered for this user (one-time).
+// Called after the first destination goal is successfully saved from the Goals tab.
+export async function markG6bTriggered(): Promise<void> {
+  const { userId } = await auth()
+  if (!userId) return
+
+  const sb = createServerSupabaseClient()
+  const { error } = await sb
+    .from('user_profile')
+    .update({ video_g6b_triggered: true })
+    .eq('user_id', userId)
+
+  if (error) console.error('markG6bTriggered:', error)
 }
 
 /**
