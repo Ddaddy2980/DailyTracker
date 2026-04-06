@@ -28,11 +28,11 @@ Read this file at the start of every session along with PRODUCT.md. These are yo
 ## Branch Rules
 
 - Never commit directly to `main`
-- All active development happens on branch: `v2-phase5`
-- Create feature sub-branches off `v2-phase5` for each build step:
-  e.g. `step-43-duration-goal-card`, `step-44-destination-modal`
-- When David says "this is ready", merge the feature branch into `v2-phase5` — not into `main`
-- Only merge `v2-phase5` into `main` when David explicitly says "ready to go live"
+- All active development happens on branch: `v2-phase6`
+- Create feature sub-branches off `v2-phase6` for each build step:
+  e.g. `step-49-[name]`, `step-50-[name]`
+- When David says "this is ready", merge the feature branch into `v2-phase6` — not into `main`
+- Only merge `v2-phase6` into `main` when David explicitly says "ready to go live"
 - `v2-rebuild` is retired — do not use it as a base for new work
 
 ---
@@ -458,20 +458,19 @@ This phase restructures the app's core model from a single-ladder system to a pe
 - [x] Step 41 — Monthly Pillar Check: add conditional pillar question to weekly reflection flow. Enforces 30-day cadence via last_pillar_check_at. Targets most underdeveloped or Dormant pillar.
 - [x] Step 42 — Adaptive morning notification: update notification content to adapt tone based on pillar mix (Building present → motivational, all Developing → coaching, all Anchored → reflective).
 
-### Phase 5 — Destination Goals (CURRENT)
+### Phase 5 — Destination Goals (COMPLETE)
 
-- [ ] Step 43 — Pillar card expand/collapse + destination goal display: Build open/closed card interaction. Closed state shows duration goal count. Open state shows duration goal checkboxes, destination goal checkboxes (if any active), and Save button. Query duration_goal_destinations for active goals by pillar. No setup flow in this step.
-- [ ] Step 44 — Destination goal setup flow: Add/edit/release destination goals from Goals tab. Three input fields: goal name, frequency target, time window. Confirmation screen. Writes to duration_goal_destinations.
-- [ ] Step 45 — Weekly reflection update: Add destination goal progress to weekly reflection. Duration performance shown first and prominently. Destination hits vs. target shown below as personal record. Writes to weekly_reflections.destination_goal_statuses.
-- [ ] Step 46 — Expiry and completion logic: Detect window end, handle Completed / Released / Expired states, update status field, surface prompt in weekly reflection or pillar card.
-- [ ] Step 47 — G6b video card: Trigger "Setting a direction within your daily habit" video when user first adds a destination goal from the Goals tab. One-time trigger per user.
-- [ ] Step 48 — Destination goal expiry notification: Embedded in weekly reflection when end date is within 7 days. Not a standalone push notification.
+- [x] Step 43 — Pillar card expand/collapse + destination goal display: Build open/closed card interaction. Closed state shows duration goal count. Open state shows duration goal checkboxes, destination goal checkboxes (if any active), and Save button. Query duration_goal_destinations for active goals by pillar. No setup flow in this step.
+- [x] Step 44 — Destination goal setup flow: Add/edit/release destination goals from Goals tab. Three input fields: goal name, frequency target, time window. Confirmation screen. Writes to duration_goal_destinations.
+- [x] Step 45 — Weekly reflection update: Add destination goal progress to weekly reflection. Duration performance shown first and prominently. Destination hits vs. target shown below as personal record. Writes to weekly_reflections.destination_goal_statuses.
+- [x] Step 46 — Expiry and completion logic: Detect window end, handle Completed / Released / Expired states, update status field, surface prompt in weekly reflection or pillar card.
+- [x] Step 47 — G6b video card: Trigger "Setting a direction within your daily habit" video when user first adds a destination goal from the Goals tab. One-time trigger per user.
+- [x] Step 48 — Destination goal expiry notification: Embedded in weekly reflection when end date is within 7 days. Not a standalone push notification.
 
-### Phase 6 — Soloing Level (FUTURE)
+### Phase 6 — Soloing Level (NEXT)
 
 ### Phase 7 — Orchestrating Level (FUTURE)
 
 ---
 
-*This file was last updated: April 2026 — Phase 4 complete, Phase 5 active*
-*Do not modify this file without David's direction*
+*This file was last updated: April 2026 — Phase 5 complete, Phase 6 planning*
