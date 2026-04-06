@@ -273,6 +273,7 @@ export default function GroovingDash({
                         pillarDayData={pillarDayData}
                         startDate={challenge.start_date}
                         destinationGoals={destinationGoals}
+                        durationGoalDestinations={Object.values(destinationGoalsByPillar).flat()}
                         level={3}
                         watchedVideoIds={watchedVideoIds}
                         pillarLevels={pillarLevels}
@@ -371,6 +372,7 @@ export default function GroovingDash({
             durationGoalsByPillar={destinationGoalsByPillar}
             pillarLevelsByPillar={pillarLevelsByPillar}
             onSaved={() => router.refresh()}
+            videoG6bTriggered={profile.video_g6b_triggered}
           />
         )}
 

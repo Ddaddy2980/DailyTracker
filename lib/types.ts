@@ -39,6 +39,8 @@ export interface UserProfile {
   life_on_purpose_score:          number | null
   next_pillar_invitation_pillar:  string | null
   last_pillar_check_at:           string | null
+  // Phase 5 — Step 47
+  video_g6b_triggered:            boolean
 }
 
 export interface Challenge {

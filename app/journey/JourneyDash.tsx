@@ -408,6 +408,7 @@ export default function JourneyDash({
                         pillarDayData={pillarDayData}
                         startDate={challenge.start_date}
                         destinationGoals={destinationGoals}
+                        durationGoalDestinations={Object.values(durationGoalsByPillar).flat()}
                         level={3}
                         watchedVideoIds={watchedVideoIds}
                         pillarLevels={[]}
@@ -552,6 +553,7 @@ export default function JourneyDash({
             durationGoalsByPillar={durationGoalsByPillar}
             pillarLevelsByPillar={pillarLevelsByPillar}
             onSaved={() => router.refresh()}
+            videoG6bTriggered={profile.video_g6b_triggered}
           />
         )}
 

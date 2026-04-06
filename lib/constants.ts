@@ -332,6 +332,7 @@ export const VIDEO_LIBRARY: VideoEntry[] = [
   { id: 'G4',       module: 'G', title: 'Your circle: why who watches matters',                               url: '', trigger: 'grooving_circle_setup' },
   { id: 'G5',       module: 'G', title: 'Rooted. What that means.',                                           url: '', trigger: 'rooted_milestone' },
   { id: 'G6',       module: 'G', title: 'Now that you\'re rooted — here\'s how to set a direction',           url: '', trigger: 'post_rooted_destination' },
+  { id: 'G6b',      module: 'G', title: 'Setting a direction within your daily habit',                         url: '', trigger: 'first_destination_goal' },
   { id: 'G7',       module: 'G', title: 'If you need to pause — here\'s what that means.',                    url: '', trigger: 'pause_activation' },
   { id: 'G_RETURN', module: 'G', title: 'Welcome back. Here\'s what picking up after a pause means.',         url: '', trigger: 'pause_return' },
   { id: 'G8',       module: 'G', title: 'You finished Grooving. This is what you\'ve built.',                 url: '', trigger: 'grooving_completion' },

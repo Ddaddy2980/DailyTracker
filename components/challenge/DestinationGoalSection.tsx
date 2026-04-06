@@ -10,12 +10,14 @@ import type { AddFormState } from './AddDestinationGoalForm'
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Props {
-  pillar:        string
-  challengeId:   string
-  pillarLevel:   number
-  activeGoals:   DurationGoalDestination[]
-  subtitleColor: string
-  onChanged:     () => void
+  pillar:               string
+  challengeId:          string
+  pillarLevel:          number
+  activeGoals:          DurationGoalDestination[]
+  subtitleColor:        string
+  onChanged:            () => void
+  videoG6bTriggered?:   boolean    // true = G6b already shown; never fire again
+  onG6bTrigger?:        () => void  // called once after the very first goal save
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -39,6 +41,7 @@ function daysRemaining(endDate: string): number {
 
 export default function DestinationGoalSection({
   pillar, challengeId, pillarLevel, activeGoals, subtitleColor, onChanged,
+  videoG6bTriggered = true, onG6bTrigger,
 }: Props) {
   const [isPending, startTransition] = useTransition()
 
@@ -73,6 +76,14 @@ export default function DestinationGoalSection({
         endDate,
       })
       if (!result.success) { setFormError(result.error ?? 'Failed to save.'); return }
+
+      // Fire the G6b video trigger the first time a destination goal is ever added.
+      // goals.length === 0 means this is the first goal for this pillar/session;
+      // videoG6bTriggered guards against re-triggering across pillars or sessions.
+      if (!videoG6bTriggered && goals.length === 0) {
+        onG6bTrigger?.()
+      }
+
       const newGoal: DurationGoalDestination = {
         id:               crypto.randomUUID(),
         user_id:          '',
