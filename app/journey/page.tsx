@@ -8,13 +8,15 @@ import {
   getPendingPulseCheck,
   getPulseHistory,
   getDestinationGoals,
+  getActiveDurationGoalDestinations,
+  getPillarLevels,
   getPauseStatus,
   getWatchedVideoIds,
 } from '@/app/actions'
 import { getMyGroups, getGroupWithMembers } from '@/app/actions-groups'
 import { todayStr } from '@/lib/constants'
 import { getJourneyStatus } from '@/lib/journeyEngine'
-import type { ChallengeEntry, DayStatus, RewardType, GroupWithMembers } from '@/lib/types'
+import type { ChallengeEntry, DayStatus, RewardType, GroupWithMembers, DurationGoalDestination, PillarLevel } from '@/lib/types'
 import JourneyDash from './JourneyDash'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -144,7 +146,7 @@ export default async function JourneyPage() {
 
   const [
     entries, earnedRewards, pendingPulse, pulseHistory,
-    destinationGoals, myGroups, pauseStatus, watchedVideoIds,
+    destinationGoals, durationGoalDestinations, pillarLevels, myGroups, pauseStatus, watchedVideoIds,
   ] = await Promise.all([
     getChallengeEntries(challenge.start_date, challenge.end_date),
     getEarnedRewards(challenge.id),
@@ -155,6 +157,8 @@ export default async function JourneyPage() {
     }),
     getPulseHistory(challenge.id),
     getDestinationGoals(challenge.id),
+    getActiveDurationGoalDestinations(challenge.id),
+    getPillarLevels(),
     getMyGroups(),
     getPauseStatus(challenge.id),
     getWatchedVideoIds(),
@@ -178,6 +182,15 @@ export default async function JourneyPage() {
   const patternAlertDay      = detectPatternAlertDay(pillarDayData, pillars, today, journeyStatus.currentDay)
   const rootedMilestoneToday = profile.rooted_milestone_date === today && profile.rooted_milestone_fired
 
+  const durationGoalsByPillar = (durationGoalDestinations as DurationGoalDestination[]).reduce<Record<string, DurationGoalDestination[]>>(
+    (acc, g) => { acc[g.pillar] = [...(acc[g.pillar] ?? []), g]; return acc },
+    {}
+  )
+  const pillarLevelsByPillar = (pillarLevels as PillarLevel[]).reduce<Record<string, PillarLevel>>(
+    (acc, pl) => { acc[pl.pillar] = pl; return acc },
+    {}
+  )
+
   return (
     <JourneyDash
       challenge={challenge}
@@ -193,6 +206,8 @@ export default async function JourneyPage() {
       pendingPulse={pendingPulse}
       pulseHistory={pulseHistory}
       destinationGoals={destinationGoals}
+      durationGoalsByPillar={durationGoalsByPillar}
+      pillarLevelsByPillar={pillarLevelsByPillar}
       groups={groups}
       pauseStatus={pauseStatus}
       watchedVideoIds={watchedVideoIds}

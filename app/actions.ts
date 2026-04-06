@@ -1600,6 +1600,63 @@ export async function getPillarLevels(): Promise<PillarLevel[]> {
   return (data ?? []) as PillarLevel[]
 }
 
+// Phase 5 — Add a new destination goal row to duration_goal_destinations.
+export async function addDurationGoalDestination(input: {
+  challengeId:     string
+  pillar:          string
+  goalName:        string
+  frequencyTarget: number
+  windowDays:      number
+  startDate:       string
+  endDate:         string
+}): Promise<{ success: boolean; error?: string }> {
+  const { userId } = await auth()
+  if (!userId) return { success: false, error: 'Unauthorized' }
+
+  const sb = createServerSupabaseClient()
+  const { error } = await sb
+    .from('duration_goal_destinations')
+    .insert({
+      user_id:          userId,
+      challenge_id:     input.challengeId,
+      pillar:           input.pillar,
+      goal_name:        input.goalName,
+      frequency_target: input.frequencyTarget,
+      frequency_unit:   'weekly',
+      window_days:      input.windowDays,
+      start_date:       input.startDate,
+      end_date:         input.endDate,
+      status:           'active',
+    })
+
+  if (error) {
+    console.error('addDurationGoalDestination:', error)
+    return { success: false, error: 'Failed to save goal.' }
+  }
+  return { success: true }
+}
+
+// Phase 5 — Set a destination goal's status to 'released'.
+export async function releaseDurationGoalDestination(
+  goalId: string
+): Promise<{ success: boolean; error?: string }> {
+  const { userId } = await auth()
+  if (!userId) return { success: false, error: 'Unauthorized' }
+
+  const sb = createServerSupabaseClient()
+  const { error } = await sb
+    .from('duration_goal_destinations')
+    .update({ status: 'released' })
+    .eq('id', goalId)
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('releaseDurationGoalDestination:', error)
+    return { success: false, error: 'Failed to release goal.' }
+  }
+  return { success: true }
+}
+
 /**
  * Create or update a destination goal for a pillar.
  * One active goal per pillar per challenge is enforced: if one already exists it is updated.

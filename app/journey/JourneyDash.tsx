@@ -8,6 +8,7 @@ import type {
   PendingPulseCheck, PulseCheck as PulseCheckRecord, PulseState,
   DestinationGoal, FocusTop5Item, GroupWithMembers, ChallengeEntry,
   JourneyStatus, PendingJourneyEvent, VideoEntry,
+  DurationGoalDestination, PillarLevel,
 } from '@/lib/types'
 import type { PauseStatus } from '@/app/actions'
 import { VIDEO_LIBRARY, getDayVideoIds, getJammingVideoIds } from '@/lib/constants'
@@ -105,24 +106,26 @@ function getTodaysDashboardVideo(
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface Props {
-  challenge:            Challenge
-  profile:              UserProfile
-  journeyStatus:        JourneyStatus
-  entries:              ChallengeEntry[]
-  dayStatuses:          Record<string, DayStatus>
-  pillarDayData:        Record<string, Record<string, boolean>>
-  todayCompletions:     Record<string, boolean>
-  streak:               number
-  today:                string
-  earnedRewards:        RewardType[]
-  pendingPulse:         PendingPulseCheck | null
-  pulseHistory:         PulseCheckRecord[]
-  destinationGoals:     DestinationGoal[]
-  groups:               GroupWithMembers[]
-  pauseStatus:          PauseStatus
-  watchedVideoIds:      string[]
-  patternAlertDay:      string | null
-  rootedMilestoneToday: boolean
+  challenge:              Challenge
+  profile:                UserProfile
+  journeyStatus:          JourneyStatus
+  entries:                ChallengeEntry[]
+  dayStatuses:            Record<string, DayStatus>
+  pillarDayData:          Record<string, Record<string, boolean>>
+  todayCompletions:       Record<string, boolean>
+  streak:                 number
+  today:                  string
+  earnedRewards:          RewardType[]
+  pendingPulse:           PendingPulseCheck | null
+  pulseHistory:           PulseCheckRecord[]
+  destinationGoals:       DestinationGoal[]
+  durationGoalsByPillar:  Record<string, DurationGoalDestination[]>
+  pillarLevelsByPillar:   Record<string, PillarLevel>
+  groups:                 GroupWithMembers[]
+  pauseStatus:            PauseStatus
+  watchedVideoIds:        string[]
+  patternAlertDay:        string | null
+  rootedMilestoneToday:   boolean
 }
 
 type ActiveTab = 'today' | 'history' | 'groups' | 'videos' | 'goals'
@@ -130,7 +133,8 @@ type ActiveTab = 'today' | 'history' | 'groups' | 'videos' | 'goals'
 export default function JourneyDash({
   challenge, profile, journeyStatus, entries, dayStatuses, pillarDayData,
   todayCompletions, streak, today, earnedRewards, pendingPulse, pulseHistory,
-  destinationGoals, groups, pauseStatus, watchedVideoIds,
+  destinationGoals, durationGoalsByPillar, pillarLevelsByPillar,
+  groups, pauseStatus, watchedVideoIds,
   patternAlertDay, rootedMilestoneToday,
 }: Props) {
   const router = useRouter()
@@ -545,6 +549,8 @@ export default function JourneyDash({
             challenge={challenge}
             pillars={pillars}
             pillarGoals={pillarGoals}
+            durationGoalsByPillar={durationGoalsByPillar}
+            pillarLevelsByPillar={pillarLevelsByPillar}
             onSaved={() => router.refresh()}
           />
         )}

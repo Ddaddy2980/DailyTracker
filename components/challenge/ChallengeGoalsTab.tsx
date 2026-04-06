@@ -3,42 +3,37 @@
 import Image from 'next/image'
 import { useState, useTransition } from 'react'
 import { updatePillarGoals } from '@/app/actions'
-import type { Challenge } from '@/lib/types'
+import { PILLAR_CONFIG } from '@/lib/constants'
+import type { Challenge, DurationGoalDestination, PillarLevel } from '@/lib/types'
 import { LEVEL_NAMES } from '@/lib/types'
+import DestinationGoalSection from '@/components/challenge/DestinationGoalSection'
 
-// ── Constants ──────────────────────────────────────────────────────────────────
-
-const PILLAR_LABEL: Record<string, string> = {
-  spiritual: 'Spiritual', physical: 'Physical', nutritional: 'Nutritional', personal: 'Personal',
-}
-
-const PILLAR_ICON: Record<string, string> = {
-  spiritual:   '/Spiritual_Icon_Bk.png',
-  physical:    '/Physical_Icon_Bk.png',
-  nutritional: '/Nutritional_Icon_Bk.png',
-  personal:    '/Personal_Icon_Bk.png',
-}
-
-const PILLAR_CLASS: Record<string, string> = {
-  spiritual:   'pillar-spiritual',
-  physical:    'pillar-physical',
-  nutritional: 'pillar-nutritional',
-  personal:    'pillar-personal',
-}
-
-// ── Component ──────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Props {
-  challenge:   Challenge
-  pillars:     string[]
-  pillarGoals: Record<string, string>
-  onSaved:     () => void
+  challenge:              Challenge
+  pillars:                string[]
+  pillarGoals:            Record<string, string>
+  durationGoalsByPillar?: Record<string, DurationGoalDestination[]>
+  pillarLevelsByPillar?:  Record<string, PillarLevel>
+  onSaved:                () => void
 }
 
-export default function ChallengeGoalsTab({ challenge, pillars, pillarGoals, onSaved }: Props) {
+type PillarCfg = typeof PILLAR_CONFIG[keyof typeof PILLAR_CONFIG]
+
+function getCfg(pillar: string): PillarCfg {
+  return (PILLAR_CONFIG as Record<string, PillarCfg>)[pillar] ?? PILLAR_CONFIG.spiritual
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export default function ChallengeGoalsTab({
+  challenge, pillars, pillarGoals,
+  durationGoalsByPillar = {}, pillarLevelsByPillar = {}, onSaved,
+}: Props) {
   const [isPending, startTransition] = useTransition()
-  const [goals, setGoals]   = useState<Record<string, string>>(pillarGoals)
-  const [saved, setSaved]   = useState(false)
+  const [goals, setGoals] = useState<Record<string, string>>(pillarGoals)
+  const [saved, setSaved] = useState(false)
 
   const levelName = LEVEL_NAMES[challenge.level] ?? `Level ${challenge.level}`
   const startDate = new Date(challenge.start_date + 'T00:00:00').toLocaleDateString('en-US', {
@@ -73,37 +68,57 @@ export default function ChallengeGoalsTab({ challenge, pillars, pillarGoals, onS
         </p>
       </div>
 
-      {/* Pillar goals */}
+      {/* Pillar goal cards */}
       <div className="space-y-3">
         <p className="text-xs font-black uppercase tracking-widest text-[var(--text-secondary)]">Your Goals</p>
-        {pillars.map(pillar => (
-          <div key={pillar} className={`rounded-2xl px-4 py-3 space-y-2 ${PILLAR_CLASS[pillar] ?? 'bg-gray-700'}`}>
-            <div className="flex items-center gap-1.5">
-              {PILLAR_ICON[pillar] && (
+        {pillars.map(pillar => {
+          const cfg         = getCfg(pillar)
+          const pillarLevel = pillarLevelsByPillar[pillar]?.level ?? 1
+          const destGoals   = durationGoalsByPillar[pillar] ?? []
+          const isGroovingPlus = pillarLevel >= 3
+
+          return (
+            <div key={pillar} className="rounded-2xl px-4 py-3 space-y-2" style={{ backgroundColor: cfg.background }}>
+              {/* Pillar header */}
+              <div className="flex items-center gap-1.5">
                 <Image
-                  src={PILLAR_ICON[pillar]}
+                  src={cfg.icon}
                   width={20}
                   height={20}
-                  alt={PILLAR_LABEL[pillar] ?? pillar}
-                  className="invert"
+                  alt={cfg.label}
+                  className="invert shrink-0"
+                />
+                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: cfg.title }}>
+                  {cfg.label}
+                </p>
+              </div>
+
+              {/* Duration goal input */}
+              <input
+                type="text"
+                value={goals[pillar] ?? ''}
+                onChange={e => setGoals(prev => ({ ...prev, [pillar]: e.target.value }))}
+                className="w-full text-sm text-white bg-transparent border-b border-white/40 pb-1 focus:outline-none focus:border-white/80 transition-colors placeholder:text-white/50"
+                placeholder={`${cfg.label} goal…`}
+              />
+
+              {/* Destination goals — Grooving level and above only */}
+              {isGroovingPlus && (
+                <DestinationGoalSection
+                  pillar={pillar}
+                  challengeId={challenge.id}
+                  pillarLevel={pillarLevel}
+                  activeGoals={destGoals}
+                  subtitleColor={cfg.subtitle}
+                  onChanged={onSaved}
                 />
               )}
-              <p className="text-xs font-bold uppercase tracking-wide text-white">
-                {PILLAR_LABEL[pillar] ?? pillar}
-              </p>
             </div>
-            <input
-              type="text"
-              value={goals[pillar] ?? ''}
-              onChange={e => setGoals(prev => ({ ...prev, [pillar]: e.target.value }))}
-              className="w-full text-sm text-white bg-transparent border-b border-white/40 pb-1 focus:outline-none focus:border-white/80 transition-colors placeholder:text-white/50"
-              placeholder={`${PILLAR_LABEL[pillar] ?? pillar} goal…`}
-            />
-          </div>
-        ))}
+          )
+        })}
       </div>
 
-      {/* Save */}
+      {/* Duration goal save */}
       {isDirty && (
         <button
           onClick={handleSave}

@@ -87,6 +87,10 @@ export default function GroovingDash({
   const pillarGoals  = Object.fromEntries(
     Object.entries(challenge.pillar_goals).map(([k, v]) => [k, String(v)])
   )
+  const pillarLevelsByPillar = pillarLevels.reduce<Record<string, PillarLevel>>(
+    (acc, pl) => { acc[pl.pillar] = pl; return acc },
+    {}
+  )
 
   const alreadySaved  = pillars.every(p => todayCompletions[p])
   const todayComplete = pillars.every(p => completions[p])
@@ -364,6 +368,8 @@ export default function GroovingDash({
             challenge={challenge}
             pillars={pillars}
             pillarGoals={pillarGoals}
+            durationGoalsByPillar={destinationGoalsByPillar}
+            pillarLevelsByPillar={pillarLevelsByPillar}
             onSaved={() => router.refresh()}
           />
         )}
