@@ -1,7 +1,8 @@
 'use client'
 
 import Image from 'next/image'
-import type { PillarName } from '@/lib/types'
+import type { PillarName, DurationGoalDestination, RewardType } from '@/lib/types'
+import PillarGoalCard from '@/components/challenge/PillarGoalCard'
 
 interface Props {
   pillars:        string[]
@@ -12,6 +13,17 @@ interface Props {
   onToggle:       (pillar: string) => void
   onSave:         () => void
   pillarStates?:  Partial<Record<string, 'anchored' | 'developing' | 'building' | 'dormant'>>
+  // ── Grooving+ per-pillar card props (all optional) ─────────────────────────
+  pillarLevelSnapshot?:       Record<string, { level: number; state: string }>
+  destinationGoalsByPillar?:  Record<string, DurationGoalDestination[]>
+  challengeId?:               string
+  startDate?:                 string
+  endDate?:                   string
+  date?:                      string
+  dayNumber?:                 number
+  durationDays?:              number
+  level?:                     number
+  onPillarSaved?:             (delta: Record<string, boolean>, newRewards?: RewardType[]) => void
 }
 
 const PILLAR_UI: Record<PillarName, { label: string; icon: string; card: string }> = {
@@ -34,11 +46,34 @@ function getPillarVariant(
   return 'building'
 }
 
+function isGroovingPlus(
+  pillar: string,
+  snapshot?: Record<string, { level: number; state: string }>
+): boolean {
+  return (snapshot?.[pillar]?.level ?? 0) >= 3
+}
+
 export default function DayCheckIn({
   pillars, pillarGoals, completions, isPending, alreadySaved, onToggle, onSave, pillarStates,
+  pillarLevelSnapshot, destinationGoalsByPillar, challengeId, startDate, endDate,
+  date, dayNumber, durationDays, level, onPillarSaved,
 }: Props) {
-  const allDone = pillars.every(p => completions[p])
-  const anyDone = pillars.some(p => completions[p])
+  // Pillars split by rendering mode
+  const groovinPillars = pillarLevelSnapshot
+    ? pillars.filter(p => isGroovingPlus(p, pillarLevelSnapshot))
+    : []
+  const flatPillars = pillars.filter(p => !groovinPillars.includes(p))
+
+  const flatAllDone = flatPillars.length > 0
+    ? flatPillars.every(p => completions[p])
+    : false
+  const flatAnyDone = flatPillars.some(p => completions[p])
+
+  // Whether the global save button should appear (only covers flat-toggle pillars)
+  const showGlobalSave = !alreadySaved && flatPillars.length > 0
+
+  // Check whether all per-pillar props are available to render PillarGoalCard
+  const canRenderCard = !!(challengeId && startDate && endDate && date && dayNumber != null && durationDays != null && level != null)
 
   return (
     <div className="space-y-3">
@@ -47,12 +82,37 @@ export default function DayCheckIn({
       </p>
 
       {pillars.map(pillar => {
+        // ── Grooving+ pillar: expandable card ───────────────────────────────
+        if (isGroovingPlus(pillar, pillarLevelSnapshot) && canRenderCard) {
+          const pillarLevel = pillarLevelSnapshot![pillar]?.level ?? 3
+          return (
+            <PillarGoalCard
+              key={pillar}
+              pillar={pillar}
+              goals={[pillarGoals[pillar] ?? ''].filter(Boolean)}
+              savedCompletions={completions}
+              challengeId={challengeId!}
+              startDate={startDate!}
+              endDate={endDate!}
+              date={date!}
+              dayNumber={dayNumber!}
+              durationDays={durationDays!}
+              level={level!}
+              pillarLevel={pillarLevel}
+              destinationGoals={destinationGoalsByPillar?.[pillar] ?? []}
+              onSaved={(delta, newRewards) => {
+                onPillarSaved?.(delta, newRewards)
+              }}
+            />
+          )
+        }
+
+        // ── Flat toggle pillar (Tuning/Jamming) ─────────────────────────────
         const ui      = PILLAR_UI[pillar as PillarName] ?? DEFAULT_UI
         const complete = completions[pillar] ?? false
         const goal    = pillarGoals[pillar] ?? ''
         const variant = getPillarVariant(pillar, pillarStates)
 
-        // Anchored — compact card, no goal text (pillar is habitual)
         if (variant === 'anchored') {
           return (
             <button
@@ -63,9 +123,7 @@ export default function DayCheckIn({
             >
               <div className="flex items-center gap-3">
                 <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                  complete
-                    ? 'bg-emerald-500 border-emerald-400'
-                    : 'border-white/60 bg-transparent'
+                  complete ? 'bg-emerald-500 border-emerald-400' : 'border-white/60 bg-transparent'
                 }`}>
                   {complete && (
                     <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -74,19 +132,14 @@ export default function DayCheckIn({
                   )}
                 </div>
                 <div className="flex items-center gap-1.5">
-                  {ui.icon && (
-                    <Image src={ui.icon} width={20} height={20} alt={ui.label} className="invert" />
-                  )}
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-white">
-                    {ui.label}
-                  </p>
+                  {ui.icon && <Image src={ui.icon} width={20} height={20} alt={ui.label} className="invert" />}
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-white">{ui.label}</p>
                 </div>
               </div>
             </button>
           )
         }
 
-        // Developing — full card, slightly muted
         if (variant === 'developing') {
           return (
             <button
@@ -97,9 +150,7 @@ export default function DayCheckIn({
             >
               <div className="flex items-center gap-3">
                 <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                  complete
-                    ? 'bg-emerald-500 border-emerald-400'
-                    : 'border-white/60 bg-transparent'
+                  complete ? 'bg-emerald-500 border-emerald-400' : 'border-white/60 bg-transparent'
                 }`}>
                   {complete && (
                     <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -109,23 +160,17 @@ export default function DayCheckIn({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
-                    {ui.icon && (
-                      <Image src={ui.icon} width={20} height={20} alt={ui.label} className="invert" />
-                    )}
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-white">
-                      {ui.label}
-                    </p>
+                    {ui.icon && <Image src={ui.icon} width={20} height={20} alt={ui.label} className="invert" />}
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-white">{ui.label}</p>
                   </div>
-                  <p className="text-sm font-semibold leading-snug text-white/80">
-                    {goal}
-                  </p>
+                  <p className="text-sm font-semibold leading-snug text-white/80">{goal}</p>
                 </div>
               </div>
             </button>
           )
         }
 
-        // Building (default) — full card, full prominence
+        // Building (default)
         return (
           <button
             key={pillar}
@@ -135,9 +180,7 @@ export default function DayCheckIn({
           >
             <div className="flex items-center gap-3">
               <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                complete
-                  ? 'bg-emerald-500 border-emerald-400'
-                  : 'border-white/60 bg-transparent'
+                complete ? 'bg-emerald-500 border-emerald-400' : 'border-white/60 bg-transparent'
               }`}>
                 {complete && (
                   <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -145,38 +188,25 @@ export default function DayCheckIn({
                   </svg>
                 )}
               </div>
-
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  {ui.icon && (
-                    <Image
-                      src={ui.icon}
-                      width={20}
-                      height={20}
-                      alt={ui.label}
-                      className="invert"
-                    />
-                  )}
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-white">
-                    {ui.label}
-                  </p>
+                  {ui.icon && <Image src={ui.icon} width={20} height={20} alt={ui.label} className="invert" />}
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-white">{ui.label}</p>
                 </div>
-                <p className="text-sm font-semibold leading-snug text-white">
-                  {goal}
-                </p>
+                <p className="text-sm font-semibold leading-snug text-white">{goal}</p>
               </div>
             </div>
           </button>
         )
       })}
 
-      {!alreadySaved && (
+      {showGlobalSave && (
         <button
           onClick={onSave}
-          disabled={!anyDone || isPending}
+          disabled={!flatAnyDone || isPending}
           className="w-full py-4 mt-1 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl font-bold text-lg text-white transition-colors"
         >
-          {isPending ? 'Saving…' : allDone ? 'Save today ✓' : 'Save progress'}
+          {isPending ? 'Saving…' : flatAllDone ? 'Save today ✓' : 'Save progress'}
         </button>
       )}
     </div>

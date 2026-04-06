@@ -7,6 +7,10 @@ const isProtectedRoute = createRouteMatcher([
   '/challenge(.*)',
   '/onboarding(.*)',
   '/consistency-profile(.*)',
+  '/journey(.*)',
+  '/jamming(.*)',
+  '/grooving(.*)',
+  '/profile(.*)',
 ])
 
 // /dev/* routes are invisible outside development.

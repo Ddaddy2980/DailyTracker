@@ -17,7 +17,7 @@ import type {
   DestinationGoal, FocusTop5Item, WeeklyReflection,
   DestinationGoalCheckInStatus, CompletionStatus, GroupDailyFlags,
   ChallengePause, PendingJourneyEvent,
-  PillarName, PillarLevel,
+  PillarName, PillarLevel, DurationGoalDestination,
 } from '@/lib/types'
 import { resolveOperatingState } from '@/lib/pillar-state'
 import { checkRootedMilestone } from '@/lib/milestones'
@@ -1563,6 +1563,27 @@ export async function getDestinationGoals(challengeId: string): Promise<Destinat
 
   if (error) { console.error('getDestinationGoals:', error); return [] }
   return (data ?? []) as DestinationGoal[]
+}
+
+// Phase 5 — query the duration_goal_destinations table (new schema after Step 43 migration).
+// Separate from getDestinationGoals which queries the legacy destination_goals table.
+export async function getActiveDurationGoalDestinations(
+  challengeId: string
+): Promise<DurationGoalDestination[]> {
+  const { userId } = await auth()
+  if (!userId) return []
+
+  const sb = createServerSupabaseClient()
+  const { data, error } = await sb
+    .from('duration_goal_destinations')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('challenge_id', challengeId)
+    .eq('status', 'active')
+    .order('created_at', { ascending: true })
+
+  if (error) { console.error('getActiveDurationGoalDestinations:', error); return [] }
+  return (data ?? []) as DurationGoalDestination[]
 }
 
 export async function getPillarLevels(): Promise<PillarLevel[]> {

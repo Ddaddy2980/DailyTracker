@@ -2,7 +2,7 @@
 
 This file is the authoritative source of truth for this product. Read this file at the start of every Claude Code session before writing any code.
 
-*Last updated: April 2026 — v2 incorporating Consistency Profile, Pillar-by-Pillar Architecture, Sub-Destination Goals, and Steering Mechanism*
+*Last updated: April 2026 — v2 incorporating Consistency Profile, Pillar-by-Pillar Architecture, Destination Goals, and Steering Mechanism*
 
 ---
 
@@ -30,7 +30,7 @@ This app teaches and builds the *how* — Living on Purpose — as the essential
 
 - **Destination goals** target an endpoint ("run a marathon", "lose 20 lbs") — they produce the **Rollercoaster Effect**: begin, endure, arrive, return.
 - **Duration goals** target consistency over time ("walk 20 minutes every day") — they produce lifestyle change and genuine habit formation.
-- Every primary goal in this app is a duration goal. At Grooving level and above, users may optionally attach a **sub-destination goal** to any duration goal — a short-term, time-bound direction that gives the habit a place to aim. Sub-destination goals do not replace duration habits; they ride on top of them.
+- Every primary goal in this app is a duration goal. At Grooving level and above, users may optionally add destination goals to any pillar — short-term, time-bound personal challenges that give the habit a place to aim. Destination goals do not replace duration habits; they ride alongside them.
 
 ### The ACT Test
 
@@ -58,19 +58,45 @@ Every coaching decision, every steering mechanism, and every level advancement i
 
 ## The Five Pillars
 
-| Pillar | Color | Hex | Focus | Examples |
-|--------|-------|-----|-------|---------|
-| Spiritual | Purple (`purple-600`) | `#9333ea` | Faith, reflection, connection to God | Scripture, prayer, devotional |
-| Physical | Emerald (`emerald-600`) | `#059669` | Body stewardship, movement, health | Exercise, walking, sleep, steps |
-| Nutritional | Amber (`amber-500`) | `#f59e0b` | Fueling the body well | Water intake, vegetables, protein, fasting |
-| Personal | Blue (`blue-600`) | `#2563eb` | Whole-person development | Reading, writing, creativity, emotional health |
-| Missional | Teal (`teal-600`) | `#0d9488` | Outward living — investing in the lives of others | Daily prayer for a specific person, intentional encouragement, acts of service, meaningful spiritual conversations |
-
 The Spiritual pillar is the foundation on which all others rest. It shapes how users see themselves, treat others, and respond to adversity. The app presents this conviction with pastoral warmth — never as pressure, always as invitation.
 
-The Missional pillar is the outward expression of all the others. Where the first four pillars build the person from the inside out, the Missional pillar channels that growth outward into the lives of others. A life that only receives never fully comes alive — like the Dead Sea, it receives the inflow of the Jordan River but has no outlet, and nothing lives in it. A life that gives as it grows — like the Sea of Galilee — teems with life precisely because it flows. The Missional pillar is that outlet.
+The Relational pillar is the outward expression of all the others. Where the first four pillars build the person from the inside out, the Relational pillar channels that growth outward into the lives of others. A life that only receives never fully comes alive — like the Dead Sea, it receives the inflow of the Jordan River but has no outlet, and nothing lives in it. A life that gives as it grows — like the Sea of Galilee — teems with life precisely because it flows. The Relational pillar is that outlet.
 
-The framework for the Missional pillar is **Think ONE** — *Our Next Encounter*. Every day is filled with divine appointments. The Think ONE posture trains a person to approach each day with four active orientations: **Be Led** by the Spirit, **Be Listening** for direction, **Be Looking** for opportunity, **Be Loving** longing hearts. These Four B's are the foundation of every Missional duration goal.
+Think about the month of December. Something shifts in people during the holidays — they become more generous, more present, more aware of the people around them. They hold doors, write notes, check on neighbors. Then January arrives and that posture quietly fades. The Relational pillar exists to keep that same intentionality alive the other eleven months of the year. The framework is Think ONE — Our Next Encounter. Every day is already full of people. The Think ONE posture trains a person to move through those encounters with intention rather than autopilot — approaching each day with four active orientations: Be Led by your awareness of who needs something today, Be Listening for what people around you are actually saying, Be Looking for the opportunity already in front of you, Be Loving with intention, not just sentiment. These Four B's are the foundation of every Relational duration goal.
+
+---
+
+## Visual Design System
+
+**App Background**
+
+Global background: `#EBEBEC` (light gray — used on all pages behind pillar cards and content)
+
+**Pillar Color System**
+Each pillar has four defined colors used consistently across all cards, modals, and UI elements:
+
+| Pillar | Main Background | Title | Subtitle Text | Save Button |
+|--------|----------------|-------|---------------|-------------|
+| Spiritual | `#275578` | `#82B2DE` | `#608BAF` | `#376891` |
+| Physical | `#202644` | `#8A96CD` | `#656E96` | `#2C345B` |
+| Nutritional | `#B85D27` | `#F7B188` | `#D19675` | `#CC6930` |
+| Personal | `#2E5144` | `#96CE95` | `#77A676` | `#3B6051` |
+| Relational | `#317C80` | `#82C7CB` | `#6AA2A6` | `#3F9297` |
+
+These hex values are the authoritative source. Do not substitute Tailwind color classes for pillar card backgrounds, titles, subtitle text, or save buttons — use the hex values directly via Tailwind's arbitrary value syntax (e.g. bg-[#275578]).
+
+**Icons and Logo**
+
+All icons are located in /public:
+
+- App logo: logo_2.png
+- Spiritual pillar: spiritual_icon.png
+- Physical pillar: physical_icon.png
+- Nutritional pillar: nutritional_icon.png
+- Personal pillar: personal_icon.png
+- Relational pillar: relational_icon.png
+
+Reference icons using Next.js <Image> component with the / public path prefix (e.g. src="/spiritual_icon.png").
 
 ---
 
@@ -88,7 +114,7 @@ Do not use the words "test," "assessment," or "quiz." The user should feel seen 
 
 ### Structure
 
-Five questions per pillar — four standard dimensions plus one pillar-specific orientation question — twenty questions total. Questions are presented one pillar at a time in this order: Spiritual → Physical → Nutritional → Personal → Missional. Each question measures one of four dimensions:
+Five questions per pillar — four standard dimensions plus one pillar-specific orientation question — twenty questions total. Questions are presented one pillar at a time in this order: Spiritual → Physical → Nutritional → Personal → Relational. Each question measures one of four dimensions:
 
 | Dimension | What It Measures | Why It Matters |
 |-----------|-----------------|---------------|
@@ -157,11 +183,11 @@ Each pillar receives the same four questions with pillar-specific sub-text. All 
 - Q3: "Do your personal growth habits depend on a course, a reading challenge, or some other external structure to keep going?"
 - Q4: "When life gets hard — busy seasons, emotional difficulty, family demands — what happens to your personal development habits?"
 
-*🤝 Missional*
-- Q1: "How consistently do you take intentional action to invest in, encourage, or serve someone outside your immediate family — right now?"
-- Q2: "How long have you maintained a regular practice of outward, others-focused living?"
-- Q3: "Does your engagement with others depend on a church program, a serve schedule, or an organized event to keep you outwardly focused?"
-- Q4: "When life gets hard — busy seasons, personal difficulty, emotional drain — what happens to your investment in others?"
+*🤝 Relational*
+- Q1: "How consistently do you take intentional action to encourage, serve, or invest in someone outside your immediate family — right now?"
+- Q2: "How long have you maintained a regular habit of being intentionally present and giving in your relationships?"
+- Q3: "Does your investment in others depend on a scheduled event, an organized group, or an external commitment to keep you engaged?"
+- Q4: "When life gets hard — busy seasons, personal difficulty, emotional drain — what happens to your intentional investment in the people around you?"
 
 ### Scoring Scale
 
@@ -186,7 +212,7 @@ After all five pillar assessments are complete, the user sees the Pillar Portrai
    - Grooving: "Building Momentum"
    - Jamming: "Finding Your Rhythm"
    - Tuning: "Starting Fresh"
-   - Missional (if Tuning): "Ready to Flow"
+   - Relational (if Tuning): "Ready to Connect"
 2. A brief personalized statement acknowledging strong pillars: *"You've built something real in [strong pillars]. That foundation matters — and we're going to build on it, not ignore it."*
 3. A clear identification of the development focus: *"[Developing pillars] are your active growth areas. That's where your first challenge will invest the most energy."*
 4. A single agency question: *"Which pillar do you most want to develop right now? You can always add others as you go."*
@@ -195,9 +221,9 @@ After all five pillar assessments are complete, the user sees the Pillar Portrai
 
 When a user places significantly lower in Spiritual than their other pillars, the app names this gently and specifically:
 
-*"Your [Physical/Nutritional/Personal] habits are strong. The Spiritual pillar tends to be the one that holds everything else together. Even a small daily practice here can change what the other habits feel like."*
+*"Your [Physical/Nutritional/Personal/Relational] habits are strong. The Spiritual pillar tends to be the one that holds everything else together. Even a small daily practice here can change what the other habits feel like."*
 
-The Spiritual invitation language: *"You've built real discipline in [other pillars]. The Spiritual pillar works the same way — not through willpower or theology, but through small, daily practices that, over time, reshape who you are from the inside out. Whatever your starting point, there is a habit here that will fit."*
+The Spiritual invitation language: *"You've built real discipline in [other pillars]. The Spiritual pillar works the same way — not through willpower, but through small, daily practices that, over time, reshape who you are from the inside out. Whatever your starting point, there is a habit here that will fit."*
 
 The Spiritual pillar gauge on the Five-Pillar Dashboard always shows the gap honestly — the pillar card is visible, the level is named, and the invitation is present. The app does not hide the gap or soften it into invisibility. It simply names it with warmth rather than shame.
 
@@ -213,6 +239,25 @@ At any point in a challenge, each pillar exists in one of four operating states.
 | **Developing** | Pillar at Grooving (Level 3) or Jamming (Level 2) | Full framework active for this level. Coaching, pulse check, weekly reflection all engaged. | Full check-in card, each goal listed, optional reflection sentence. |
 | **Building** | Pillar at Tuning (Level 1) | Full Tuning hand-holding: gamified map, daily videos, morning anchors, celebration sequences. | Prominent, celebratory card with gamified tap and streak visual. |
 | **Dormant** | Pillar not yet selected or tracked | Shown on Five-Pillar Dashboard in muted state with quiet invitation: "This pillar is waiting." | Not included in any active challenge. |
+
+### The Dashboard Pillar Card Behavior
+
+Closed card state displays:
+
+Pillar icon and name
+Operating state (Anchored / Developing / Building / Dormant)
+Duration goal count only ("2 active goals" — duration goals only, never destination goals)
+Consistency gauge
+Down chevron indicating expandable
+
+Open card state (tap to expand):
+
+Duration goals listed first with checkboxes, visually prominent
+Active destination goals listed below a subtle divider with independent checkboxes (only visible when card is open)
+Save button at bottom of open card
+Tapping Save commits all check-ins for this pillar and closes the card
+
+There is no Edit button on the pillar card. Goal management (adding, editing, releasing duration goals and destination goals) is handled from the Goals tab.
 
 ### The Unified Challenge Container
 
@@ -312,8 +357,8 @@ Fires after every challenge completion when any pillar is Dormant or significant
 **Language — Dormant pillar:**
 *"You've built something real in Physical and Spiritual. But Nutritional has been sitting on the sideline. You don't have to attack it — just bring it into the fold. One small, sustainable goal. That's all it takes to get it started."*
 
-**Language — Dormant Missional pillar (specific):**
-*"Your other pillars are building strong. But the Missional pillar — investing intentionally in the lives of others — hasn't started yet. You don't have to do something dramatic. Think ONE person. One daily habit of noticing, praying, or reaching. That's where it begins."*
+**Language — Dormant Relational pillar (specific):**
+*"Your other pillars are building strong. But the Relational pillar — investing intentionally in the lives of the people around you — hasn't started yet. You don't have to do something dramatic. Think ONE person. One daily habit of noticing, listening, or showing up. That's where it begins."*
 
 **Language — significantly underdeveloped pillar:**
 *"Your Spiritual and Physical pillars are rooted. Personal is building momentum. But Nutritional hasn't had the same attention. Your next challenge is a good time to change that. What's one thing you could do for your nutrition every single day?"*
@@ -328,7 +373,7 @@ Sample questions:
 - *"You haven't started a Nutritional goal yet. Is there something in the way — or is this just not the right time?"*
 - *"Personal is your most underdeveloped pillar. If you were to add one simple habit there, what would it be?"*
 - *"You've been at Jamming in Spiritual for two challenges. What would it take to give it the same attention you give Physical?"*
-- *"The Missional pillar hasn't started yet. Who is one person in your life right now that you could begin praying for intentionally every day?"*
+- *"The Relational pillar hasn't started yet. Who is one person in your life right now that you could begin showing up for more intentionally?"*
 
 ### The Ceiling Conversation
 
@@ -366,13 +411,13 @@ Users who skip the Consistency Profile default to Tuning (Level 1) for all pilla
 - **Duration goals for this pillar:** 1–3 goals
 - **Experience:** Contemplative coaching tone. The focus shifts from survival to formation. Duration goals are the foundation; destination goals sit on top of them as optional direction-setters. The weekly check explicitly reinforces that duration goal consistency matters more than destination goal hits — a person who hit their daily duration goal all seven days but missed their destination goal target is succeeding. A person who hit their destination goal three times but only completed their duration goal four days is drifting.
 - **Advancement criteria:** Complete one Grooving challenge of 60+ days with high consistency in duration goals for this pillar. Advancement is earned by proving the duration habit, not by hitting destination targets.
-- **Key features:** Habit calendar, Rooted milestone (Day 40–50), pillar-level destination goals, sub-destination goals within duration goals, 25/5 focus exercise, Grooving Circle, deeper weekly reflection
+- **Key features:** Habit calendar, Rooted milestone (Day 40–50), Destination goals: up to 3 per pillar, 25/5 focus exercise, Grooving Circle, deeper weekly reflection
 
 ### Level 4 — Soloing
 
 - **Challenge length:** 90 or 100 days (when this is the highest active pillar level)
 - **Duration goals for this pillar:** 2–4 goals
-- **Sub-destination goals:** Up to 2 per duration goal
+- **Destination goals:** unlimited per pillar
 - **Experience:** Goal quality refinement, stretch goals, cross-pillar insights. The habit is proven and rooted. The coaching register shifts to stewardship — maintaining, refining, and building from strength.
 - **Advancement criteria:** Complete one Soloing challenge with 80%+ consistency in duration goals for this pillar across 90+ days
 
@@ -380,7 +425,7 @@ Users who skip the Consistency Profile default to Tuning (Level 1) for all pilla
 
 - **Challenge length:** Any length
 - **Duration goals for this pillar:** Unlimited
-- **Sub-destination goals:** Unlimited per duration goal
+- **Destination goals:** Unlimited per pillar
 - **Experience:** Create challenge templates, group challenges, coaching dashboard, legacy stats. The person at Orchestrating in a pillar has not just built the habit — they are ready to help others build it.
 - **Advancement criteria:** Earned through Level 4 completion + invitation
 
@@ -400,7 +445,7 @@ The onboarding flow is redesigned for v2. The Consistency Profile is now embedde
 **Screen 2 — The Whole-Life Vision**
 A screen or short video introducing the five-pillar framework through the lens of 1 Thessalonians 5:23: *"Now may the God of peace himself sanctify you completely, and may your whole spirit and soul and body be kept blameless at the coming of our Lord Jesus Christ."*
 
-The message: most people live fractured, one-dimensional lives — strong in one area, neglected in others. This app exists to walk with you toward wholeness across every pillar. The five pillars — Spiritual, Physical, Nutritional, Personal, and Missional — cover every dimension of a life lived on purpose. The Missional pillar is introduced here using the river illustration: a life that only receives, like the Dead Sea, eventually becomes stagnant. A life that gives as it grows, like the Sea of Galilee, teems with life. True wholeness flows outward.
+The message: most people live fractured, one-dimensional lives — strong in one area, neglected in others. This app exists to walk with you toward wholeness across every pillar. The five pillars — Spiritual, Physical, Nutritional, Personal, and Relational — cover every dimension of a life lived on purpose. The Relational pillar is introduced here using the river illustration: a life that only receives, like the Dead Sea, eventually becomes stagnant. A life that gives as it grows, like the Sea of Galilee, teems with life. True wholeness flows outward.
 
 Tone: pastoral warmth, not pressure. Invitation, not obligation.
 
@@ -432,7 +477,7 @@ ACT-guided goal setup for each active pillar, starting with the pillar the user 
 - B2: "Your body is not separate from your purpose" — pillar intro
 - B3: "What you eat is what you become" — pillar intro
 - B4: "You are more than your to-do list" — pillar intro
-- B5: "Think ONE — living intentionally for others" — Missional pillar intro. Introduces the Four B's (Be Led, Be Listening, Be Looking, Be Loving) and the Think ONE framework. Uses the Sea of Galilee / Dead Sea illustration.
+- B5: "Think ONE — living intentionally for others" — Relational pillar intro. Introduces the Four B's (Be Led, Be Listening, Be Looking, Be Loving) and the Think ONE framework. Uses the Sea of Galilee / Dead Sea illustration.
 
 **Module C — Duration goals and the ACT system**
 - C1: "Why destination goals keep failing you" — onboarding
@@ -603,7 +648,7 @@ Trigger: Fires when a 14-day Jamming challenge is marked complete for this pilla
 ### Grooving Onboarding Flow (3 screens)
 
 **Screen 1 — Challenge length and pillar selection**
-- 30, 50, 66-day options. Introduce full five-pillar access for the first time, including the Missional pillar. ACT check for new goals: one question only.
+- 30, 50, 66-day options. Introduce full five-pillar access for the first time, including the Relational pillar. ACT check for new goals: one question only.
 
 **Screen 2 — The 25/5 Focus Exercise**
 - Full exercise: write 25 things to accomplish in the next 2–5 years, circle and rank top 5.
@@ -641,85 +686,65 @@ Trigger: Fires when a 14-day Jamming challenge is marked complete for this pilla
 6. Optional reflection prompt: "Now that this is part of who you are — what's next?"
 
 **The transition into destination goals:**
-- The "what's next?" question is the natural bridge
-- Immediately after the Rooted milestone, the app introduces pillar-level destination goals. Sub-destination goals within individual duration goals are available from the start of Grooving level — they do not require the Rooted milestone to unlock.
-- Framing: "You've built the how. Duration goals got you here. Now let's talk about where here can take you."
-- 25/5 top five list shown alongside this introduction
-- Both types of destination goals are optional — they live above duration goals and do not replace them
+- The "what's next?" question is the natural bridge. Immediately after the Rooted milestone, the app introduces destination goals. Destination goals are available from the start of Grooving level — they do not require the Rooted milestone to unlock. Framing: "You've built the how. Duration goals got you here. Now let's talk about where here can take you."  
+- The 25/5 top five list is shown alongside this introduction.
+- Destination goals are optional — they live alongside duration goals and do not replace them.
 
-### Pillar-Level Destination Goals (Grooving+)
+### Destination Goals (Grooving+)
 
-Timing: Offered after the Rooted milestone fires. If not fired by Day 50, offered at Day 50 weekly check-in.
+Destination goals are optional, time-bound personal challenges attached to a pillar. They give the user a place to aim while the duration habit continues underneath. They are available at Grooving level and above and are a perk for users who have already proven consistency — they do not cause the Rollercoaster Effect because the duration habit is already established and remains primary.
 
-**Framing:** "A duration goal asks: what can I do every day? A destination goal asks: where is every day taking me? You've answered the first question. Here's the second."
+A user running a 90-day Soloing challenge can add a destination goal mid-challenge (e.g., train for a 5K), pursue it for its window, and release it when finished. The duration habit underneath never changes.
 
-- One destination goal per pillar maximum at Grooving level
-- Displayed above duration goals on the dashboard — the direction above the daily practice
-- Attributes: goal name, optional target date, optional link to 25/5 top five
-- Progress NOT tracked — intentionally directional
-- Weekly check-in: "Are you still moving toward [destination goal]? Yes / Slowly / No"
+**Availability and limits by level:**
 
-The app does NOT turn destination goals into a checklist, does NOT create streaks for them, and does NOT penalize if a destination goal is not reached.
-
-### Sub-Destination Goals Within Duration Goals
-
-Sub-destination goals are short-term, time-bound directions attached to individual duration goals. They give the duration habit a place to aim right now, without replacing the daily discipline being built.
-
-**The two-question model:**
-
-| Duration Goal Answers | Sub-Destination Goal Answers |
-|-----------------------|------------------------------|
-| What can I do every day? | Where is every day taking me right now? |
-| How do I keep going? | What am I building toward in the next 30–60 days? |
-| What is my baseline commitment? | What is the current direction of this commitment? |
-
-**Key distinction:** The Rollercoaster Effect occurs when a destination goal IS the habit. It does NOT occur when a destination goal sits on top of an already-established habit. Sub-destination goals are available from the start of Grooving level. The weekly reflection actively monitors whether the person is prioritizing their duration goals over their sub-destination targets — if the sub-destination is pulling focus away from the daily habit, the app names it and redirects.
-
-**Availability by level:**
-
-| Level | Available | Limit |
-|-------|-----------|-------|
+| Level | Available | Destination Goal Limit per Pillar |
+|-------|-----------|----------------------------------|
 | Tuning (Level 1) | No | — |
 | Jamming (Level 2) | No | — |
-| Grooving (Level 3) | Yes — available from challenge start | 1 per duration goal |
-| Soloing (Level 4) | Yes | 2 per duration goal |
+| Grooving (Level 3) | Yes | 3 |
+| Soloing (Level 4) | Yes | Unlimited |
 | Orchestrating (Level 5) | Yes | Unlimited |
 
-**Setup flow:**
+Setup — accessed from the Goals tab only:
 
-Entry point: Within the duration goal card on the Grooving dashboard. A quiet CTA appears below the goal name: *"→ Add a direction to this habit"*
+**Four fields:**
 
-Three setup fields: Direction Name (plain-language description), Frequency Target (2x–7x per week), Time Window (14–66 days).
+Goal name (plain-language description)
+Frequency target (times per week, 2–7)
+Time window (14–66 days)
+Start date (defaults to today; end date calculated automatically: start date + window days)
 
-Confirmation screen shows: "Your habit: [goal name] / Your current direction: [direction name] / Important: Your daily habit continues whether or not you hit the target on any given week."
+Confirmation screen displays: "Your habit continues every day. This goal gives it a direction for the next [X] days."
 
-**Dashboard display:**
-```
-PHYSICAL
-Exercise at least 15 minutes every day        [check]
-→ Direction: Strength training 3×/week — Day 12 of 30
-```
+**Daily check-in behavior:**
 
-Tapping the sub-destination line expands to show: goal name, frequency target, days remaining, "Release this direction" option. When no sub-destination is active: quiet CTA "→ Add a direction to this habit."
+When a user taps open a pillar card on the dashboard, they see their duration goals first with checkboxes, followed by any active destination goals with their own independent checkboxes below a subtle divider. Each is checked separately. Hitting a destination goal on a given day does not automatically satisfy the duration goal. A user may check a destination goal without checking their duration goal and vice versa. Destination goals are only visible when the pillar card is open — they never appear in the closed card state.
 
-**Weekly check-in integration (Step 6 of weekly reflection):**
-- "Are you on track with [direction name]? Yes / Slowly / No"
-- Responses are informational only — do NOT affect pulse state, notification tier, or challenge status.
+**Consistency and metrics:**
+
+Duration goals only count toward consistency percentage, streak, gauge score, pulse state, notification tier, and all challenge metrics. Destination goal completions are never factored into any of these. They exist as personal historical record only.
+
+**Weekly reflection:**
+
+Duration goal performance is shown first and prominently. Below it, each active destination goal shows hits vs. frequency target for the week (e.g., "Strength training: 2 of 3×"). Informational only. No coaching response or consequence for missing a destination target. Responses written to weekly_reflections.destination_goal_statuses.
 
 **End states:**
 
-| End State | How It Triggers | App Response |
-|-----------|----------------|-------------|
-| Completed | User marks complete, or time window ends with "Yes" at final weekly check-in | Brief celebration inside goal card. Prompt to set a new direction. Duration goal continues unchanged. |
-| Released | User manually releases mid-challenge | Quiet removal. "Direction released. Your habit continues." |
-| Expired | Time window ends without completion or release | Quiet expiry. Weekly check-in: "Your direction has ended. Would you like to set a new one?" |
+| End State | Trigger | App Response |
+|-----------|---------|-------------|
+| Completed | User marks complete, or time window ends with consistent hits | Brief confirmation inside pillar card. Prompt to add a new destination goal if desired. Duration goal continues. |
+| Released | User manually removes mid-challenge | Quiet removal. "Destination goal released. Your daily habit continues." Duration goal continues unchanged. |
+| Expired | Time window ends without user action | Quiet expiry noted in weekly reflection. No consequence. Prompt: "That window has closed. Want to set a new one?" |
 
 **Non-negotiable design rules:**
-1. The duration goal is always primary. Sub-destination goals never appear as daily check-in items.
-2. Missing the sub-destination never penalizes the challenge. No streak impact, no consistency percentage impact, no pulse state change, no notification escalation.
-3. Language is always directional, never performative. Use: "direction," "aiming toward," "moving toward." Never: "goal completed," "goal failed," "performance."
-4. Sub-destination goals are optional and quiet. The CTA must never feel mandatory.
-5. When a sub-destination ends, the duration habit continues without interruption.
+
+- Duration goals are always primary. Destination goals never appear in the closed card state.
+- The closed pillar card "active goals" count reflects duration goals only.
+- Missing a destination goal target carries zero consequence — no streak impact, no pulse change, no notification escalation, no shame language.
+- Destination goals are optional. Their presence never implies obligation.
+- When a destination goal ends, the duration habit continues without interruption.
+- Language is always personal and directional: "aiming toward," "moving toward," "personal challenge." Never "failed," "missed target," "behind."
 
 ### Deeper Weekly Reflection — Grooving Format
 
@@ -731,15 +756,14 @@ Duration goal consistency is always more important than destination goal perform
 2. Pillar performance — days completed per pillar, comparison to previous week. Duration goal completion is shown first and prominently. Destination goal status is shown below it as secondary context.
 3. One reflection question — rotates weekly from curated set
 4. Pulse check — same three-state question, same adaptive response logic
-5. Pillar-level destination goal check-in (if set) — "Are you still moving toward [goal]? Yes / Slowly / No" — shown after duration performance review, never before
-6. Sub-destination check-in (for each active sub-goal) — "Are you on track with [direction name]? Yes / Slowly / No" *(informational only — does not affect pulse state, notification tier, or challenge status)*
-7. Monthly Pillar Check question *(if 30-day cadence has elapsed)*
+5. Destination goal check-in (for each active destination goal, if any) — "Are you on track with [goal name]? [hits] of [target]× this week" (informational only — does not affect pulse state, notification tier, or challenge status)
+6. Monthly Pillar Check question *(if 30-day cadence has elapsed)*
 
 **If a user hits their destination goal but misses duration goal days:**
 The app addresses this directly with a coaching note — not shame, but clarity: *"You hit your [destination] target this week — that's real. And you completed your daily habit [X] of 7 days. The daily habit is what makes [destination] stick long-term. This week, let's focus on the daily practice first."*
 
 **If a user hits duration goals but misses destination target:**
-The app affirms the right priority: *"You showed up [X] of 7 days for [pillar]. That's what this is about. Your [direction] goal is still in front of you — and the habit you're building is exactly what makes it reachable."*
+The app affirms the right priority: *"You showed up [X] of 7 days for [pillar]. That's what this is about. Your [destination] goal is still in front of you — and the habit you're building is exactly what makes it reachable."*
 
 **Rotating weekly reflection questions (library of 10):**
 - "Which pillar felt most alive this week — and why do you think that is?"
@@ -786,8 +810,8 @@ A small, private group of up to 5 people who receive a weekly digest of the user
 | G3 | "What the habit calendar is really showing you" | First calendar open |
 | G4 | "The people who finish are the people who feel witnessed" | Grooving Circle setup |
 | G5 | "Something just happened — your habit has taken root" | Rooted milestone |
-| G6 | "From how to where — introducing destination goals" | Post-Rooted, pillar-level destination goal introduction. Tone: expansive, not prescriptive. Covers pillar-level destination goals. References 25/5 top five if completed. |
-| G6b | "Setting a direction within your daily habit" | When user first taps "Add a direction to this habit." Tone: practical and grounding. Covers sub-destination goals, distinguishes from pillar-level goals. |
+| G6 | "From how to where — introducing destination goals" | Post-Rooted, destination goal introduction. Tone: expansive, not prescriptive. References 25/5 top five if completed. |
+| G6b | "Setting a direction within your daily habit" | When user first adds a destination goal from the Goals tab. Tone: practical and grounding. |
 | G7 | "What to do when life interrupts your challenge" | Challenge pause activation |
 | G-Return | "Welcome back. You didn't quit — you paused." | Return from pause |
 | G8 | "Grooving complete. Look at what you've built." | Grooving completion |
@@ -810,7 +834,7 @@ A small, private group of up to 5 people who receive a weekly digest of the user
 | Habit calendar insight | When pattern detected | "You've missed [day] three weeks running." |
 | Rooted milestone alert | Day 40–50 trigger | "[Goal] has taken root. Open the app." |
 | Destination goal check-in | Weekly, if set | Included in weekly reflection flow |
-| Sub-destination expiry reminder | Weekly | In weekly reflection if sub-destination window is within 7 days of expiry. Not a standalone push. |
+| Destination goal expiry reminder | Weekly | In weekly reflection if sub-destination window is within 7 days of expiry. Not a standalone push. |
 | Grooving Circle digest send | Weekly | Automated to Circle members |
 | Life interruption pause confirmation | On pause activation | "Challenge paused. Streak is safe." |
 | Return from pause | On return | "Welcome back. Day [X] of [total] continues now." |
@@ -1210,9 +1234,11 @@ Router: App Router (Next.js 14, `/app` directory)
 | reflection_question | text |
 | reflection_answer | text, nullable |
 | destination_goal_status | text, nullable — 'yes' \| 'slowly' \| 'no' |
-| sub_destination_statuses | jsonb, nullable — array: `[{ "sub_destination_id": "uuid", "status": "yes" \| "slowly" \| "no" }]` |
+| destination_goal_statuses | jsonb, nullable — array: `[{ "destination_goal_id": "uuid", "hits_this_week": integer, "frequency_target": integer }]` |
 | share_with_circle | boolean, default false |
 | created_at | timestamptz |
+
+Note for Claude Code: Rename column sub_destination_statuses → destination_goal_statuses in Supabase migration before Phase 5 build begins if the column already exists.
 
 **challenge_pauses**
 
@@ -1232,7 +1258,7 @@ Router: App Router (Next.js 14, `/app` directory)
 |--------|------|
 | id | uuid, PK |
 | user_id | text |
-| pillar | text — 'spiritual' \| 'physical' \| 'nutritional' \| 'personal' |
+| pillar | text — 'spiritual' \| 'physical' \| 'nutritional' \| 'personal' \| 'relational' |
 | level | integer, default 1 — 1 (Tuning) through 5 (Orchestrating) |
 | operating_state | text, default 'building' — 'anchored' \| 'developing' \| 'building' \| 'dormant' |
 | profile_score | integer, nullable — Consistency Profile score (0–12) for this pillar. Null if user skipped Profile. |
@@ -1250,20 +1276,19 @@ Router: App Router (Next.js 14, `/app` directory)
 | physical_score | integer — 0–12 |
 | nutritional_score | integer — 0–12 |
 | personal_score | integer — 0–12 |
-| missional_score | integer — 0–12 |
+| relational_score | integer — 0–12 |
 | focus_pillar_selected | text, nullable — pillar user selected as development focus |
 | completed_at | timestamptz |
 
-**duration_goal_destinations** — Sub-destination goals within individual duration goals (Grooving+)
+duration_goal_destinations — Destination goals attached to a pillar (Grooving+)
 
 | Column | Type |
 |--------|------|
 | id | uuid, PK |
 | user_id | text |
 | challenge_id | uuid, FK → challenges |
-| duration_goal_ref | text — references the goal within user_goals JSONB (pillar + index or goal identifier) |
-| pillar | text — 'spiritual' \| 'physical' \| 'nutritional' \| 'personal' |
-| direction_name | text |
+| pillar | text — 'spiritual' \| 'physical' \| 'nutritional' \| 'personal' \| 'relational' |
+| goal_name | text |
 | frequency_target | integer — times per week (2–7) |
 | frequency_unit | text, default 'weekly' |
 | window_days | integer — 14–66 |
@@ -1272,6 +1297,10 @@ Router: App Router (Next.js 14, `/app` directory)
 | status | text, default 'active' — 'active' \| 'completed' \| 'released' \| 'expired' |
 | created_at | timestamptz |
 | updated_at | timestamptz |
+
+Removed from prior spec: duration_goal_ref (destination goals are now pillar-level, not attached to a specific duration goal), direction_name (renamed to goal_name).
+
+Migration note for Claude Code: Confirm whether duration_goal_destinations was already created in Supabase during the Step 31 migration. If yes, a migration is required before Phase 5 build begins: drop duration_goal_ref, rename direction_name to goal_name. If the table has not yet been created, build it fresh from this schema.
 
 **consistency_groups** — See Consistency Groups section for full feature spec.
 
@@ -1333,9 +1362,9 @@ Router: App Router (Next.js 14, `/app` directory)
 ```
 
 **Component-level changes (no new routes):**
-- Duration goal card: updated to display active sub-destination and "Add a direction" CTA
-- Weekly reflection: updated to include sub-destination check-in and Monthly Pillar Check
-- Sub-destination setup: modal/bottom sheet triggered from goal card — not a new page
+- Pillar card: expand/collapse interaction, duration goal checkboxes, destination goal checkboxes when open, Save button
+- Weekly reflection: updated to include destination goal progress and Monthly Pillar Check
+- Destination goal setup: accessed from Goals tab only — not a modal from the goal card
 - Daily check-in: pillar cards adapt rendering based on operating state (Anchored / Developing / Building)
 
 ---
@@ -1357,4 +1386,4 @@ App is in private testing with David only. Fresh start — existing data wiped a
 
 *Last updated: April 2026*
 *Maintained by: David / Altared Life, LLC*
-*v2 additions: Consistency Profile, Pillar-by-Pillar Architecture, Steering Mechanism, Sub-Destination Goals*
+*v2 additions: Consistency Profile, Pillar-by-Pillar Architecture, Steering Mechanism, Destination Goals*

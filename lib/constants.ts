@@ -509,10 +509,50 @@ export const GROOVING_NOTIFICATIONS = {
     `You have reached the end of the week. Take a moment to reflect on how your pillars went.`,
 } as const
 
-// Tailwind colour classes per pillar
-export const PILLAR_COLORS = {
-  s:  { border: 'border-l-spirit',  title: 'text-spirit-lt',  dot: 'bg-spirit',  tab: 'bg-spirit'  },
-  p:  { border: 'border-l-physi',   title: 'text-physi-lt',   dot: 'bg-physi',   tab: 'bg-physi'   },
-  n:  { border: 'border-l-nutri',   title: 'text-nutri-lt',   dot: 'bg-nutri',   tab: 'bg-nutri'   },
-  pe: { border: 'border-l-perso',   title: 'text-perso-lt',   dot: 'bg-perso',   tab: 'bg-perso'   },
-}
+// Pillar card design tokens — authoritative source for all pillar card UI.
+// All hex values match PRODUCT.md Visual Design System exactly.
+// Components must import colors and icon paths from here — no hardcoded hex values.
+export const PILLAR_CONFIG = {
+  spiritual: {
+    background:  '#275578',
+    title:       '#82B2DE',
+    subtitle:    '#608BAF',
+    saveButton:  '#376891',
+    icon:        '/spiritual_icon.png',
+    label:       'Spiritual',
+  },
+  physical: {
+    background:  '#202644',
+    title:       '#8A96CD',
+    subtitle:    '#656E96',
+    saveButton:  '#2C345B',
+    icon:        '/physical_icon.png',
+    label:       'Physical',
+  },
+  nutritional: {
+    background:  '#B85D27',
+    title:       '#F7B188',
+    subtitle:    '#D19675',
+    saveButton:  '#CC6930',
+    icon:        '/nutritional_icon.png',
+    label:       'Nutritional',
+  },
+  personal: {
+    background:  '#2E5144',
+    title:       '#96CE95',
+    subtitle:    '#77A676',
+    saveButton:  '#3B6051',
+    icon:        '/personal_icon.png',
+    label:       'Personal',
+  },
+  relational: {
+    background:  '#317C80',
+    title:       '#82C7CB',
+    subtitle:    '#6AA2A6',
+    saveButton:  '#3F9297',
+    icon:        '/relational_icon.png',
+    label:       'Relational',
+  },
+} as const
+
+export type PillarConfigKey = keyof typeof PILLAR_CONFIG

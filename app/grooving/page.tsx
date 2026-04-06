@@ -9,13 +9,14 @@ import {
   getPulseHistory,
   getLastCompletedChallenge,
   getDestinationGoals,
+  getActiveDurationGoalDestinations,
   getPauseStatus,
   getWatchedVideoIds,
   getPillarLevels,
 } from '@/app/actions'
 import { getMyGroups, getGroupWithMembers } from '@/app/actions-groups'
 import { todayStr } from '@/lib/constants'
-import type { ChallengeEntry, DayStatus, RewardType, GroupWithMembers, PillarLevel } from '@/lib/types'
+import type { ChallengeEntry, DayStatus, RewardType, GroupWithMembers, PillarLevel, DurationGoalDestination } from '@/lib/types'
 
 import GroovingDash from './GroovingDash'
 
@@ -145,7 +146,7 @@ export default async function GroovingPage() {
   const today        = todayStr()
   const durationDays = challenge.duration_days
 
-  const [entries, earnedRewards, pendingPulse, pulseHistory, lastJamming, destinationGoals, myGroups, pauseStatus, watchedVideoIds, pillarLevels] = await Promise.all([
+  const [entries, earnedRewards, pendingPulse, pulseHistory, lastJamming, destinationGoals, durationGoalDestinations, myGroups, pauseStatus, watchedVideoIds, pillarLevels] = await Promise.all([
     getChallengeEntries(challenge.start_date, challenge.end_date),
     getEarnedRewards(challenge.id),
     getPendingPulseCheck({
@@ -156,6 +157,7 @@ export default async function GroovingPage() {
     getPulseHistory(challenge.id),
     getLastCompletedChallenge(),
     getDestinationGoals(challenge.id),
+    getActiveDurationGoalDestinations(challenge.id),
     getMyGroups(),
     getPauseStatus(challenge.id),
     getWatchedVideoIds(),
@@ -190,6 +192,16 @@ export default async function GroovingPage() {
 
   const earnedRewardTypes = earnedRewards.map(r => r.reward_type) as RewardType[]
 
+  // Group Phase 5 destination goals by pillar for per-card display (Step 43)
+  const destinationGoalsByPillar = durationGoalDestinations.reduce<Record<string, DurationGoalDestination[]>>(
+    (acc, goal) => {
+      if (!acc[goal.pillar]) acc[goal.pillar] = []
+      acc[goal.pillar].push(goal)
+      return acc
+    },
+    {}
+  )
+
   // Grooving notification banner inputs (Step 29)
   const patternAlertDay      = detectPatternAlertDay(pillarDayData, pillars, today, dayNumber)
   const rootedMilestoneToday = profile.rooted_milestone_date === today && profile.rooted_milestone_fired
@@ -209,6 +221,7 @@ export default async function GroovingPage() {
       pulseHistory={pulseHistory}
       newPillars={newPillars}
       destinationGoals={destinationGoals}
+      destinationGoalsByPillar={destinationGoalsByPillar}
       focusTop5={profile.focus_top_5}
       groups={groups}
       pauseStatus={pauseStatus}

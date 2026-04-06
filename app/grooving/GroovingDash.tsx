@@ -7,6 +7,7 @@ import type {
   Challenge, UserProfile, DayStatus, RewardType,
   PendingPulseCheck, PulseCheck as PulseCheckRecord, PulseState,
   DestinationGoal, FocusTop5Item, GroupWithMembers, PillarLevel,
+  DurationGoalDestination,
 } from '@/lib/types'
 import type { PauseStatus } from '@/app/actions'
 import AppHeader   from '@/components/shared/AppHeader'
@@ -44,6 +45,7 @@ interface Props {
   pulseHistory:     PulseCheckRecord[]
   newPillars:       string[]
   destinationGoals: DestinationGoal[]
+  destinationGoalsByPillar: Record<string, DurationGoalDestination[]>
   focusTop5:        FocusTop5Item[] | null
   groups:           GroupWithMembers[]
   pauseStatus:          PauseStatus
@@ -56,8 +58,8 @@ interface Props {
 
 export default function GroovingDash({
   challenge, profile, dayStatuses, pillarDayData, todayCompletions, streak, dayNumber, today,
-  earnedRewards, pendingPulse, pulseHistory, newPillars, destinationGoals, focusTop5, groups,
-  pauseStatus, watchedVideoIds, patternAlertDay, rootedMilestoneToday,
+  earnedRewards, pendingPulse, pulseHistory, newPillars, destinationGoals, destinationGoalsByPillar,
+  focusTop5, groups, pauseStatus, watchedVideoIds, patternAlertDay, rootedMilestoneToday,
   pillarLevels, lastPillarCheckAt,
 }: Props) {
   const router = useRouter()
@@ -121,6 +123,16 @@ export default function GroovingDash({
       setActiveTab('today')
       router.refresh()
     })
+  }
+
+  function handlePillarSaved(delta: Record<string, boolean>, newRewards?: RewardType[]) {
+    setCompletions(prev => ({ ...prev, ...delta }))
+    if (newRewards && newRewards.includes('grooving_badge')) {
+      setShowComplete(true)
+    } else if (newRewards && newRewards.length > 0) {
+      setNewRewards(newRewards)
+    }
+    router.refresh()
   }
 
   function handleFocusSaved(top5: FocusTop5Item[]) {
@@ -280,6 +292,16 @@ export default function GroovingDash({
                     alreadySaved={alreadySaved}
                     onToggle={handleToggle}
                     onSave={handleSave}
+                    pillarLevelSnapshot={challenge.pillar_level_snapshot ?? undefined}
+                    destinationGoalsByPillar={destinationGoalsByPillar}
+                    challengeId={challenge.id}
+                    startDate={challenge.start_date}
+                    endDate={challenge.end_date}
+                    date={today}
+                    dayNumber={dayNumber}
+                    durationDays={durationDays}
+                    level={challenge.level}
+                    onPillarSaved={handlePillarSaved}
                   />
                 )}
 

@@ -30,7 +30,7 @@ Read this file at the start of every session along with PRODUCT.md. These are yo
 - Never commit directly to `main`
 - All active development happens on branch: `v2-phase5`
 - Create feature sub-branches off `v2-phase5` for each build step:
-  e.g. `step-43-duration-goal-card`, `step-44-sub-destination-modal`
+  e.g. `step-43-duration-goal-card`, `step-44-destination-modal`
 - When David says "this is ready", merge the feature branch into `v2-phase5` — not into `main`
 - Only merge `v2-phase5` into `main` when David explicitly says "ready to go live"
 - `v2-rebuild` is retired — do not use it as a base for new work
@@ -133,7 +133,7 @@ type RewardType =
   | 'soloing_badge'
   | 'orchestrating_badge'
 
-type PillarName = 'spiritual' | 'physical' | 'nutritional' | 'personal' | 'missional'
+type PillarName = 'spiritual' | 'physical' | 'nutritional' | 'personal' | 'relational'
 
 type LevelName = 'Tuning' | 'Jamming' | 'Grooving' | 'Soloing' | 'Orchestrating'
 ```
@@ -263,12 +263,65 @@ export const VIDEO_LIBRARY = {
 - Use Tailwind utility classes only — no custom CSS files except `globals.css`
 - Responsive design is required — mobile-first (`sm:`, `md:`, `lg:` breakpoints)
 - Color palette: use Tailwind's built-in slate, emerald, amber, purple colors
-- Pillar color associations (use consistently):
-  - Spiritual: `purple-*`
-  - Physical: `emerald-*`
-  - Nutritional: `amber-*`
-  - Personal: `blue-*`
-  - Missional: `teal-*` (primary: `teal-600` / `#0d9488`)
+
+**Pillar color constants and icon paths** should be defined in `/lib/constants.ts`
+as a `PILLAR_CONFIG` object so components import from a single source rather than
+repeating hex values inline. The required structure is:
+```ts
+export const PILLAR_CONFIG = {
+  spiritual: {
+    background: '#275578',
+    title: '#82B2DE',
+    subtitle: '#608BAF',
+    saveButton: '#376891',
+    icon: '/spiritual_icon.png',
+    label: 'Spiritual',
+  },
+  physical: {
+    background: '#202644',
+    title: '#8A96CD',
+    subtitle: '#656E96',
+    saveButton: '#2C345B',
+    icon: '/physical_icon.png',
+    label: 'Physical',
+  },
+  nutritional: {
+    background: '#B85D27',
+    title: '#F7B188',
+    subtitle: '#D19675',
+    saveButton: '#CC6930',
+    icon: '/nutritional_icon.png',
+    label: 'Nutritional',
+  },
+  personal: {
+    background: '#2E5144',
+    title: '#96CE95',
+    subtitle: '#77A676',
+    saveButton: '#3B6051',
+    icon: '/personal_icon.png',
+    label: 'Personal',
+  },
+  relational: {
+    background: '#317C80',
+    title: '#82C7CB',
+    subtitle: '#6AA2A6',
+    saveButton: '#3F9297',
+    icon: '/relational_icon.png',
+    label: 'Relational',
+  },
+} as const
+```
+
+**Pillar hex values — use for all card UI:**
+
+The authoritative pillar colors are defined in PRODUCT.md under Visual Design System. For pillar card backgrounds, titles, subtitle text, and save buttons always use Tailwind arbitrary value syntax with the exact hex codes (e.g. bg-[#275578], text-[#82B2DE]). Do not use Tailwind's named color classes (e.g. bg-purple-600) for any pillar card UI element — those are for general UI only, not for pillar cards.
+
+**Global app background:**
+
+The app background is `#EBEBEC`. Apply via bg-[#EBEBEC] on the root layout. Do not use bg-gray-100 or any other Tailwind gray approximation.
+
+**Icons:**
+Always use Next.js <Image> component for pillar icons and the app logo. Icons live in `/public` — reference them as `/spiritual_icon.png`, `/logo_2.png`, `/physical_icon.png`, `/nutritional_icon.png`, `/personal_icon.png`, `/relational_icon.png`. Never use emoji or placeholder text in place of an icon once the icon files are confirmed present.
 
 ---
 
@@ -392,9 +445,9 @@ This feature is available at all levels from Tuning onward. It is built here bec
 
 This phase restructures the app's core model from a single-ladder system to a per-pillar level architecture. Every new user enters through the Consistency Profile. The Unified Challenge Container governs all active pillars simultaneously.
 
-- [x] Step 31 — Database migration: create pillar_levels table (includes gauge_score column), consistency_profile_sessions table (includes missional_score column alongside the four existing pillar score columns), duration_goal_destinations table. Add new columns to user_profile (consistency_profile_completed, life_on_purpose_score, next_pillar_invitation_pillar, last_pillar_check_at) and challenges (pillar_level_snapshot). Add sub_destination_statuses column to weekly_reflections.
+- [x] Step 31 — Database migration: create pillar_levels table (includes gauge_score column), consistency_profile_sessions table (includes relational_score column alongside the four existing pillar score columns), duration_goal_destinations table. Add new columns to user_profile (consistency_profile_completed, life_on_purpose_score, next_pillar_invitation_pillar, last_pillar_check_at) and challenges (pillar_level_snapshot). Add destination_goal_statuses column to weekly_reflections
 - [x] Step 32 — Pillar operating state logic: build /lib/pillar-state.ts. Function takes a user's pillar_levels rows and returns the operating state for each pillar (Anchored / Developing / Building / Dormant). Used at challenge start and in dashboard rendering.
-- [x] Step 33 — Consistency Profile flow: build /app/consistency-profile. 20-question assessment (5 pillars × 4 questions), one pillar at a time in order: Spiritual → Physical → Nutritional → Personal → Missional. Score each pillar 0–12. Write results to consistency_profile_sessions and seed pillar_levels table with one row per pillar. Set consistency_profile_completed = true on user_profile.
+- [x] Step 33 — Consistency Profile flow: build /app/consistency-profile. 20-question assessment (5 pillars × 4 questions), one pillar at a time in order: Spiritual → Physical → Nutritional → Personal → Relational. Score each pillar 0–12. Write results to consistency_profile_sessions and seed pillar_levels table with one row per pillar. Set consistency_profile_completed = true on user_profile.
 - [x] Step 34 — Pillar Portrait screen: post-Profile output screen. Display all five pillars with starting level name and status phrase. Personalized statement honoring strong pillars. Development focus identification. Single agency question. Save focus selection to consistency_profile_sessions.focus_pillar_selected.
 - [x] Step 35 — Routing update: update root layout / middleware to route new users to /consistency-profile instead of directly to /onboarding. After Profile completion, route to appropriate onboarding based on lowest-level active pillar.
 - [x] Step 36 — Unified Challenge Container: update challenge creation logic to snapshot all active pillar levels and operating states into challenges.pillar_level_snapshot at challenge start. Challenge duration is determined by highest-development pillar level.
@@ -405,14 +458,14 @@ This phase restructures the app's core model from a single-ladder system to a pe
 - [x] Step 41 — Monthly Pillar Check: add conditional pillar question to weekly reflection flow. Enforces 30-day cadence via last_pillar_check_at. Targets most underdeveloped or Dormant pillar.
 - [x] Step 42 — Adaptive morning notification: update notification content to adapt tone based on pillar mix (Building present → motivational, all Developing → coaching, all Anchored → reflective).
 
-### Phase 5 — Sub-Destination Goals (CURRENT)
+### Phase 5 — Destination Goals (CURRENT)
 
-- [ ] Step 43 — Duration goal card update
-- [ ] Step 44 — Sub-destination setup modal
-- [ ] Step 45 — Weekly reflection update
-- [ ] Step 46 — Expiry and completion logic
-- [ ] Step 47 — G6b video card
-- [ ] Step 48 — Sub-destination expiry notification
+- [ ] Step 43 — Pillar card expand/collapse + destination goal display: Build open/closed card interaction. Closed state shows duration goal count. Open state shows duration goal checkboxes, destination goal checkboxes (if any active), and Save button. Query duration_goal_destinations for active goals by pillar. No setup flow in this step.
+- [ ] Step 44 — Destination goal setup flow: Add/edit/release destination goals from Goals tab. Three input fields: goal name, frequency target, time window. Confirmation screen. Writes to duration_goal_destinations.
+- [ ] Step 45 — Weekly reflection update: Add destination goal progress to weekly reflection. Duration performance shown first and prominently. Destination hits vs. target shown below as personal record. Writes to weekly_reflections.destination_goal_statuses.
+- [ ] Step 46 — Expiry and completion logic: Detect window end, handle Completed / Released / Expired states, update status field, surface prompt in weekly reflection or pillar card.
+- [ ] Step 47 — G6b video card: Trigger "Setting a direction within your daily habit" video when user first adds a destination goal from the Goals tab. One-time trigger per user.
+- [ ] Step 48 — Destination goal expiry notification: Embedded in weekly reflection when end date is within 7 days. Not a standalone push notification.
 
 ### Phase 6 — Soloing Level (FUTURE)
 

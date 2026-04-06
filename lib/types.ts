@@ -173,6 +173,7 @@ export interface FocusTop5Item {
 }
 
 // Destination goals (Grooving level — Step 23)
+// Maps to the legacy destination_goals table — preserved for Grooving-level UI.
 // One per pillar max. Directional only — no granular progress tracking.
 // Gate: user_profile.rooted_milestone_fired must be true before setup is accessible.
 export type DestinationGoalStatus = 'active' | 'reached' | 'released'
@@ -188,6 +189,27 @@ export interface DestinationGoal {
   status:          DestinationGoalStatus
   created_at:      string
   updated_at:      string
+}
+
+// Phase 5 destination goals — duration_goal_destinations table (Step 43+)
+// Available at Grooving level and above. Ride alongside duration habits.
+// Named separately from DestinationGoal to avoid conflict with the legacy table.
+export type DurationGoalDestinationStatus = 'active' | 'completed' | 'released' | 'expired'
+
+export interface DurationGoalDestination {
+  id:               string
+  user_id:          string
+  challenge_id:     string
+  pillar:           string
+  goal_name:        string
+  frequency_target: number
+  frequency_unit:   string
+  window_days:      number
+  start_date:       string
+  end_date:         string
+  status:           DurationGoalDestinationStatus
+  created_at:       string
+  updated_at:       string
 }
 
 // Weekly reflection (Grooving level — Step 25)
