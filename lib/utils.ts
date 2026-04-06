@@ -7,6 +7,19 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase'
 
+// ── Date utilities ────────────────────────────────────────────────────────────
+
+/**
+ * Returns whole days remaining from today (midnight local time) to dateString.
+ * Returns 0 if the date is today or in the past.
+ */
+export function daysUntil(dateString: string): number {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const end = new Date(dateString + 'T00:00:00')
+  return Math.max(0, Math.round((end.getTime() - today.getTime()) / 86_400_000))
+}
+
 // ── Invite code generation ────────────────────────────────────────────────────
 
 // Word list: short (5–7 letters), positive, encouraging — not random-feeling.
