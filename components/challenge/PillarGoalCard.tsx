@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import Image from 'next/image'
 import { submitCheckin } from '@/app/actions'
 import { PILLAR_CONFIG } from '@/lib/constants'
+import { daysUntil } from '@/lib/utils'
 import type { DurationGoalDestination, RewardType } from '@/lib/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -191,7 +192,12 @@ export default function PillarGoalCard({
                         </svg>
                       )}
                     </div>
-                    <p className="text-sm text-white/80 leading-snug">{dg.goal_name}</p>
+                    <span className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-sm text-white/80 leading-snug">{dg.goal_name}</span>
+                      {daysUntil(dg.end_date) <= 7 && (
+                        <span className="text-xs" style={{ color: cfg.subtitle }}>Ending soon</span>
+                      )}
+                    </span>
                   </button>
                 ))}
               </div>
