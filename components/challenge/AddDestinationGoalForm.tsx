@@ -11,12 +11,13 @@ export interface AddFormState {
 }
 
 interface Props {
-  form:       AddFormState
-  error:      string | null
-  isPending:  boolean
-  onChange:   (next: AddFormState) => void
-  onConfirm:  () => void
-  onCancel:   () => void
+  form:           AddFormState
+  error:          string | null
+  isPending:      boolean
+  maxWindowDays?: number   // defaults to 66; Soloing and above pass 100
+  onChange:       (next: AddFormState) => void
+  onConfirm:      () => void
+  onCancel:       () => void
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -35,7 +36,7 @@ function formatDate(dateStr: string): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function AddDestinationGoalForm({ form, error, isPending, onChange, onConfirm, onCancel }: Props) {
+export default function AddDestinationGoalForm({ form, error, isPending, maxWindowDays = 66, onChange, onConfirm, onCancel }: Props) {
   const today   = todayStr()
   const endDate = addDays(today, form.windowDays)
 
@@ -81,14 +82,14 @@ export default function AddDestinationGoalForm({ form, error, isPending, onChang
       {/* Window days */}
       <div className="space-y-1">
         <label className="text-[10px] font-semibold uppercase tracking-wider text-white/60">
-          How many days? <span className="normal-case font-normal">(14–66)</span>
+          How many days? <span className="normal-case font-normal">(14–{maxWindowDays})</span>
         </label>
         <input
           type="number"
           min={14}
-          max={66}
+          max={maxWindowDays}
           value={form.windowDays}
-          onChange={e => onChange({ ...form, windowDays: Math.min(66, Math.max(14, Number(e.target.value))) })}
+          onChange={e => onChange({ ...form, windowDays: Math.min(maxWindowDays, Math.max(14, Number(e.target.value))) })}
           className="w-20 text-sm text-white bg-transparent border-b border-white/40 pb-1 focus:outline-none focus:border-white/80 transition-colors"
         />
       </div>
