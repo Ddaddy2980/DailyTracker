@@ -6,19 +6,19 @@ import {
   getChallengeEntries,
   getEarnedRewards,
   getPendingPulseCheck,
-  getPulseHistory,
-  getLastCompletedChallenge,
   getDestinationGoals,
   getActiveDurationGoalDestinations,
-  getPauseStatus,
   getWatchedVideoIds,
   getPillarLevels,
 } from '@/app/actions'
 import { getMyGroups, getGroupWithMembers } from '@/app/actions-groups'
 import { todayStr } from '@/lib/constants'
-import type { ChallengeEntry, DayStatus, RewardType, GroupWithMembers, PillarLevel, DurationGoalDestination } from '@/lib/types'
+import type {
+  ChallengeEntry, DayStatus, RewardType, GroupWithMembers,
+  PillarLevel, DurationGoalDestination,
+} from '@/lib/types'
 
-import GroovingDash from './GroovingDash'
+import SoloingDash from './SoloingDash'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -43,8 +43,8 @@ function isPillarComplete(entry: ChallengeEntry, pillar: string): boolean {
 }
 
 function calcPillarDayData(
-  entries:  ChallengeEntry[],
-  pillars:  string[],
+  entries: ChallengeEntry[],
+  pillars: string[],
 ): Record<string, Record<string, boolean>> {
   const result: Record<string, Record<string, boolean>> = {}
   for (const entry of entries) {
@@ -94,10 +94,6 @@ function calcStreak(
   return streak
 }
 
-// ── Pattern alert detection ───────────────────────────────────────────────────
-// Checks whether the same day of week has been missed (not all pillars complete)
-// in each of the last 3 occurrences within the last 21 days.
-// Returns the day name (e.g. 'Mondays') or null if no pattern.
 const WEEKDAY_NAMES = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays']
 
 function detectPatternAlertDay(
@@ -106,7 +102,7 @@ function detectPatternAlertDay(
   today:         string,
   dayNumber:     number,
 ): string | null {
-  if (Math.floor((dayNumber - 1) / 7) < 3) return null  // need at least 3 completed weeks
+  if (Math.floor((dayNumber - 1) / 7) < 3) return null
   const ref = new Date(today + 'T00:00:00')
   for (let wd = 0; wd < 7; wd++) {
     const occurrences: string[] = []
@@ -120,8 +116,8 @@ function detectPatternAlertDay(
     if (occurrences.length === 3) {
       const allMissed = occurrences.every(date => {
         const dayEntry = pillarDayData[date]
-        if (!dayEntry) return true                          // no entry = missed
-        return !pillars.every(p => dayEntry[p] === true)   // partial or none = missed
+        if (!dayEntry) return true
+        return !pillars.every(p => dayEntry[p] === true)
       })
       if (allMissed) return WEEKDAY_NAMES[wd]
     }
@@ -131,7 +127,7 @@ function detectPatternAlertDay(
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default async function GroovingPage() {
+export default async function SoloingPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
@@ -142,16 +138,30 @@ export default async function GroovingPage() {
 
   if (!profile || !profile.onboarding_completed) redirect('/onboarding')
 
-  // Level-4 users with an active Soloing challenge belong on /soloing
-  if (challenge?.level === 4) redirect('/soloing')
+  // Route non-level-4 users to their appropriate dashboard
+  if (profile.current_level < 4) {
+    if (profile.current_level === 3) redirect('/grooving')
+    if (profile.current_level === 2) redirect('/jamming')
+    redirect('/challenge')
+  }
 
-  // No active challenge or wrong level — send to Grooving onboarding
-  if (!challenge || challenge.level !== 3) redirect('/grooving/onboarding')
+  // No active challenge — need to start one
+  if (!challenge) redirect('/soloing/onboarding')
+
+  // Active challenge is at the wrong level — route accordingly
+  if (challenge.level !== 4) {
+    if (challenge.level === 3) redirect('/grooving')
+    if (challenge.level === 2) redirect('/jamming')
+    redirect('/challenge')
+  }
 
   const today        = todayStr()
   const durationDays = challenge.duration_days
 
-  const [entries, earnedRewards, pendingPulse, pulseHistory, lastJamming, destinationGoals, durationGoalDestinations, myGroups, pauseStatus, watchedVideoIds, pillarLevels] = await Promise.all([
+  const [
+    entries, earnedRewards, pendingPulse, destinationGoals,
+    durationGoalDestinations, myGroups, watchedVideoIds, pillarLevels,
+  ] = await Promise.all([
     getChallengeEntries(challenge.start_date, challenge.end_date),
     getEarnedRewards(challenge.id),
     getPendingPulseCheck({
@@ -159,15 +169,13 @@ export default async function GroovingPage() {
       startDate:   challenge.start_date,
       pillars:     profile.selected_pillars,
     }),
-    getPulseHistory(challenge.id),
-    getLastCompletedChallenge(),
     getDestinationGoals(challenge.id),
     getActiveDurationGoalDestinations(challenge.id),
     getMyGroups(),
-    getPauseStatus(challenge.id),
     getWatchedVideoIds(),
     getPillarLevels(),
   ])
+
   const groupsData = await Promise.all(myGroups.map(g => getGroupWithMembers(g.id)))
   const groups     = groupsData.filter((g): g is GroupWithMembers => g !== null)
 
@@ -175,8 +183,8 @@ export default async function GroovingPage() {
   const dayStatuses = calcDayStatuses(challenge.start_date, durationDays, entries, pillars, today)
   const streak      = calcStreak(dayStatuses, challenge.start_date, durationDays, today)
 
-  const entryMap  = new Map(entries.map(e => [e.entry_date, e]))
-  const todayEntry = entryMap.get(today)
+  const entryMap        = new Map(entries.map(e => [e.entry_date, e]))
+  const todayEntry      = entryMap.get(today)
   const todayCompletions = Object.fromEntries(
     pillars.map(p => [p, todayEntry ? isPillarComplete(todayEntry, p) : false])
   )
@@ -188,16 +196,10 @@ export default async function GroovingPage() {
     durationDays,
   )
 
-  // Determine new pillars (added at Grooving that weren't in Jamming)
-  const jammingPillars = lastJamming
-    ? Object.keys(lastJamming.pillar_goals as Record<string, unknown>)
-    : []
-  const newPillars    = pillars.filter(p => !jammingPillars.includes(p))
   const pillarDayData = calcPillarDayData(entries, pillars)
 
   const earnedRewardTypes = earnedRewards.map(r => r.reward_type) as RewardType[]
 
-  // Group Phase 5 destination goals by pillar for per-card display (Step 43)
   const destinationGoalsByPillar = durationGoalDestinations.reduce<Record<string, DurationGoalDestination[]>>(
     (acc, goal) => {
       if (!acc[goal.pillar]) acc[goal.pillar] = []
@@ -207,12 +209,10 @@ export default async function GroovingPage() {
     {}
   )
 
-  // Grooving notification banner inputs (Step 29)
-  const patternAlertDay      = detectPatternAlertDay(pillarDayData, pillars, today, dayNumber)
-  const rootedMilestoneToday = profile.rooted_milestone_date === today && profile.rooted_milestone_fired
+  const patternAlertDay = detectPatternAlertDay(pillarDayData, pillars, today, dayNumber)
 
   return (
-    <GroovingDash
+    <SoloingDash
       challenge={challenge}
       profile={profile}
       dayStatuses={dayStatuses}
@@ -223,16 +223,11 @@ export default async function GroovingPage() {
       today={today}
       earnedRewards={earnedRewardTypes}
       pendingPulse={pendingPulse}
-      pulseHistory={pulseHistory}
-      newPillars={newPillars}
       destinationGoals={destinationGoals}
       destinationGoalsByPillar={destinationGoalsByPillar}
-      focusTop5={profile.focus_top_5}
       groups={groups}
-      pauseStatus={pauseStatus}
       watchedVideoIds={watchedVideoIds}
       patternAlertDay={patternAlertDay}
-      rootedMilestoneToday={rootedMilestoneToday}
       pillarLevels={pillarLevels}
       lastPillarCheckAt={profile.last_pillar_check_at ?? null}
     />

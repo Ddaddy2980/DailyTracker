@@ -1444,6 +1444,53 @@ export async function saveWeeklyReflectionWithPulse(data: {
   revalidatePath('/grooving')
 }
 
+// ─── Soloing weekly reflection (v2 — Step 51) ────────────────────────────────
+//
+// Parallel to saveWeeklyReflectionWithPulse but without the pulse check write.
+// Soloing uses no pulse system — notification_tier is not updated here.
+// Monthly Pillar Check is still included when due.
+
+export async function saveWeeklyReflectionSoloing(data: {
+  challengeId:             string
+  weekNumber:              number
+  reflectionQuestion:      string
+  reflectionAnswer:        string | null
+  destinationGoalStatuses?: { destination_goal_id: string; hits_this_week: number; frequency_target: number }[] | null
+  // Monthly Pillar Check — present only when the 30-day cadence check fired this session
+  pillarCheckPillar?:      string | null
+  pillarCheckAnswer?:      string | null
+}): Promise<void> {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Unauthorized')
+
+  const sb  = createServerSupabaseClient()
+  const now = new Date().toISOString()
+
+  const { error: reflectionErr } = await sb.from('weekly_reflections').insert({
+    user_id:                   userId,
+    challenge_id:              data.challengeId,
+    week_number:               data.weekNumber,
+    reflection_question:       data.reflectionQuestion,
+    reflection_answer:         data.reflectionAnswer,
+    destination_goal_statuses: data.destinationGoalStatuses ?? null,
+    share_with_circle:         false,
+    pillar_check_pillar:       data.pillarCheckPillar ?? null,
+    pillar_check_answer:       data.pillarCheckAnswer ?? null,
+    created_at:                now,
+  })
+  if (reflectionErr) throw new Error(`saveWeeklyReflectionSoloing insert: ${reflectionErr.message}`)
+
+  // Stamp last_pillar_check_at when the monthly pillar check fired
+  if (data.pillarCheckPillar) {
+    await sb
+      .from('user_profile')
+      .update({ last_pillar_check_at: now, updated_at: now })
+      .eq('user_id', userId)
+  }
+
+  revalidatePath('/soloing')
+}
+
 // ─── Grooving onboarding (v2) ─────────────────────────────────────────────────
 
 export async function completeGroovingOnboarding(data: {
@@ -2409,4 +2456,55 @@ export async function saveFocusPillar(
 
   revalidatePath('/consistency-profile/portrait')
   return { success: true }
+}
+
+// ─── Soloing onboarding (Phase 6) ─────────────────────────────────────────────
+
+export async function completeSoloingOnboarding(data: {
+  durationDays: 90 | 100
+  pillarGoals:  Record<string, string>
+  allPillars:   string[]
+}): Promise<void> {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Unauthorized')
+
+  const sb    = createServerSupabaseClient()
+  const start = todayStr()
+
+  const startDt = new Date(start + 'T00:00:00')
+  startDt.setDate(startDt.getDate() + data.durationDays - 1)
+  const end = new Intl.DateTimeFormat('en-CA').format(startDt)
+
+  // Build pillar_level_snapshot from current pillar_levels rows
+  const { data: pillarRows } = await sb
+    .from('pillar_levels')
+    .select('pillar, level, operating_state')
+    .eq('user_id', userId)
+
+  const snapshot: Record<string, { level: number; state: string }> = {}
+  for (const row of pillarRows ?? []) {
+    snapshot[row.pillar] = {
+      level: row.level as number,
+      state: (row.operating_state as string) || resolveOperatingState(row.level as number),
+    }
+  }
+
+  // Create the Level 4 challenge
+  const { error: challengeErr } = await sb
+    .from('challenges')
+    .insert({
+      user_id:              userId,
+      level:                4,
+      duration_days:        data.durationDays,
+      start_date:           start,
+      end_date:             end,
+      status:               'active',
+      pillar_goals:         data.pillarGoals,
+      pillar_level_snapshot: snapshot,
+    })
+
+  if (challengeErr) throw new Error(`completeSoloingOnboarding challenge: ${challengeErr.message}`)
+
+  revalidatePath('/')
+  revalidatePath('/soloing')
 }
