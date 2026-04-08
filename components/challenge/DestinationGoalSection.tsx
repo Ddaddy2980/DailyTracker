@@ -22,7 +22,12 @@ interface Props {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const GROOVING_LIMIT = 3
+// Cap applies to Grooving (level 3) only. Soloing and above (level >= 4) are uncapped by design.
+const GROOVING_LIMIT    = 3
+// Window ceiling: Grooving and below cap at 66 days; Soloing and above allow up to 100 days.
+const GROOVING_MAX_WINDOW = 66
+const SOLOING_MAX_WINDOW  = 100
+
 const BLANK_FORM: AddFormState = { goalName: '', frequencyTarget: 3, windowDays: 30 }
 
 function addDays(dateStr: string, n: number): string {
@@ -52,8 +57,9 @@ export default function DestinationGoalSection({
   const [confirmId, setConfirmId]   = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
 
-  const atLimit    = pillarLevel === 3 && goals.length >= GROOVING_LIMIT
-  const canAdd     = !atLimit && !showForm
+  const atLimit      = pillarLevel === 3 && goals.length >= GROOVING_LIMIT
+  const maxWindowDays = pillarLevel >= 4 ? SOLOING_MAX_WINDOW : GROOVING_MAX_WINDOW
+  const canAdd       = !atLimit && !showForm
 
   function handleAddClick() {
     setForm(BLANK_FORM)
@@ -175,6 +181,7 @@ export default function DestinationGoalSection({
           form={form}
           error={formError}
           isPending={isPending}
+          maxWindowDays={maxWindowDays}
           onChange={setForm}
           onConfirm={handleConfirm}
           onCancel={() => { setShowForm(false); setFormError(null) }}
