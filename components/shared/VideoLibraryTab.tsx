@@ -1,33 +1,38 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { VIDEO_LIBRARY, getDayVideoIds, getJammingVideoIds } from '@/lib/constants'
+import { VIDEO_LIBRARY, getDayVideoIds, getJammingVideoIds, getSoloingVideoIds } from '@/lib/constants'
 import { markVideoWatched } from '@/app/actions'
 import type { VideoEntry, PulseState } from '@/lib/types'
 import VideoCard from '@/components/challenge/VideoCard'
 
 interface Props {
-  level:           1 | 2 | 3
+  level:           1 | 2 | 3 | 4
   dayNumber:       number
   selectedPillars: string[]
   watchedVideoIds: string[]
   lastPulseState:  PulseState | null
+  // Required only at level 4 — provides Soloing-specific context for triggered video selection.
+  soloingContext?: { durationDays: number; streakBroken: boolean }
 }
 
-const ALLOWED_MODULES: Record<1 | 2 | 3, string[]> = {
+const ALLOWED_MODULES: Record<1 | 2 | 3 | 4, string[]> = {
   1: ['A', 'B', 'C', 'D'],
   2: ['A', 'B', 'C', 'D', 'J'],
   3: ['A', 'B', 'C', 'D', 'J', 'G'],
+  // Level 4 (Soloing) gets full cumulative access including the S module.
+  4: ['A', 'B', 'C', 'D', 'J', 'G', 'S'],
 }
 
 const B_PILLAR: Record<string, string> = {
   B1: 'spiritual', B2: 'physical', B3: 'nutritional', B4: 'personal',
 }
 
-const MODULE_SORT_ORDER = ['D', 'J', 'G', 'A', 'B', 'C']
+// S module sorts immediately after G — keeps Soloing coaching at the front of suggested.
+const MODULE_SORT_ORDER = ['D', 'J', 'G', 'S', 'A', 'B', 'C']
 
 export default function VideoLibraryTab({
-  level, dayNumber, selectedPillars, watchedVideoIds, lastPulseState,
+  level, dayNumber, selectedPillars, watchedVideoIds, lastPulseState, soloingContext,
 }: Props) {
   // Track watched list locally (ordered, newest last) so new watches appear immediately
   const [watchedList, setWatchedList] = useState<string[]>(watchedVideoIds)
@@ -58,11 +63,16 @@ export default function VideoLibraryTab({
   function getTodayVideoIds(): string[] {
     if (level === 1) return getDayVideoIds(dayNumber, selectedPillars)
     if (level === 2) return getJammingVideoIds(dayNumber, lastPulseState)
-    // L3: pulse-based G videos
-    if (lastPulseState === 'smooth_sailing')  return ['G_SMOOTH']
-    if (lastPulseState === 'rough_waters')    return ['G_ROUGH']
-    if (lastPulseState === 'taking_on_water') return ['G_WATER']
-    return []
+    if (level === 3) {
+      // L3: pulse-based G videos
+      if (lastPulseState === 'smooth_sailing')  return ['G_SMOOTH']
+      if (lastPulseState === 'rough_waters')    return ['G_ROUGH']
+      if (lastPulseState === 'taking_on_water') return ['G_WATER']
+      return []
+    }
+    // L4 (Soloing): day-number + event milestones. Requires soloingContext.
+    if (!soloingContext) return []
+    return getSoloingVideoIds(dayNumber, soloingContext.durationDays, soloingContext.streakBroken)
   }
   const todayIds = getTodayVideoIds()
 

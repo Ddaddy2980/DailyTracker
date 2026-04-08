@@ -19,6 +19,7 @@ const MODULE_LABELS: Record<VideoModule, string> = {
   D: 'Module D — Daily Coaching',
   J: 'Module J — Jamming',
   G: 'Module G — Grooving',
+  S: 'Module S — Soloing',
 }
 
 export default function VideoSection({ dayNumber, selectedPillars, watchedVideoIds }: Props) {

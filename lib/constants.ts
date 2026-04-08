@@ -339,6 +339,16 @@ export const VIDEO_LIBRARY: VideoEntry[] = [
   { id: 'G_SMOOTH', module: 'G', title: 'Smooth sailing. Keep the rhythm.',                                   url: '', trigger: 'pulse_smooth_sailing_grooving' },
   { id: 'G_ROUGH',  module: 'G', title: 'Rough waters. Here\'s how to navigate.',                             url: '', trigger: 'pulse_rough_waters_grooving' },
   { id: 'G_WATER',  module: 'G', title: 'Taking on water. Let\'s make this survivable.',                      url: '', trigger: 'pulse_taking_on_water_grooving' },
+
+  // Module S — Soloing coaching (stewardship tone, self-directed, no pulse)
+  // All url: '' until recordings are ready — renders "Coming soon" card.
+  { id: 'S1', module: 'S', title: "Welcome to Soloing. This is what you've already proven.",                    url: '', trigger: 'soloing_day1'           },
+  { id: 'S2', module: 'S', title: "30 days in. Here's what's different about the life you're building.",        url: '', trigger: 'soloing_day30'          },
+  { id: 'S3', module: 'S', title: "Halfway through. The habit isn't the goal anymore — it's the ground.",       url: '', trigger: 'soloing_midpoint'       },
+  { id: 'S4', module: 'S', title: "60 days. What you're carrying into the final stretch.",                      url: '', trigger: 'soloing_day60'          },
+  { id: 'S5', module: 'S', title: "What your goals are telling you about where you're headed.",                 url: '', trigger: 'soloing_goal_quality'   },
+  { id: 'S6', module: 'S', title: "You missed a day. Here's what that actually means at this level.",           url: '', trigger: 'soloing_streak_break'   },
+  { id: 'S7', module: 'S', title: "The last stretch. Don't change anything.",                                   url: '', trigger: 'soloing_approaching_end' },
 ]
 
 // Returns the video IDs that should be surfaced on a given challenge day.
@@ -396,6 +406,34 @@ export function getGroovingReturnVideoId(
 ): string[] {
   if (pauseRecord?.resumed_at) return ['G_RETURN']
   return []
+}
+
+// Returns the S-module video IDs that should be surfaced for a Soloing challenge.
+//
+// Day triggers (library + inline for S1):
+//   S1 — Day 1 welcome (also surfaced inline in SoloingVideoSection)
+//   S5 — Day 20 goal quality coaching (library only)
+//   S2 — Day 30 milestone
+//   S3 — Challenge midpoint (floor(durationDays / 2))
+//   S4 — Day 60 milestone
+//   S7 — Final 10 days (dayNumber >= durationDays - 9)
+//
+// Event trigger (inline for S6, also surfaced in library today section):
+//   S6 — Streak break: any missed day after a 21+ day streak (once per challenge via watchedVideoIds)
+export function getSoloingVideoIds(
+  dayNumber:    number,
+  durationDays: number,
+  streakBroken: boolean,
+): string[] {
+  const ids: string[] = []
+  if (dayNumber === 1)                              ids.push('S1')
+  if (dayNumber === 20)                             ids.push('S5')
+  if (dayNumber === 30)                             ids.push('S2')
+  if (dayNumber === Math.floor(durationDays / 2))   ids.push('S3')
+  if (dayNumber === 60)                             ids.push('S4')
+  if (dayNumber >= durationDays - 9)                ids.push('S7')
+  if (streakBroken)                                 ids.push('S6')
+  return ids
 }
 
 // ─── Jamming notification copy ────────────────────────────────────────────────

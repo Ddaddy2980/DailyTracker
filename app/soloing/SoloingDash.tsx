@@ -20,7 +20,8 @@ import WeeklyReflectionFlow  from '@/components/grooving/WeeklyReflectionFlow'
 import DayCheckIn            from '@/components/challenge/DayCheckIn'
 import RewardUnlock          from '@/components/challenge/RewardUnlock'
 import VideoLibraryTab       from '@/components/shared/VideoLibraryTab'
-import SoloingHeader         from '@/components/soloing/SoloingHeader'
+import SoloingHeader          from '@/components/soloing/SoloingHeader'
+import SoloingVideoSection    from '@/components/soloing/SoloingVideoSection'
 import SoloingCompletionScreen from '@/components/soloing/SoloingCompletionScreen'
 
 interface Props {
@@ -41,12 +42,13 @@ interface Props {
   patternAlertDay:          string | null
   pillarLevels:             PillarLevel[]
   lastPillarCheckAt:        string | null
+  streakBrokenAfter21:      boolean
 }
 
 export default function SoloingDash({
   challenge, profile, dayStatuses, pillarDayData, todayCompletions, streak, dayNumber, today,
   earnedRewards, pendingPulse, destinationGoals, destinationGoalsByPillar,
-  groups, watchedVideoIds, patternAlertDay, pillarLevels, lastPillarCheckAt,
+  groups, watchedVideoIds, patternAlertDay, pillarLevels, lastPillarCheckAt, streakBrokenAfter21,
 }: Props) {
   void earnedRewards   // available for future use
   void patternAlertDay // available for future notification banner
@@ -176,6 +178,12 @@ export default function SoloingDash({
 
             {!showReflection && (
               <>
+                <SoloingVideoSection
+                  dayNumber={dayNumber}
+                  streakBrokenAfter21={streakBrokenAfter21}
+                  watchedVideoIds={watchedVideoIds}
+                />
+
                 <DestinationGoalLayer
                   rootedMilestoneFired={true}
                   destinationGoals={destinationGoals}
@@ -232,11 +240,12 @@ export default function SoloingDash({
         {/* ── VIDEOS TAB ── */}
         {activeTab === 'videos' && (
           <VideoLibraryTab
-            level={3}
+            level={4}
             dayNumber={dayNumber}
             selectedPillars={pillars}
             watchedVideoIds={watchedVideoIds}
             lastPulseState={null}
+            soloingContext={{ durationDays, streakBroken: streakBrokenAfter21 }}
           />
         )}
 

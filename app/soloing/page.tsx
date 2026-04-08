@@ -96,6 +96,31 @@ function calcStreak(
 
 const WEEKDAY_NAMES = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays']
 
+// Detects whether any missed day followed a 21+ day streak during this challenge.
+// Used to determine whether to surface S6 (streak-break grace card) inline.
+// S6 fires once per challenge — the watchedVideoIds guard in SoloingVideoSection
+// prevents re-surfacing after the user has watched it.
+function calcStreakBrokenAfter21(
+  startDate:    string,
+  durationDays: number,
+  dayStatuses:  Record<string, DayStatus>,
+): boolean {
+  let runningStreak = 0
+  for (let i = 0; i < durationDays; i++) {
+    const date   = addDays(startDate, i)
+    const status = dayStatuses[date]
+    if (status === 'complete') {
+      runningStreak++
+    } else if (status === 'missed') {
+      if (runningStreak >= 21) return true
+      runningStreak = 0
+    } else {
+      break // 'today' or 'future' — stop walking
+    }
+  }
+  return false
+}
+
 function detectPatternAlertDay(
   pillarDayData: Record<string, Record<string, boolean>>,
   pillars:       string[],
@@ -209,7 +234,8 @@ export default async function SoloingPage() {
     {}
   )
 
-  const patternAlertDay = detectPatternAlertDay(pillarDayData, pillars, today, dayNumber)
+  const patternAlertDay     = detectPatternAlertDay(pillarDayData, pillars, today, dayNumber)
+  const streakBrokenAfter21 = calcStreakBrokenAfter21(challenge.start_date, durationDays, dayStatuses)
 
   return (
     <SoloingDash
@@ -230,6 +256,7 @@ export default async function SoloingPage() {
       patternAlertDay={patternAlertDay}
       pillarLevels={pillarLevels}
       lastPillarCheckAt={profile.last_pillar_check_at ?? null}
+      streakBrokenAfter21={streakBrokenAfter21}
     />
   )
 }

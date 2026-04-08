@@ -316,7 +316,7 @@ export interface GroupWithMembers extends ConsistencyGroup {
   pendingJoinNotification: PendingJoinNotification | null
 }
 
-export type VideoModule = 'A' | 'B' | 'C' | 'D' | 'J' | 'G'
+export type VideoModule = 'A' | 'B' | 'C' | 'D' | 'J' | 'G' | 'S'
 
 export interface VideoEntry {
   id:               string        // e.g. 'A1', 'D3', 'G_RETURN'

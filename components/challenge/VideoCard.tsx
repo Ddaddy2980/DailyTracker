@@ -15,6 +15,7 @@ const MODULE_UI: Record<VideoModule, { label: string; badge: string; accent: str
   D: { label: 'Daily Coaching',    badge: 'bg-amber-100 text-amber-700 border-amber-300',       accent: 'border-amber-200',   placeholderBg: 'bg-amber-50' },
   J: { label: 'Jamming',           badge: 'bg-violet-100 text-violet-700 border-violet-300',    accent: 'border-violet-200',  placeholderBg: 'bg-violet-50' },
   G: { label: 'Grooving',          badge: 'bg-teal-100 text-teal-700 border-teal-300',          accent: 'border-teal-200',    placeholderBg: 'bg-teal-50' },
+  S: { label: 'Soloing',           badge: 'bg-indigo-100 text-indigo-700 border-indigo-300',    accent: 'border-indigo-200',  placeholderBg: 'bg-indigo-50' },
 }
 
 export default function VideoCard({ video, watched, onWatched }: Props) {
