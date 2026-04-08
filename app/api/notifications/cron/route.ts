@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { JAMMING_NOTIFICATIONS, GROOVING_NOTIFICATIONS, NOTIFICATION_CADENCE, GROUP_NOTIFICATIONS } from '@/lib/constants'
+import { JAMMING_NOTIFICATIONS, GROOVING_NOTIFICATIONS, SOLOING_NOTIFICATIONS, NOTIFICATION_CADENCE, GROUP_NOTIFICATIONS } from '@/lib/constants'
 import { todayStr } from '@/lib/constants'
 import { autoResumePausedChallenges } from '@/app/actions'
 import { resolveMorningTone } from '@/lib/morning-tone'
@@ -534,6 +534,73 @@ export async function POST(req: NextRequest) {
             notifications.push({ userId, message: GROOVING_NOTIFICATIONS.evening_checkin() })
             sent++
           }
+        }
+      }
+    }
+  }
+
+  // ── Soloing morning block (Step 55) ──────────────────────────────────────────
+  // Level 4 users: daily morning anchor (stewardship tone) + Day 30/60/90 milestones.
+  //
+  // Cadence by design:
+  //   Morning anchor — daily, all active level-4 users.
+  //   Milestones (Day 30, 60, 90) — additive, stack alongside morning anchor.
+  //   Evening — none. A Soloing user does not need an evening nudge.
+  //   Mid-week — none. Consistent with Grooving's existing absence.
+  //   Late rescue — none. Missed-day pastoral moment is handled by S6 the next morning.
+  //
+  // Tone resolution reuses resolveMorningTone() unchanged:
+  //   reflective  — all pillars Anchored (level ≥ 4)  → stewardship copy
+  //   coaching or motivational — any Developing/Building pillar present → mixed copy
+  if (time === 'morning') {
+    const { data: soloingChallenges } = await sb
+      .from('challenges')
+      .select('id, user_id, start_date, duration_days')
+      .eq('status', 'active')
+      .eq('level', 4)
+
+    if (soloingChallenges && soloingChallenges.length > 0) {
+      const soloingUserIds = soloingChallenges.map(c => c.user_id as string)
+
+      const { data: soloingPillarLevels } = await sb
+        .from('pillar_levels')
+        .select('user_id, pillar, level, operating_state, gauge_score')
+        .in('user_id', soloingUserIds)
+
+      const soloingPillarLevelsMap = new Map<string, PillarLevel[]>()
+      for (const row of (soloingPillarLevels ?? [])) {
+        const uid = row.user_id as string
+        if (!soloingPillarLevelsMap.has(uid)) soloingPillarLevelsMap.set(uid, [])
+        soloingPillarLevelsMap.get(uid)!.push(row as PillarLevel)
+      }
+
+      for (const challenge of soloingChallenges) {
+        const userId     = challenge.user_id as string
+        const startMs    = new Date((challenge.start_date as string) + 'T00:00:00').getTime()
+        const todayMs    = new Date(today + 'T00:00:00').getTime()
+        const dayNumber  = Math.max(Math.floor((todayMs - startMs) / 86_400_000) + 1, 1)
+        const durationDays = challenge.duration_days as number
+
+        // Morning anchor — stewardship tone, adapts to pillar mix
+        const userPillarLevels = soloingPillarLevelsMap.get(userId) ?? []
+        const { tone } = resolveMorningTone(userPillarLevels)
+        const morningMessage =
+          tone === 'reflective'
+            ? SOLOING_NOTIFICATIONS.morning_anchor_reflective()
+            : SOLOING_NOTIFICATIONS.morning_anchor_mixed({ dayNumber, durationDays })
+        notifications.push({ userId, message: morningMessage })
+        sent++
+
+        // Milestone moments — additive, fire once at the exact day boundary
+        if (dayNumber === 30) {
+          notifications.push({ userId, message: SOLOING_NOTIFICATIONS.milestone_day30() })
+          sent++
+        } else if (dayNumber === 60) {
+          notifications.push({ userId, message: SOLOING_NOTIFICATIONS.milestone_day60() })
+          sent++
+        } else if (dayNumber === 90) {
+          notifications.push({ userId, message: SOLOING_NOTIFICATIONS.milestone_day90() })
+          sent++
         }
       }
     }

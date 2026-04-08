@@ -345,14 +345,13 @@ Unless David explicitly asks:
 - Do not modify `checkRootedMilestone()` in `/lib/milestones.ts` without David's explicit direction — this function has been fully tested against 8 scenarios including a regression test for the carried-forward goal fix
 - Do not modify the `createDestinationGoal` upsert logic or the `rooted_badge` wiring in `submitCheckin` without David's explicit direction
 - Do not modify `checkRootedMilestone()` in `/lib/milestones.ts` without David's explicit direction — this function has been fully tested against 8 scenarios including a regression test for the carried-forward goal fix
-- Do not change the `late_rescue` cron schedule in `vercel.json` without first confirming the correct UTC offset. Current value is `45 1 * * *` — this is a known error. Correct value is `45 3 * * *` (9:45 PM CST = 03:45 UTC). Fix before go-live.
+- The `late_rescue` cron schedule in `vercel.json` was corrected in Step 55 to `45 3 * * *` (9:45 PM CST = 03:45 UTC). Do not change it again without confirming the UTC offset.
 ---
 
 ## Known Deferred Items
 
 - `?addPillar` query param — written by `TuningComplete` and `JammingComplete` on Next Pillar Invitation accept. Jamming and Grooving onboarding flows do not yet consume it. When wired, the onboarding flow must pre-select the invited pillar for goal setup rather than presenting a cold start.
-- `GroovingCompletionScreen` — Next Level Invitation step not yet wired. Safe to defer because `INVITATION_THRESHOLDS[3]` is undefined and the DB field is never written for level-3 users until that threshold is defined.
-- Ceiling Conversation re-fire guard — currently derived from pillar state (all five `pillar_levels` rows ≥ level 4). If a user declines Orchestrating and completes a second Soloing challenge, the Ceiling Conversation fires again. A DB flag (e.g. `ceiling_conversation_shown` on `user_profile`) should gate this to once. Defer until Phase 7 builds the Orchestrating flow.
+- `GroovingCompletionScreen` — Next Pillar Invitation step not yet wired. Safe to defer because `INVITATION_THRESHOLDS[3]` is undefined and the DB field is never written for level-3 users until that threshold is defined.
 - Monthly Pillar Check — stagnation fallback not yet implemented. If `resolveNextPillarInvitation` returns null (no Dormant pillar, no gap), no monthly pillar question is shown. A future step may add a stagnation check targeting the lowest gauge-score pillar when no gap or Dormant pillar exists.
 - Jamming cron morning tone adaptation — the Level 2 cron morning block still sends a static `JAMMING_NOTIFICATIONS` message regardless of pillar state. Adaptive tone for Level 2 is deferred to a future step.
 
@@ -381,11 +380,8 @@ At the end of each session:
 ## Known Deferred Items
 
 - `?addPillar` query param — written by `TuningComplete` and `JammingComplete` on Next Pillar Invitation accept. Jamming and Grooving onboarding flows do not yet consume it. When wired, the onboarding flow must pre-select the invited pillar for goal setup rather than presenting a cold start.
-- `GroovingCompletionScreen` — Next Level Invitation Step not yet wired. Safe to defer because `INVITATION_THRESHOLDS[3]` is undefined and the DB field is never written for level-3 users until that threshold is defined.
+- `GroovingCompletionScreen` — Next Pillar Invitation Step not yet wired. Safe to defer because `INVITATION_THRESHOLDS[3]` is undefined and the DB field is never written for level-3 users until that threshold is defined.
 - Monthly Pillar Check stagnation variant — `resolveNextPillarInvitation()` returns `null` when all active pillars are at the same level (no gap, none dormant), so the monthly check is skipped. A future step may introduce a stagnation check that targets the lowest gauge-score pillar in this scenario. Do not implement until David explicitly requests it.
-- Per-pillar consistency evaluation at Grooving → Soloing advancement — currently all level-3 pillar_levels rows advance when soloingEligible is true, regardless of individual per-pillar consistency. The correct long-term behavior is per-pillar 80%+ evaluation before advancing each pillar independently. Known simplification, not a bug. Do not change without David's explicit instruction.
-- Ceiling Conversation re-fire guard — currently derived from pillar state (all five `pillar_levels` rows ≥ level 4). If a user declines Orchestrating and completes a second Soloing challenge, the Ceiling Conversation fires again. A DB flag (e.g. `ceiling_conversation_shown` on `user_profile`) should gate this to once. Defer until Phase 7 builds the Orchestrating flow.
-- Soloing routing destination — level-4 users currently route to `/grooving` after onboarding (step-51 branch only). When step-51 merges, update all remaining `/grooving` CTAs for level-4 users to point to `/soloing`.
 
 ---
 
@@ -471,16 +467,7 @@ This phase restructures the app's core model from a single-ladder system to a pe
 - [x] Step 47 — G6b video card: Trigger "Setting a direction within your daily habit" video when user first adds a destination goal from the Goals tab. One-time trigger per user.
 - [x] Step 48 — Destination goal expiry notification: Embedded in weekly reflection when end date is within 7 days. Not a standalone push notification.
 
-### Phase 6 — Soloing Level (IN PROGRESS)
-
-- [x] Step 49 — Grooving → Soloing transition: restructured GroovingCompletionScreen into 4-phase stepped flow (reflection, per-pillar celebration, Soloing invitation, non-eligible summary). Wired INVITATION_THRESHOLDS[3] = { windowDays: 30, minCompletions: 22 }. Fixed submitCheckin to write pillar_levels.level = 4 and operating_state = 'anchored' atomically with user_profile.current_level = 4. Fixed computeAndWriteNextPillarInvitation to fetch rolling window dynamically from thresholdConfig.windowDays.
-- [ ] Step 50 — Soloing onboarding flow: 3-screen flow (identity, what changes, duration picker). Challenge creation with 90 or 100 day duration. Routes to /dashboard on completion.
-- [ ] Step 51 — Habit calendar (Soloing): inherit existing calendar from Step 21. Review pattern detection language for Soloing context. Update milestone thresholds if needed.
-- [ ] Step 52 — Destination goals: unlimited. Remove 3-goal cap for Soloing pillars. Update UI enforcement gate in goal setup flow. Expand window ceiling to 100 days. No schema changes required.
-- [ ] Step 53 — Next Level Invitation: Soloing → Orchestrating wiring. Define INVITATION_THRESHOLDS[4]. Wire SoloingCompletionScreen Next Level Invitation step.
-- [ ] Step 54 — Soloing video additions: S1–S? video cards. Stewardship tone. Goal quality refinement cues. Cross-pillar insight moments.
-- [ ] Step 55 — Soloing notification system: adapted morning tone for Soloing/Anchored pillar mix. Reduced coaching cadence. Milestone moments at Day 30, 60, 90.
-- [ ] Step 56 — Soloing completion sequence: badge, full stats, destination goal review, advancement to Orchestrating invitation or Ceiling Conversation if all five pillars reach Soloing.
+### Phase 6 — Soloing Level (NEXT)
 
 ### Phase 7 — Orchestrating Level (FUTURE)
 

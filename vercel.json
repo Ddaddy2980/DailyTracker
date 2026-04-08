@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/notifications/cron?time=late_rescue",
-      "schedule": "45 1 * * *"
+      "schedule": "45 3 * * *"
     },
     {
       "path": "/api/notifications/cron?time=mid_week",

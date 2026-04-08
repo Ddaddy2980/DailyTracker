@@ -504,6 +504,33 @@ export const GROUP_NOTIFICATIONS = {
     `Everyone in ${ctx.groupName} showed up today. That's a full group day.`,
 } as const
 
+export const SOLOING_NOTIFICATIONS = {
+  // ── Morning anchor — tone adapts to pillar mix via resolveMorningTone() ──────
+  //
+  // reflective — all active pillars Anchored (level 4+).
+  //   Verbatim stewardship register from PRODUCT.md line 289.
+  morning_anchor_reflective: () =>
+    `Another day to build the life you've already been building.`,
+
+  // mixed — any active pillar Developing or Building alongside Anchored pillars.
+  //   Leads with stewardship, acknowledges the Developing pillar without urgency.
+  morning_anchor_mixed: (ctx: { dayNumber: number; durationDays: number }) =>
+    `Day ${ctx.dayNumber} of ${ctx.durationDays}. You know how to do this — keep showing up.`,
+
+  // ── Milestone moments — additive, stack alongside morning anchor ───────────
+  // Three milestone moments for Soloing challenges. Each fires once on the
+  // exact day boundary. Does not replace the morning anchor — sits alongside it.
+
+  milestone_day30: () =>
+    `Thirty days into Soloing. The habit isn't something you do anymore — it's something you are.`,
+
+  milestone_day60: () =>
+    `Sixty days. You've been here before. You know how this works. Keep going.`,
+
+  milestone_day90: () =>
+    `Ninety days. Whatever comes next, you've earned it.`,
+} as const
+
 export const GROOVING_NOTIFICATIONS = {
   morning_anchor: (ctx: { dayNumber: number; durationDays: number }) =>
     `Day ${ctx.dayNumber} of ${ctx.durationDays}. What will today build toward?`,
