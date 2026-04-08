@@ -13,7 +13,6 @@ import VideoCard from '@/components/challenge/VideoCard'
 type PillarKey = 'spiritual' | 'physical' | 'nutritional' | 'personal'
 
 const TOTAL_STEPS = 7
-const PRESETS: number[] = [21, 30, 45, 60, 90, 100]
 const PILLARS: PillarKey[] = ['spiritual', 'physical', 'nutritional', 'personal']
 
 const PILLAR_CONFIG: Record<PillarKey, {
@@ -24,10 +23,10 @@ const PILLAR_CONFIG: Record<PillarKey, {
   border:      string
   bg:          string
 }> = {
-  spiritual:   { label: 'Spiritual',   description: 'Strengthen your connection to God through daily practice.', icon: '/Spiritual_Icon_Bk.png',   color: 'text-purple-700', border: 'border-purple-400', bg: 'bg-purple-50'  },
-  physical:    { label: 'Physical',    description: 'Honor your body through intentional movement and rest.',     icon: '/Physical_Icon_Bk.png',    color: 'text-blue-700',   border: 'border-blue-400',   bg: 'bg-blue-50'    },
-  nutritional: { label: 'Nutritional', description: 'Fuel your purpose through what you eat and drink.',          icon: '/Nutritional_Icon_Bk.png', color: 'text-amber-700',  border: 'border-amber-400',  bg: 'bg-amber-50'   },
-  personal:    { label: 'Personal',    description: 'Sharpen your mind, emotions, and creative life.',            icon: '/Personal_Icon_Bk.png',    color: 'text-green-700',  border: 'border-green-400',  bg: 'bg-green-50'   },
+  spiritual:   { label: 'Spiritual',   description: 'Strengthen your connection to God through daily practice.', icon: '/spiritual_icon.png',   color: 'text-purple-700', border: 'border-purple-400', bg: 'bg-purple-50'  },
+  physical:    { label: 'Physical',    description: 'Honor your body through intentional movement and rest.',     icon: '/physical_icon.png',    color: 'text-blue-700',   border: 'border-blue-400',   bg: 'bg-blue-50'    },
+  nutritional: { label: 'Nutritional', description: 'Fuel your purpose through what you eat and drink.',          icon: '/nutritional_icon.png', color: 'text-amber-700',  border: 'border-amber-400',  bg: 'bg-amber-50'   },
+  personal:    { label: 'Personal',    description: 'Sharpen your mind, emotions, and creative life.',            icon: '/personal_icon.png',    color: 'text-green-700',  border: 'border-green-400',  bg: 'bg-green-50'   },
 }
 
 const PILLAR_SUGGESTIONS: Record<PillarKey, string[]> = {
@@ -114,16 +113,27 @@ function JourneyPreview({ totalDays }: { totalDays: number }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function OnboardingFlow() {
+interface Props {
+  durationOptions: number[]
+  focusPillar: string | null
+}
+
+export default function OnboardingFlow({ durationOptions, focusPillar }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
+  // If only one duration option, pre-set it and skip the duration step entirely.
+  const singleDuration = durationOptions.length === 1 ? durationOptions[0] : null
+
   const [step, setStep]                       = useState(1)
   const [name, setName]                       = useState('')
-  const [totalDays, setTotalDays]             = useState<number | null>(null)
-  const [customDaysStr, setCustomDaysStr]     = useState('')
-  const [showCustom, setShowCustom]           = useState(false)
-  const [selectedPillars, setSelectedPillars] = useState<PillarKey[]>([])
+  const [totalDays, setTotalDays]             = useState<number | null>(singleDuration)
+  const [selectedPillars, setSelectedPillars] = useState<PillarKey[]>(
+    // Pre-select the focus pillar chosen on the Pillar Portrait if it maps to a valid PillarKey
+    focusPillar && (PILLARS as string[]).includes(focusPillar)
+      ? [focusPillar as PillarKey]
+      : []
+  )
   const [pillarGoals, setPillarGoals]         = useState<Record<string, string>>({})
   const [actChecks, setActChecks]             = useState<Record<string, boolean | null>>({})
   const [videoWatched, setVideoWatched]       = useState(false)
@@ -131,23 +141,13 @@ export default function OnboardingFlow() {
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
-  const nameValid       = name.trim().length >= 2 && name.trim().length <= 30
-  const goalsValid      = selectedPillars.every(p => (pillarGoals[p] ?? '').trim().length > 0)
-  const customDaysNum   = parseInt(customDaysStr, 10)
-  const customDaysValid = !isNaN(customDaysNum) && customDaysNum >= 8 && customDaysNum <= 100
+  const nameValid  = name.trim().length >= 2 && name.trim().length <= 30
+  const goalsValid = selectedPillars.every(p => (pillarGoals[p] ?? '').trim().length > 0)
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   function handlePresetSelect(days: number) {
     setTotalDays(days)
-    setShowCustom(false)
-    setCustomDaysStr('')
-  }
-
-  function handleCustomChange(val: string) {
-    setCustomDaysStr(val)
-    const n = parseInt(val, 10)
-    setTotalDays(!isNaN(n) && n >= 8 && n <= 100 ? n : null)
   }
 
   function handlePillarToggle(pillar: PillarKey) {
@@ -177,7 +177,8 @@ export default function OnboardingFlow() {
     startTransition(async () => {
       await markVideoWatched('A1', 'onboarding')
     })
-    setStep(4)
+    // Skip duration step if only one option (Tuning = 7 days, Jamming = 14 days)
+    setStep(singleDuration !== null ? 5 : 4)
   }
 
   function handleSubmit() {
@@ -296,7 +297,7 @@ export default function OnboardingFlow() {
           </p>
 
           <button
-            onClick={() => setStep(4)}
+            onClick={() => setStep(singleDuration !== null ? 5 : 4)}
             className="w-full text-center text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] py-2 transition-colors"
           >
             Skip for now →
@@ -307,6 +308,8 @@ export default function OnboardingFlow() {
   }
 
   // ── Screen 4 — Duration ───────────────────────────────────────────────────
+  // Only shown when the user's pillar profile allows a choice (Grooving: 30/50/66,
+  // Anchored: 30/66/100). Tuning (7 days) and Jamming (14 days) auto-set and skip here.
 
   if (step === 4) {
     return (
@@ -315,19 +318,19 @@ export default function OnboardingFlow() {
           <ProgressDots step={step} />
 
           <div className="space-y-1">
-            <h1 className="text-2xl font-black text-[var(--text-primary)]">How long is your journey?</h1>
+            <h1 className="text-2xl font-black text-[var(--text-primary)]">How long is your challenge?</h1>
             <p className="text-sm text-[var(--text-secondary)]">
               Choose a duration that feels like a real commitment — not too easy, not impossible.
             </p>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
-            {PRESETS.map(days => (
+            {durationOptions.map(days => (
               <button
                 key={days}
                 onClick={() => handlePresetSelect(days)}
                 className={`py-3 rounded-2xl border-2 font-black text-sm transition-all ${
-                  totalDays === days && !showCustom
+                  totalDays === days
                     ? 'bg-purple-600 border-purple-600 text-white'
                     : 'bg-white border-[var(--card-border)] text-[var(--text-primary)] hover:border-purple-400'
                 }`}
@@ -336,31 +339,6 @@ export default function OnboardingFlow() {
               </button>
             ))}
           </div>
-
-          {!showCustom ? (
-            <button
-              onClick={() => { setShowCustom(true); setTotalDays(null) }}
-              className="w-full py-3 rounded-2xl border-2 border-dashed border-[var(--card-border)] text-sm text-[var(--text-secondary)] hover:border-purple-400 hover:text-purple-600 transition-all"
-            >
-              Custom
-            </button>
-          ) : (
-            <div className="space-y-1">
-              <input
-                type="number"
-                value={customDaysStr}
-                onChange={e => handleCustomChange(e.target.value)}
-                placeholder="Enter days (8–100)"
-                min={8}
-                max={100}
-                autoFocus
-                className="w-full px-4 py-3 border-2 border-purple-400 rounded-2xl text-[var(--text-primary)] bg-white placeholder:text-[var(--text-muted)] focus:outline-none text-base"
-              />
-              {customDaysStr !== '' && !customDaysValid && (
-                <p className="text-xs text-red-500 px-1">Enter a number between 8 and 100.</p>
-              )}
-            </div>
-          )}
 
           {totalDays !== null && <JourneyPreview totalDays={totalDays} />}
 
@@ -590,7 +568,6 @@ export default function OnboardingFlow() {
           <p className="text-white text-sm leading-relaxed italic mb-3">
             &ldquo;Let us not grow weary of doing good, for in due season we will reap, if we do not give up.&rdquo;
           </p>
-          <p className="text-slate-400 text-sm font-semibold text-right">— Galatians 6:9</p>
         </div>
 
         {submitError && (

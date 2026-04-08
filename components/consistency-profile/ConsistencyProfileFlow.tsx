@@ -160,12 +160,16 @@ export default function ConsistencyProfileFlow({ userId: _userId }: Props) {
   }
 
   if (showingTransition) {
+    const completedPillarData = CONSISTENCY_PROFILE_QUESTIONS[transitionPillarIndex - 1]
     const nextPillarData = CONSISTENCY_PROFILE_QUESTIONS[transitionPillarIndex]
     const nextColors = PILLAR_COLORS[nextPillarData.pillar]
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-2 px-6 text-center">
+        <p className="text-base text-gray-500">
+          {completedPillarData.emoji} {completedPillarData.label} — complete.
+        </p>
         <p className={`text-xl font-medium ${nextColors.text}`}>
-          {nextPillarData.emoji} {nextPillarData.label} — let&apos;s take a look.
+          Moving to {nextPillarData.label}. {nextPillarData.emoji}
         </p>
       </div>
     )
@@ -204,9 +208,21 @@ export default function ConsistencyProfileFlow({ userId: _userId }: Props) {
         </div>
 
         {/* Question counter */}
-        <p className="text-xs text-gray-400 mb-4">
-          {(currentPillar * 4) + currentQuestion + 1} of 20
-        </p>
+        {(() => {
+          const qNum = (currentPillar * 4) + currentQuestion + 1
+          const phrase =
+            qNum === 20 ? 'Last one.' :
+            qNum >= 16  ? 'Almost done.' :
+            qNum >= 11  ? "You're getting closer." :
+            qNum >= 6   ? 'Halfway there — keep going.' :
+                          'Getting started…'
+          return (
+            <div className="mb-4">
+              <p className="text-xs text-gray-400">{qNum} of 20</p>
+              <p className="text-xs text-gray-400 italic">{phrase}</p>
+            </div>
+          )
+        })()}
 
         {/* Pillar indicator */}
         <p className={`text-sm font-medium mb-4 ${colors.text}`}>

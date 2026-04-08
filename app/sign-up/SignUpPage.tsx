@@ -121,7 +121,6 @@ export default function SignUpPage() {
 
           <p className="text-xs italic text-[var(--text-muted)] text-center mt-5 leading-relaxed">
             &ldquo;He who calls you is faithful; he will surely do it.&rdquo;
-            <br />— 1 Thessalonians 5:24
           </p>
 
         </div>

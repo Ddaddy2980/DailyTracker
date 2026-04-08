@@ -43,11 +43,11 @@ const PILLAR_DESCRIPTION: Record<PillarName, string> = {
   missional:   'Living out your calling in the world.',
 }
 const SUGGESTIONS: Record<PillarName, string[]> = {
-  spiritual:   ['Read one chapter of Scripture every day', 'Spend 10 minutes in prayer each morning', 'Write one sentence of gratitude each day'],
-  physical:    ['Walk for 20 minutes every day', 'Exercise for 30 minutes daily', 'Get at least 7 hours of sleep each night'],
-  nutritional: ['Eat a vegetable with every meal', 'Drink 64 oz of water every day', 'Eat no added sugar after 7:00 PM'],
-  personal:    ['Read for 20 minutes every day', 'Write in a journal each morning', 'Spend 15 minutes learning something new'],
-  missional:   ['Reach out to one person in your network each day', 'Spend 15 minutes on your calling each morning', 'Write one sentence about your impact each day'],
+  spiritual:   ['Read one chapter of Scripture every day', 'Spend 10 minutes in prayer', 'Reflect or meditate for 10 minutes'],
+  physical:    ['Walk for 20 minutes', 'Do 10 minutes of intentional movement or stretching', 'Complete a workout of any length'],
+  nutritional: ['Drink 64 oz of water', 'Eat no added sugar before noon', 'Eat at least one vegetable with dinner'],
+  personal:    ['Read for 15 minutes', 'Write 3 sentences in a journal', 'Spend 10 minutes learning something new'],
+  missional:   ['Send one encouraging text or note to someone', 'Pray specifically for one person by name', 'Have one genuine conversation with someone I care about'],
 }
 
 const DURATION_OPTIONS: { days: 30 | 50 | 66; label: string; description: string }[] = [

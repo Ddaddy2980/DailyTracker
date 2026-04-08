@@ -132,7 +132,7 @@ export default function PillarPortrait({ pillarLevels, userId: _userId }: Props)
 
         {/* Agency question */}
         <p className="text-base font-medium text-gray-800 mb-6">
-          Which pillar do you most want to develop right now? You can always add others as you go.
+          Which pillar do you most want to start with? You can always add others as you go.
         </p>
 
         {saveStatus === 'error' && (

@@ -170,7 +170,17 @@ export default function JourneyDash({
   )
   const durationDays = challenge.duration_days
 
-  const { currentLevel, currentDay, daysInCurrentLevel, levelName } = journeyStatus
+  const { currentDay, daysInCurrentLevel } = journeyStatus
+
+  // For legacy challenges (is_continuous = false), challenge.level may be stale from before
+  // the Consistency Profile architecture. Override with the highest level across pillar_levels.
+  const effectiveLevel = journeyStatus.isLegacy
+    ? Math.max(1, ...Object.values(pillarLevelsByPillar).map(r => r.level))
+    : journeyStatus.currentLevel
+  const EFFECTIVE_LEVEL_NAMES: Record<number, string> = {
+    1: 'Tuning', 2: 'Jamming', 3: 'Grooving', 4: 'Soloing', 5: 'Orchestrating',
+  }
+  const effectiveLevelName = EFFECTIVE_LEVEL_NAMES[effectiveLevel] ?? 'Tuning'
 
   const alreadySaved  = pillars.every(p => todayCompletions[p])
   const todayComplete = pillars.every(p => completions[p])
@@ -179,7 +189,7 @@ export default function JourneyDash({
     : null
 
   const todayVideo = getTodaysDashboardVideo(
-    currentLevel, daysInCurrentLevel, localWatched, pillars, lastPulseState, rootedMilestoneToday,
+    effectiveLevel, daysInCurrentLevel, localWatched, pillars, lastPulseState, rootedMilestoneToday,
   )
 
   // Duration of the current level phase (for level-relative headers / progress bars)
@@ -188,9 +198,9 @@ export default function JourneyDash({
   //   L3: Days 22-60   = 39 days (or shorter if totalDays < 61)
   //   L4: Days 61-end  = remainder
   const levelDuration =
-    currentLevel === 1 ? 7 :
-    currentLevel === 2 ? 14 :
-    currentLevel === 3 ? (durationDays >= 61 ? 39 : durationDays - 21) :
+    effectiveLevel === 1 ? 7 :
+    effectiveLevel === 2 ? 14 :
+    effectiveLevel === 3 ? (durationDays >= 61 ? 39 : durationDays - 21) :
     durationDays - 60
 
   // ── History edit ─────────────────────────────────────────────────────────────
@@ -215,7 +225,7 @@ export default function JourneyDash({
         completions:  historyEditCompletions,
         dayNumber:    currentDay,
         durationDays: durationDays,
-        level:        currentLevel,
+        level:        effectiveLevel,
       })
       setHistoryEditDate(null)
       router.refresh()
@@ -259,7 +269,7 @@ export default function JourneyDash({
   // ── Level header ─────────────────────────────────────────────────────────────
 
   function renderHeader() {
-    if (currentLevel === 1) {
+    if (effectiveLevel === 1) {
       return (
         <div className="space-y-1">
           <StreakHeader
@@ -270,12 +280,12 @@ export default function JourneyDash({
             showCompleteBadge={todayComplete && alreadySaved}
           />
           <p className="text-xs text-[var(--text-muted)]">
-            Your {durationDays}-day journey · {levelName} phase
+            Your {durationDays}-day journey · {effectiveLevelName} phase
           </p>
         </div>
       )
     }
-    if (currentLevel === 2) {
+    if (effectiveLevel === 2) {
       return (
         <div className="space-y-1">
           <JammingHeader
@@ -287,12 +297,12 @@ export default function JourneyDash({
             todayComplete={todayComplete && alreadySaved}
           />
           <p className="text-xs text-[var(--text-muted)]">
-            Your {durationDays}-day journey · {levelName} phase
+            Your {durationDays}-day journey · {effectiveLevelName} phase
           </p>
         </div>
       )
     }
-    if (currentLevel === 3) {
+    if (effectiveLevel === 3) {
       return (
         <div className="space-y-1">
           <GroovingHeader
@@ -304,7 +314,7 @@ export default function JourneyDash({
             whatChanged={profile.what_changed_reflection}
           />
           <p className="text-xs text-[var(--text-muted)]">
-            Your {durationDays}-day journey · {levelName} phase
+            Your {durationDays}-day journey · {effectiveLevelName} phase
           </p>
         </div>
       )
@@ -313,7 +323,7 @@ export default function JourneyDash({
     return (
       <div className="space-y-2">
         <p className="text-xs font-bold uppercase tracking-widest text-purple-600">
-          Level 4 — {levelName}
+          Level 4 — {effectiveLevelName}
         </p>
         <h1 className="text-2xl font-black text-[var(--text-primary)]">
           Day {currentDay}/{durationDays}
@@ -338,7 +348,7 @@ export default function JourneyDash({
         {activeTab === 'today' && (
           <>
             {/* Pause state (Level 3+) */}
-            {currentLevel >= 3 && pauseStatus.isPaused && (
+            {effectiveLevel >= 3 && pauseStatus.isPaused && (
               <PausedState
                 challengeId={challenge.id}
                 purposeStatement={profile.purpose_statement}
@@ -347,25 +357,25 @@ export default function JourneyDash({
               />
             )}
 
-            {(!pauseStatus.isPaused || currentLevel < 3) && (
+            {(!pauseStatus.isPaused || effectiveLevel < 3) && (
               <>
                 {/* Notification banner (Level 2+) */}
-                {currentLevel >= 2 && (
+                {effectiveLevel >= 2 && (
                   <NotificationBanner
                     checkInComplete={alreadySaved}
                     notificationTier={profile.notification_tier}
                     dayNumber={currentDay}
                     pillars={pillars}
                     missedYesterday={false}
-                    level={currentLevel}
-                    patternAlertDay={currentLevel >= 3 ? patternAlertDay : null}
-                    rootedMilestoneToday={currentLevel >= 3 && rootedMilestoneToday}
+                    level={effectiveLevel}
+                    patternAlertDay={effectiveLevel >= 3 ? patternAlertDay : null}
+                    rootedMilestoneToday={effectiveLevel >= 3 && rootedMilestoneToday}
                     onPatternAlertCta={() => setActiveTab('history')}
                   />
                 )}
 
                 {/* Level 3: Focus Exercise + Destination Goals */}
-                {currentLevel === 3 && (
+                {effectiveLevel === 3 && (
                   <>
                     {!profile.focus_top_5 && (
                       <button
@@ -399,8 +409,8 @@ export default function JourneyDash({
                 )}
 
                 {/* Pulse check / weekly reflection (Level 2+) */}
-                {currentLevel >= 2 && showPulse && pendingPulse && (
-                  currentLevel >= 3 && pendingPulse.triggerType === 'scheduled_weekly'
+                {effectiveLevel >= 2 && showPulse && pendingPulse && (
+                  effectiveLevel >= 3 && pendingPulse.triggerType === 'scheduled_weekly'
                     ? <WeeklyReflectionFlow
                         challengeId={challenge.id}
                         weekNumber={pendingPulse.weekNumber}
@@ -424,7 +434,7 @@ export default function JourneyDash({
                 )}
 
                 {/* Level 1: challenge map + earned badges */}
-                {currentLevel === 1 && (
+                {effectiveLevel === 1 && (
                   <div className="space-y-2">
                     <ChallengeMap
                       startDate={challenge.start_date}
@@ -437,7 +447,7 @@ export default function JourneyDash({
                 )}
 
                 {/* Per-pillar goal cards */}
-                {(currentLevel < 2 || !showPulse) && (
+                {(effectiveLevel < 2 || !showPulse) && (
                   <div className="space-y-2">
                     {pillars.map(pillar => (
                       <PillarGoalCard
@@ -451,7 +461,7 @@ export default function JourneyDash({
                         date={today}
                         dayNumber={currentDay}
                         durationDays={durationDays}
-                        level={currentLevel}
+                        level={effectiveLevel}
                         onSaved={(delta) => setCompletions(prev => ({ ...prev, ...delta }))}
                       />
                     ))}
@@ -473,7 +483,7 @@ export default function JourneyDash({
                 )}
 
                 {/* Pause button (Level 3+, one-use) */}
-                {currentLevel >= 3 && !pauseStatus.pauseUsed && (
+                {effectiveLevel >= 3 && !pauseStatus.pauseUsed && (
                   <div className="border-t border-[var(--card-border)] pt-3">
                     <button
                       onClick={() => setShowPause(true)}
@@ -492,7 +502,7 @@ export default function JourneyDash({
         )}
 
         {/* ── HISTORY TAB ── */}
-        {activeTab === 'history' && currentLevel >= 3 && (
+        {activeTab === 'history' && effectiveLevel >= 3 && (
           <HabitCalendar
             startDate={challenge.start_date}
             durationDays={durationDays}
@@ -504,7 +514,7 @@ export default function JourneyDash({
             watchedVideoIds={watchedVideoIds}
           />
         )}
-        {activeTab === 'history' && currentLevel < 3 && (
+        {activeTab === 'history' && effectiveLevel < 3 && (
           <>
             {historyEditDate ? (
               <DayCheckIn
@@ -536,7 +546,7 @@ export default function JourneyDash({
         {/* ── VIDEOS TAB ── */}
         {activeTab === 'videos' && (
           <VideoLibraryTab
-            level={Math.min(currentLevel, 3) as 1 | 2 | 3}
+            level={Math.min(effectiveLevel, 3) as 1 | 2 | 3}
             dayNumber={currentDay}
             selectedPillars={pillars}
             watchedVideoIds={watchedVideoIds}
@@ -561,7 +571,7 @@ export default function JourneyDash({
 
       {/* ── Overlays ── */}
 
-      {currentLevel >= 3 && showFocusExercise && (
+      {effectiveLevel >= 3 && showFocusExercise && (
         <FocusExerciseModal
           onSaved={handleFocusSaved}
           onClose={() => setShowFocusExercise(false)}
@@ -593,7 +603,7 @@ export default function JourneyDash({
         />
       )}
 
-      {currentLevel >= 3 && showPauseReturn && (
+      {effectiveLevel >= 3 && showPauseReturn && (
         <PauseReturn
           challengeId={challenge.id}
           daysPaused={pauseStatus.pauseRecord?.days_paused ?? null}
@@ -604,7 +614,7 @@ export default function JourneyDash({
         />
       )}
 
-      {currentLevel >= 3 && showPause && (
+      {effectiveLevel >= 3 && showPause && (
         <PauseChallenge
           challengeId={challenge.id}
           dayNumber={currentDay}

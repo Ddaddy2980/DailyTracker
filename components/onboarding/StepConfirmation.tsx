@@ -95,7 +95,7 @@ export default function StepConfirmation({ state, isPending, onConfirm, onBack }
 
       <p className="text-center text-slate-500 text-xs leading-relaxed px-2">
         &ldquo;Let us not grow weary in doing good, for at the proper time we will reap a harvest
-        if we do not give up.&rdquo; — Galatians 6:9
+        if we do not give up.&rdquo;
       </p>
 
       <div className="flex gap-3">

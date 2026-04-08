@@ -121,7 +121,7 @@ export default function PillarGoalCard({
           width={22}
           height={22}
           alt={cfg.label}
-          className="shrink-0 invert"
+          className="shrink-0 opacity-90"
         />
         <p className="flex-1 text-[11px] font-bold uppercase tracking-wider" style={{ color: cfg.title }}>
           {cfg.label}

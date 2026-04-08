@@ -27,11 +27,11 @@ interface Props {
 }
 
 const PILLAR_UI: Record<PillarName, { label: string; icon: string; card: string }> = {
-  spiritual:   { label: 'Spiritual',   icon: '/Spiritual_Icon_Bk.png',   card: 'pillar-spiritual'   },
-  physical:    { label: 'Physical',    icon: '/Physical_Icon_Bk.png',    card: 'pillar-physical'    },
-  nutritional: { label: 'Nutritional', icon: '/Nutritional_Icon_Bk.png', card: 'pillar-nutritional' },
-  personal:    { label: 'Personal',    icon: '/Personal_Icon_Bk.png',    card: 'pillar-personal'    },
-  missional:   { label: 'Missional',   icon: '',                         card: 'pillar-missional'   },
+  spiritual:   { label: 'Spiritual',   icon: '/spiritual_icon.png',   card: 'pillar-spiritual'   },
+  physical:    { label: 'Physical',    icon: '/physical_icon.png',    card: 'pillar-physical'    },
+  nutritional: { label: 'Nutritional', icon: '/nutritional_icon.png', card: 'pillar-nutritional' },
+  personal:    { label: 'Personal',    icon: '/personal_icon.png',    card: 'pillar-personal'    },
+  missional:   { label: 'Missional',   icon: '',                      card: 'pillar-missional'   },
 }
 
 const DEFAULT_UI = { label: 'Goal', icon: '', card: 'bg-gray-700' }
@@ -132,7 +132,7 @@ export default function DayCheckIn({
                   )}
                 </div>
                 <div className="flex items-center gap-1.5">
-                  {ui.icon && <Image src={ui.icon} width={20} height={20} alt={ui.label} className="invert" />}
+                  {ui.icon && <Image src={ui.icon} width={20} height={20} alt={ui.label} className="opacity-90" />}
                   <p className="text-[11px] font-bold uppercase tracking-wider text-white">{ui.label}</p>
                 </div>
               </div>
@@ -160,7 +160,7 @@ export default function DayCheckIn({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
-                    {ui.icon && <Image src={ui.icon} width={20} height={20} alt={ui.label} className="invert" />}
+                    {ui.icon && <Image src={ui.icon} width={20} height={20} alt={ui.label} className="opacity-90" />}
                     <p className="text-[11px] font-bold uppercase tracking-wider text-white">{ui.label}</p>
                   </div>
                   <p className="text-sm font-semibold leading-snug text-white/80">{goal}</p>
@@ -190,7 +190,7 @@ export default function DayCheckIn({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  {ui.icon && <Image src={ui.icon} width={20} height={20} alt={ui.label} className="invert" />}
+                  {ui.icon && <Image src={ui.icon} width={20} height={20} alt={ui.label} className="opacity-90" />}
                   <p className="text-[11px] font-bold uppercase tracking-wider text-white">{ui.label}</p>
                 </div>
                 <p className="text-sm font-semibold leading-snug text-white">{goal}</p>

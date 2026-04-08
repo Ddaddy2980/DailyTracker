@@ -2505,6 +2505,22 @@ export async function saveFocusPillar(
   return { success: true }
 }
 
+export async function getLatestFocusPillar(): Promise<PillarName | null> {
+  const { userId } = await auth()
+  if (!userId) return null
+
+  const sb = createServerSupabaseClient()
+  const { data } = await sb
+    .from('consistency_profile_sessions')
+    .select('focus_pillar_selected')
+    .eq('user_id', userId)
+    .order('completed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  return (data?.focus_pillar_selected as PillarName) ?? null
+}
+
 // ─── Soloing onboarding (Phase 6 — Step 51) ───────────────────────────────────
 
 export async function completeSoloingOnboarding(data: {
