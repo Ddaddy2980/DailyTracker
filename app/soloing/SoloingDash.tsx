@@ -43,12 +43,13 @@ interface Props {
   pillarLevels:             PillarLevel[]
   lastPillarCheckAt:        string | null
   streakBrokenAfter21:      boolean
+  longestStreak:            number
 }
 
 export default function SoloingDash({
   challenge, profile, dayStatuses, pillarDayData, todayCompletions, streak, dayNumber, today,
   earnedRewards, pendingPulse, destinationGoals, destinationGoalsByPillar,
-  groups, watchedVideoIds, patternAlertDay, pillarLevels, lastPillarCheckAt, streakBrokenAfter21,
+  groups, watchedVideoIds, patternAlertDay, pillarLevels, lastPillarCheckAt, streakBrokenAfter21, longestStreak,
 }: Props) {
   void earnedRewards   // available for future use
   void patternAlertDay // available for future notification banner
@@ -282,6 +283,7 @@ export default function SoloingDash({
           pillarDayData={pillarDayData}
           startDate={challenge.start_date}
           challengeId={challenge.id}
+          longestStreak={longestStreak}
         />
       )}
 

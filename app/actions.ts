@@ -2559,7 +2559,12 @@ export async function completeSoloingOnboarding(data: {
 
 // Start a new Soloing challenge, copying duration and goals from the completed one.
 // Used when the user is non-eligible for Orchestrating and wants to go again.
-export async function startSoloingAgain(completedChallengeId: string): Promise<void> {
+export async function startSoloingAgain(
+  completedChallengeId: string,
+  // Optional: if provided, use this duration instead of copying from the completed challenge.
+  // Allows the completion screen duration picker to override without affecting other callers.
+  overrideDurationDays?: 90 | 100,
+): Promise<void> {
   const { userId } = await auth()
   if (!userId) throw new Error('Unauthorized')
 
@@ -2574,9 +2579,10 @@ export async function startSoloingAgain(completedChallengeId: string): Promise<v
     .single()
   if (fetchErr || !prev) throw new Error('startSoloingAgain: could not load previous challenge')
 
+  const durationDays = overrideDurationDays ?? (prev.duration_days as number)
   const start  = todayStr()
   const startD = new Date(start + 'T00:00:00')
-  startD.setDate(startD.getDate() + (prev.duration_days - 1))
+  startD.setDate(startD.getDate() + (durationDays - 1))
   const end = new Intl.DateTimeFormat('en-CA').format(startD)
 
   // Fetch current pillar_levels to rebuild pillar_level_snapshot
@@ -2598,7 +2604,7 @@ export async function startSoloingAgain(completedChallengeId: string): Promise<v
     .insert({
       user_id:               userId,
       level:                 4,
-      duration_days:         prev.duration_days,
+      duration_days:         durationDays,
       start_date:            start,
       end_date:              end,
       status:                'active',

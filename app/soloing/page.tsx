@@ -96,6 +96,31 @@ function calcStreak(
 
 const WEEKDAY_NAMES = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays']
 
+// Computes the longest consecutive complete-day streak within this challenge.
+// Walks dayStatuses forward from start, tracking running and maximum streak lengths.
+// Stops at 'today' or 'future' (partial data) — only counts fully-resolved days.
+function calcLongestStreak(
+  startDate:    string,
+  durationDays: number,
+  dayStatuses:  Record<string, DayStatus>,
+): number {
+  let running = 0
+  let longest = 0
+  for (let i = 0; i < durationDays; i++) {
+    const date   = addDays(startDate, i)
+    const status = dayStatuses[date]
+    if (status === 'complete') {
+      running++
+      if (running > longest) longest = running
+    } else if (status === 'missed') {
+      running = 0
+    } else {
+      break // 'today' or 'future' — stop
+    }
+  }
+  return longest
+}
+
 // Detects whether any missed day followed a 21+ day streak during this challenge.
 // Used to determine whether to surface S6 (streak-break grace card) inline.
 // S6 fires once per challenge — the watchedVideoIds guard in SoloingVideoSection
@@ -236,6 +261,7 @@ export default async function SoloingPage() {
 
   const patternAlertDay     = detectPatternAlertDay(pillarDayData, pillars, today, dayNumber)
   const streakBrokenAfter21 = calcStreakBrokenAfter21(challenge.start_date, durationDays, dayStatuses)
+  const longestStreak       = calcLongestStreak(challenge.start_date, durationDays, dayStatuses)
 
   return (
     <SoloingDash
@@ -257,6 +283,7 @@ export default async function SoloingPage() {
       pillarLevels={pillarLevels}
       lastPillarCheckAt={profile.last_pillar_check_at ?? null}
       streakBrokenAfter21={streakBrokenAfter21}
+      longestStreak={longestStreak}
     />
   )
 }
