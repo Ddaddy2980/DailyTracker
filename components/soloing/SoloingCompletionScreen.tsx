@@ -342,13 +342,17 @@ export default function SoloingCompletionScreen({
             </p>
           </div>
 
-          <button
-            onClick={() => router.push('/orchestrating/onboarding')}
-            className="w-full py-4 rounded-2xl font-black text-white text-base
-              bg-violet-600 hover:bg-violet-500 transition-colors"
-          >
-            Begin Orchestrating →
-          </button>
+          {/* Phase 7 placeholder — restore "Begin Orchestrating →" button when
+              /orchestrating/onboarding exists. See CLAUDE.md Known Deferred Items. */}
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-5 text-center space-y-2">
+            <p className="text-white text-sm font-semibold leading-relaxed">
+              You&apos;ve reached something most people never find.
+            </p>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Orchestrating is coming — and you&apos;ll be ready for it.
+              For now, keep building the life you&apos;ve already built.
+            </p>
+          </div>
 
           <button
             onClick={() => router.push('/soloing')}

@@ -354,6 +354,7 @@ Unless David explicitly asks:
 - `GroovingCompletionScreen` — Next Pillar Invitation step not yet wired. Safe to defer because `INVITATION_THRESHOLDS[3]` is undefined and the DB field is never written for level-3 users until that threshold is defined.
 - Monthly Pillar Check — stagnation fallback not yet implemented. If `resolveNextPillarInvitation` returns null (no Dormant pillar, no gap), no monthly pillar question is shown. A future step may add a stagnation check targeting the lowest gauge-score pillar when no gap or Dormant pillar exists.
 - Jamming cron morning tone adaptation — the Level 2 cron morning block still sends a static `JAMMING_NOTIFICATIONS` message regardless of pillar state. Adaptive tone for Level 2 is deferred to a future step.
+- Orchestrating CTA in `SoloingCompletionScreen` — "Begin Orchestrating →" button replaced with a static acknowledgment card until Phase 7 ships `/orchestrating/onboarding`. Restore the CTA and remove the card when the route exists.
 
 ---
 
@@ -382,6 +383,7 @@ At the end of each session:
 - `?addPillar` query param — written by `TuningComplete` and `JammingComplete` on Next Pillar Invitation accept. Jamming and Grooving onboarding flows do not yet consume it. When wired, the onboarding flow must pre-select the invited pillar for goal setup rather than presenting a cold start.
 - `GroovingCompletionScreen` — Next Pillar Invitation Step not yet wired. Safe to defer because `INVITATION_THRESHOLDS[3]` is undefined and the DB field is never written for level-3 users until that threshold is defined.
 - Monthly Pillar Check stagnation variant — `resolveNextPillarInvitation()` returns `null` when all active pillars are at the same level (no gap, none dormant), so the monthly check is skipped. A future step may introduce a stagnation check that targets the lowest gauge-score pillar in this scenario. Do not implement until David explicitly requests it.
+- Orchestrating CTA in `SoloingCompletionScreen` — "Begin Orchestrating →" button replaced with a static acknowledgment card until Phase 7 ships `/orchestrating/onboarding`. Restore the CTA and remove the card when the route exists.
 
 ---
 
