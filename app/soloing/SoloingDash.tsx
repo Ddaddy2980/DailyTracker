@@ -9,37 +9,38 @@ import type {
   PillarLevel, DurationGoalDestination,
 } from '@/lib/types'
 
-import AppHeader  from '@/components/shared/AppHeader'
-import BottomNav  from '@/components/shared/BottomNav'
+import AppHeader   from '@/components/shared/AppHeader'
+import BottomNav   from '@/components/shared/BottomNav'
 import type { BottomNavTab } from '@/components/shared/BottomNav'
-import GroupView          from '@/components/groups/GroupView'
-import ChallengeGoalsTab  from '@/components/challenge/ChallengeGoalsTab'
-import HabitCalendar      from '@/components/grooving/HabitCalendar'
-import DestinationGoalLayer from '@/components/grooving/DestinationGoalLayer'
-import DayCheckIn         from '@/components/challenge/DayCheckIn'
-import RewardUnlock       from '@/components/challenge/RewardUnlock'
-import VideoLibraryTab    from '@/components/shared/VideoLibraryTab'
-import SoloingHeader      from '@/components/soloing/SoloingHeader'
-import SoloingWeeklyReflectionFlow from '@/components/soloing/SoloingWeeklyReflectionFlow'
+import GroupView             from '@/components/groups/GroupView'
+import ChallengeGoalsTab     from '@/components/challenge/ChallengeGoalsTab'
+import HabitCalendar         from '@/components/grooving/HabitCalendar'
+import DestinationGoalLayer  from '@/components/grooving/DestinationGoalLayer'
+import WeeklyReflectionFlow  from '@/components/grooving/WeeklyReflectionFlow'
+import DayCheckIn            from '@/components/challenge/DayCheckIn'
+import RewardUnlock          from '@/components/challenge/RewardUnlock'
+import VideoLibraryTab       from '@/components/shared/VideoLibraryTab'
+import SoloingHeader         from '@/components/soloing/SoloingHeader'
+import SoloingCompletionScreen from '@/components/soloing/SoloingCompletionScreen'
 
 interface Props {
-  challenge:               Challenge
-  profile:                 UserProfile
-  dayStatuses:             Record<string, DayStatus>
-  pillarDayData:           Record<string, Record<string, boolean>>
-  todayCompletions:        Record<string, boolean>
-  streak:                  number
-  dayNumber:               number
-  today:                   string
-  earnedRewards:           RewardType[]
-  pendingPulse:            PendingPulseCheck | null
-  destinationGoals:        DestinationGoal[]
+  challenge:                Challenge
+  profile:                  UserProfile
+  dayStatuses:              Record<string, DayStatus>
+  pillarDayData:            Record<string, Record<string, boolean>>
+  todayCompletions:         Record<string, boolean>
+  streak:                   number
+  dayNumber:                number
+  today:                    string
+  earnedRewards:            RewardType[]
+  pendingPulse:             PendingPulseCheck | null
+  destinationGoals:         DestinationGoal[]
   destinationGoalsByPillar: Record<string, DurationGoalDestination[]>
-  groups:                  GroupWithMembers[]
-  watchedVideoIds:         string[]
-  patternAlertDay:         string | null
-  pillarLevels:            PillarLevel[]
-  lastPillarCheckAt:       string | null
+  groups:                   GroupWithMembers[]
+  watchedVideoIds:          string[]
+  patternAlertDay:          string | null
+  pillarLevels:             PillarLevel[]
+  lastPillarCheckAt:        string | null
 }
 
 export default function SoloingDash({
@@ -47,16 +48,19 @@ export default function SoloingDash({
   earnedRewards, pendingPulse, destinationGoals, destinationGoalsByPillar,
   groups, watchedVideoIds, patternAlertDay, pillarLevels, lastPillarCheckAt,
 }: Props) {
-  void earnedRewards   // available for future use (completion screen, badge display)
+  void earnedRewards   // available for future use
   void patternAlertDay // available for future notification banner
+  void dayStatuses     // used for streak calc in page.tsx
 
   const router = useRouter()
-  const [isPending, startTransition] = useTransition()
-  void isPending
+  const [, startTransition] = useTransition()
 
-  const [completions, setCompletions]   = useState<Record<string, boolean>>(todayCompletions)
-  const [newRewards, setNewRewards]     = useState<RewardType[]>([])
-  const [showReflection, setShowReflection] = useState(
+  const [completions, setCompletions]             = useState<Record<string, boolean>>(todayCompletions)
+  const [newRewards, setNewRewards]               = useState<RewardType[]>([])
+  const [showComplete, setShowComplete]           = useState(false)
+  const [orchestratingEligible, setOrchestrating] = useState(false)
+  const [advancingPillars, setAdvancingPillars]   = useState<string[]>([])
+  const [showReflection, setShowReflection]       = useState(
     pendingPulse?.triggerType === 'scheduled_weekly'
   )
   const [activeTab, setActiveTab] = useState<'today' | 'calendar' | 'groups' | 'videos' | 'goals'>('today')
@@ -74,6 +78,10 @@ export default function SoloingDash({
   const alreadySaved  = pillars.every(p => todayCompletions[p])
   const todayComplete = pillars.every(p => completions[p])
 
+  // Ceiling Conversation trigger: all 5 canonical pillars at Soloing (level >= 4) or above.
+  // Computed from pre-write pillarLevels — valid because advancing pillars were already level 4.
+  const allPillarLevelsAtFour = pillarLevels.length >= 5 && pillarLevels.every(pl => pl.level >= 4)
+
   function handleToggle(pillar: string) {
     if (alreadySaved) return
     setCompletions(prev => ({ ...prev, [pillar]: !prev[pillar] }))
@@ -81,7 +89,7 @@ export default function SoloingDash({
 
   function handleSave() {
     startTransition(async () => {
-      const { newRewards: awarded } = await submitCheckin({
+      const result = await submitCheckin({
         date:         today,
         challengeId:  challenge.id,
         startDate:    challenge.start_date,
@@ -92,19 +100,32 @@ export default function SoloingDash({
         level:        challenge.level,
       })
 
-      if (awarded.length > 0) setNewRewards(awarded)
+      if (result.soloingComplete) {
+        setOrchestrating(result.orchestratingEligible)
+        setAdvancingPillars(result.advancingPillars)
+        setShowComplete(true)
+      } else if (result.newRewards.length > 0) {
+        setNewRewards(result.newRewards)
+      }
+
       setActiveTab('today')
       router.refresh()
     })
   }
 
-  function handlePillarSaved(delta: Record<string, boolean>, newRewardsList?: RewardType[]) {
+  function handlePillarSaved(delta: Record<string, boolean>, rewards?: RewardType[]) {
     setCompletions(prev => ({ ...prev, ...delta }))
-    if (newRewardsList && newRewardsList.length > 0) setNewRewards(newRewardsList)
+    if (rewards?.includes('soloing_badge')) {
+      // Completion triggered via individual pillar save. orchestratingEligible/advancingPillars
+      // retain their last-set values (default false/[]). Edge case: see Known Deferred Items.
+      setShowComplete(true)
+    } else if (rewards && rewards.length > 0) {
+      setNewRewards(rewards)
+    }
     router.refresh()
   }
 
-  // ── Bottom nav mapping ─────────────────────────────────────────────────────
+  // ── Bottom nav ────────────────────────────────────────────────────────────
   const bottomTab: BottomNavTab =
     activeTab === 'groups'   ? 'groups'  :
     activeTab === 'calendar' ? 'history' :
@@ -137,7 +158,7 @@ export default function SoloingDash({
         {activeTab === 'today' && (
           <>
             {showReflection && pendingPulse?.triggerType === 'scheduled_weekly' && (
-              <SoloingWeeklyReflectionFlow
+              <WeeklyReflectionFlow
                 challengeId={challenge.id}
                 weekNumber={pendingPulse.weekNumber}
                 pillars={pillars}
@@ -145,6 +166,8 @@ export default function SoloingDash({
                 startDate={challenge.start_date}
                 destinationGoals={destinationGoals}
                 durationGoalDestinations={Object.values(destinationGoalsByPillar).flat()}
+                level={3}
+                watchedVideoIds={watchedVideoIds}
                 pillarLevels={pillarLevels}
                 lastPillarCheckAt={lastPillarCheckAt}
                 onDone={() => { setShowReflection(false); router.refresh() }}
@@ -234,6 +257,23 @@ export default function SoloingDash({
 
       {newRewards.length > 0 && (
         <RewardUnlock rewards={newRewards} onDismiss={() => setNewRewards([])} />
+      )}
+
+      {showComplete && (
+        <SoloingCompletionScreen
+          daysCompleted={challenge.days_completed}
+          durationDays={durationDays}
+          consistencyPct={Math.round(challenge.consistency_pct)}
+          pillars={pillars}
+          streak={streak}
+          orchestratingEligible={orchestratingEligible}
+          advancingPillars={advancingPillars}
+          allPillarLevelsAtFour={allPillarLevelsAtFour}
+          destinationGoals={destinationGoals}
+          pillarDayData={pillarDayData}
+          startDate={challenge.start_date}
+          challengeId={challenge.id}
+        />
       )}
 
       <BottomNav activeTab={bottomTab} onTab={handleBottomTab} />

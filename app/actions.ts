@@ -700,7 +700,7 @@ export async function submitCheckin(data: {
   dayNumber:    number
   durationDays?: number  // default 7 (Tuning); 14 or 21 for Jamming
   level?:        number  // default 1
-}): Promise<{ newRewards: RewardType[], groovingEligible: boolean, soloingEligible: boolean, groovingComplete: boolean }> {
+}): Promise<{ newRewards: RewardType[], groovingEligible: boolean, soloingEligible: boolean, groovingComplete: boolean, soloingComplete: boolean, orchestratingEligible: boolean, advancingPillars: string[] }> {
   const { userId } = await auth()
   if (!userId) throw new Error('Unauthorized')
 
@@ -759,11 +759,15 @@ export async function submitCheckin(data: {
       candidateRewards = ['jamming_badge']
     } else if (level === 3 && data.dayNumber === durationDays) {
       candidateRewards = ['grooving_badge']
+    } else if (level === 4 && data.dayNumber === durationDays) {
+      candidateRewards = ['soloing_badge']
     }
   }
   const newRewards: RewardType[] = []
-  let groovingEligible = false
-  let soloingEligible  = false
+  let groovingEligible      = false
+  let soloingEligible       = false
+  let orchestratingEligible = false
+  let advancingPillars:   string[] = []
 
   if (candidateRewards.length > 0) {
     // Fetch rewards already earned so we know which ones are truly new
@@ -861,6 +865,47 @@ export async function submitCheckin(data: {
     }
   }
 
+  if (newRewards.includes('soloing_badge')) {
+    // Always mark Soloing challenge completed
+    await sb
+      .from('challenges')
+      .update({ status: 'completed', updated_at: new Date().toISOString() })
+      .eq('id', data.challengeId)
+
+    // Orchestrating unlock: per-pillar — each pillar needs 90+ day challenge and 80%+ consistency.
+    if (durationDays >= 90) {
+      for (const pillar of pillars) {
+        const col = PILLAR_COL[pillar]
+        if (!col) continue
+        const pillarDays = (allEntries ?? []).filter(entry => {
+          const val = entry[col as keyof typeof entry] as Record<string, unknown> | null
+          return val?.challenge_complete === true
+        }).length
+        const pillarPct = Math.round((pillarDays / durationDays) * 100)
+        if (pillarPct >= 80) advancingPillars.push(pillar)
+      }
+    }
+
+    orchestratingEligible = advancingPillars.length > 0
+
+    if (orchestratingEligible) {
+      const advancedAt = new Date().toISOString()
+      // Promote user_profile level (signals highest pillar reached Orchestrating).
+      await sb
+        .from('user_profile')
+        .update({ current_level: 5, updated_at: advancedAt })
+        .eq('user_id', userId)
+        .eq('current_level', 4)   // guard: only promote from Level 4
+      // Atomically advance each qualifying pillar — neither write should exist without the other.
+      await sb
+        .from('pillar_levels')
+        .update({ level: 5, operating_state: 'anchored', updated_at: advancedAt })
+        .eq('user_id', userId)
+        .in('pillar', advancingPillars)
+        .eq('level', 4)
+    }
+  }
+
   revalidatePath('/challenge')
   revalidatePath('/jamming')
   revalidatePath('/grooving')
@@ -882,7 +927,10 @@ export async function submitCheckin(data: {
     newRewards,
     groovingEligible,
     soloingEligible,
-    groovingComplete: newRewards.includes('grooving_badge'),
+    groovingComplete:      newRewards.includes('grooving_badge'),
+    soloingComplete:       newRewards.includes('soloing_badge'),
+    orchestratingEligible,
+    advancingPillars,
   }
 }
 
@@ -1442,53 +1490,6 @@ export async function saveWeeklyReflectionWithPulse(data: {
   if (profileErr) throw new Error(`saveWeeklyReflection profile update: ${profileErr.message}`)
 
   revalidatePath('/grooving')
-}
-
-// ─── Soloing weekly reflection (v2 — Step 51) ────────────────────────────────
-//
-// Parallel to saveWeeklyReflectionWithPulse but without the pulse check write.
-// Soloing uses no pulse system — notification_tier is not updated here.
-// Monthly Pillar Check is still included when due.
-
-export async function saveWeeklyReflectionSoloing(data: {
-  challengeId:             string
-  weekNumber:              number
-  reflectionQuestion:      string
-  reflectionAnswer:        string | null
-  destinationGoalStatuses?: { destination_goal_id: string; hits_this_week: number; frequency_target: number }[] | null
-  // Monthly Pillar Check — present only when the 30-day cadence check fired this session
-  pillarCheckPillar?:      string | null
-  pillarCheckAnswer?:      string | null
-}): Promise<void> {
-  const { userId } = await auth()
-  if (!userId) throw new Error('Unauthorized')
-
-  const sb  = createServerSupabaseClient()
-  const now = new Date().toISOString()
-
-  const { error: reflectionErr } = await sb.from('weekly_reflections').insert({
-    user_id:                   userId,
-    challenge_id:              data.challengeId,
-    week_number:               data.weekNumber,
-    reflection_question:       data.reflectionQuestion,
-    reflection_answer:         data.reflectionAnswer,
-    destination_goal_statuses: data.destinationGoalStatuses ?? null,
-    share_with_circle:         false,
-    pillar_check_pillar:       data.pillarCheckPillar ?? null,
-    pillar_check_answer:       data.pillarCheckAnswer ?? null,
-    created_at:                now,
-  })
-  if (reflectionErr) throw new Error(`saveWeeklyReflectionSoloing insert: ${reflectionErr.message}`)
-
-  // Stamp last_pillar_check_at when the monthly pillar check fired
-  if (data.pillarCheckPillar) {
-    await sb
-      .from('user_profile')
-      .update({ last_pillar_check_at: now, updated_at: now })
-      .eq('user_id', userId)
-  }
-
-  revalidatePath('/soloing')
 }
 
 // ─── Grooving onboarding (v2) ─────────────────────────────────────────────────
@@ -2458,7 +2459,7 @@ export async function saveFocusPillar(
   return { success: true }
 }
 
-// ─── Soloing onboarding (Phase 6) ─────────────────────────────────────────────
+// ─── Soloing onboarding (Phase 6 — Step 51) ───────────────────────────────────
 
 export async function completeSoloingOnboarding(data: {
   durationDays: 90 | 100
@@ -2489,21 +2490,76 @@ export async function completeSoloingOnboarding(data: {
     }
   }
 
-  // Create the Level 4 challenge
   const { error: challengeErr } = await sb
     .from('challenges')
     .insert({
-      user_id:              userId,
-      level:                4,
-      duration_days:        data.durationDays,
-      start_date:           start,
-      end_date:             end,
-      status:               'active',
-      pillar_goals:         data.pillarGoals,
+      user_id:               userId,
+      level:                 4,
+      duration_days:         data.durationDays,
+      start_date:            start,
+      end_date:              end,
+      status:                'active',
+      pillar_goals:          data.pillarGoals,
       pillar_level_snapshot: snapshot,
     })
 
   if (challengeErr) throw new Error(`completeSoloingOnboarding challenge: ${challengeErr.message}`)
+
+  revalidatePath('/')
+  revalidatePath('/soloing')
+}
+
+// ─── Soloing completion navigation (Phase 6 — Step 53) ────────────────────────
+
+// Start a new Soloing challenge, copying duration and goals from the completed one.
+// Used when the user is non-eligible for Orchestrating and wants to go again.
+export async function startSoloingAgain(completedChallengeId: string): Promise<void> {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Unauthorized')
+
+  const sb = createServerSupabaseClient()
+
+  // Fetch the completed challenge to carry forward its shape
+  const { data: prev, error: fetchErr } = await sb
+    .from('challenges')
+    .select('pillar_goals, duration_days')
+    .eq('id', completedChallengeId)
+    .eq('user_id', userId)
+    .single()
+  if (fetchErr || !prev) throw new Error('startSoloingAgain: could not load previous challenge')
+
+  const start  = todayStr()
+  const startD = new Date(start + 'T00:00:00')
+  startD.setDate(startD.getDate() + (prev.duration_days - 1))
+  const end = new Intl.DateTimeFormat('en-CA').format(startD)
+
+  // Fetch current pillar_levels to rebuild pillar_level_snapshot
+  const { data: pillarRows } = await sb
+    .from('pillar_levels')
+    .select('pillar, level, operating_state')
+    .eq('user_id', userId)
+
+  const snapshot: Record<string, { level: number; state: string }> = {}
+  for (const row of pillarRows ?? []) {
+    snapshot[row.pillar] = {
+      level: row.level as number,
+      state: (row.operating_state as string) || resolveOperatingState(row.level as number),
+    }
+  }
+
+  const { error: challengeErr } = await sb
+    .from('challenges')
+    .insert({
+      user_id:               userId,
+      level:                 4,
+      duration_days:         prev.duration_days,
+      start_date:            start,
+      end_date:              end,
+      status:                'active',
+      pillar_goals:          prev.pillar_goals,
+      pillar_level_snapshot: snapshot,
+    })
+  if (challengeErr) throw new Error(`startSoloingAgain insert: ${challengeErr.message}`)
 
   revalidatePath('/')
   revalidatePath('/soloing')

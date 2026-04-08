@@ -153,8 +153,11 @@ export function getStrongPillarNames(pillarLevels: PillarLevel[]): string[] {
  * sequence is built.
  */
 export const INVITATION_THRESHOLDS: Partial<Record<number, { windowDays: number; minCompletions: number }>> = {
-  1: { windowDays: 7,  minCompletions: 4 },
+  1: { windowDays: 7,  minCompletions: 4  },
   2: { windowDays: 14, minCompletions: 10 },
+  3: { windowDays: 30, minCompletions: 22 },
+  // Soloing → Orchestrating: 80% threshold matches the Soloing advancement criteria (PRODUCT.md line 422).
+  4: { windowDays: 30, minCompletions: 24 },
 }
 
 /**
