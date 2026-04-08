@@ -1492,6 +1492,52 @@ export async function saveWeeklyReflectionWithPulse(data: {
   revalidatePath('/grooving')
 }
 
+// Soloing weekly reflection — no pulse state, no Grooving Circle share.
+// Stores the stewardship reflection question + answer, destination goal statuses,
+// and the optional monthly pillar check. Stamps last_pillar_check_at when it fires.
+export async function saveWeeklyReflectionSoloing(data: {
+  challengeId:             string
+  weekNumber:              number
+  reflectionQuestion:      string
+  reflectionAnswer:        string | null
+  destinationGoalStatuses: { destination_goal_id: string; hits_this_week: number; frequency_target: number }[] | null
+  pillarCheckPillar?:      string | null
+  pillarCheckAnswer?:      string | null
+}): Promise<void> {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Unauthorized')
+
+  const sb  = createServerSupabaseClient()
+  const now = new Date().toISOString()
+
+  // 1. Save the weekly reflection record
+  const { error: reflectionErr } = await sb.from('weekly_reflections').insert({
+    user_id:                   userId,
+    challenge_id:              data.challengeId,
+    week_number:               data.weekNumber,
+    reflection_question:       data.reflectionQuestion,
+    reflection_answer:         data.reflectionAnswer,
+    destination_goal_status:   null,     // Soloing has no single-goal pulse status
+    destination_goal_statuses: data.destinationGoalStatuses ?? null,
+    share_with_circle:         false,    // No Grooving Circle at Soloing
+    pillar_check_pillar:       data.pillarCheckPillar ?? null,
+    pillar_check_answer:       data.pillarCheckAnswer ?? null,
+    created_at:                now,
+  })
+  if (reflectionErr) throw new Error(`saveWeeklyReflectionSoloing insert: ${reflectionErr.message}`)
+
+  // 2. When the monthly pillar check fired, stamp last_pillar_check_at
+  if (data.pillarCheckPillar) {
+    const { error: profileErr } = await sb
+      .from('user_profile')
+      .update({ last_pillar_check_at: now, updated_at: now })
+      .eq('user_id', userId)
+    if (profileErr) throw new Error(`saveWeeklyReflectionSoloing profile update: ${profileErr.message}`)
+  }
+
+  revalidatePath('/soloing')
+}
+
 // ─── Grooving onboarding (v2) ─────────────────────────────────────────────────
 
 export async function completeGroovingOnboarding(data: {
