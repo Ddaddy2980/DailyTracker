@@ -28,9 +28,9 @@ Read this file at the start of every session along with PRODUCT.md. These are yo
 ## Branch Rules
 
 - Never commit directly to `main`
-- All active development happens on branch: `v2-phase6`
-- Create feature sub-branches off `v2-phase6` for each build step:
-  e.g. `step-49-[name]`, `step-50-[name]`
+- All active development happens on branch: `v2-phase7`
+- Create feature sub-branches off `v2-phase7` for each build step:
+  e.g. `step-57-[name]`, `step-58-[name]`
 - When David says "this is ready", merge the feature branch into `v2-phase6` — not into `main`
 - Only merge `v2-phase6` into `main` when David explicitly says "ready to go live"
 - `v2-rebuild` is retired — do not use it as a base for new work
@@ -234,6 +234,9 @@ export const VIDEO_LIBRARY = {
 - Four notification tiers: `morning_anchor`, `evening_checkin`, `late_rescue`, `streak_at_risk`
 - Milestone notifications trigger immediately on check-in completion (Day 1, Day 3, Day 4, Day 7)
 - Miss-day recovery sends the morning after a missed day — grace tone, never shame
+- Cron route handles level-specific blocks separately: level 1 (Tuning), level 2 (Jamming), level 3 (Grooving), level 4 (Soloing). Each level fetches its own active challenges independently.
+- Soloing morning tone uses resolveMorningTone() — same function as Grooving, no fork. Returns 'reflective' when all pillars Anchored, 'mixed' when Developing pillars present.
+- No evening or mid-week notifications at Soloing or Grooving by design.
 
 ---
 
@@ -342,7 +345,6 @@ Unless David explicitly asks:
 - Do not change the Clerk configuration
 - Do not change `package.json` dependencies without asking first
 - Do not rename existing files or folders
-- Do not modify `checkRootedMilestone()` in `/lib/milestones.ts` without David's explicit direction — this function has been fully tested against 8 scenarios including a regression test for the carried-forward goal fix
 - Do not modify the `createDestinationGoal` upsert logic or the `rooted_badge` wiring in `submitCheckin` without David's explicit direction
 - Do not modify `checkRootedMilestone()` in `/lib/milestones.ts` without David's explicit direction — this function has been fully tested against 8 scenarios including a regression test for the carried-forward goal fix
 - The `late_rescue` cron schedule in `vercel.json` was corrected in Step 55 to `45 3 * * *` (9:45 PM CST = 03:45 UTC). Do not change it again without confirming the UTC offset.
@@ -350,12 +352,15 @@ Unless David explicitly asks:
 
 ## Known Deferred Items
 
-- `?addPillar` query param — written by `TuningComplete` and `JammingComplete` on Next Pillar Invitation accept. Jamming and Grooving onboarding flows do not yet consume it. When wired, the onboarding flow must pre-select the invited pillar for goal setup rather than presenting a cold start.
-- `GroovingCompletionScreen` — Next Pillar Invitation step not yet wired. Safe to defer because `INVITATION_THRESHOLDS[3]` is undefined and the DB field is never written for level-3 users until that threshold is defined.
-- Monthly Pillar Check — stagnation fallback not yet implemented. If `resolveNextPillarInvitation` returns null (no Dormant pillar, no gap), no monthly pillar question is shown. A future step may add a stagnation check targeting the lowest gauge-score pillar when no gap or Dormant pillar exists.
-- Jamming cron morning tone adaptation — the Level 2 cron morning block still sends a static `JAMMING_NOTIFICATIONS` message regardless of pillar state. Adaptive tone for Level 2 is deferred to a future step.
-- Orchestrating CTA in `SoloingCompletionScreen` — "Begin Orchestrating →" button replaced with a static acknowledgment card until Phase 7 ships `/orchestrating/onboarding`. Restore the CTA and remove the card when the route exists.
+- `?addPillar` query param — written by `TuningComplete` and `JammingComplete` on Next Level Invitation accept. Onboarding flows do not yet consume it. When wired, the onboarding flow must pre-select the invited pillar for goal setup rather than presenting a cold start. Grooving and Soloing onboarding flows also affected.
+- Monthly Pillar Check stagnation variant — resolveNextPillarInvitation() returns null when all active pillars are at the same level (no gap, none dormant), so the monthly check is skipped. A future step may introduce a stagnation check that targets the lowest gauge-score pillar in this scenario. Do not implement until David explicitly requests it.
+- Per-pillar consistency evaluation at Grooving → Soloing advancement — currently all level-3 pillar_levels rows advance when soloingEligible is true, regardless of individual per-pillar consistency. The correct long-term behavior is per-pillar 80%+ evaluation before advancing each pillar independently. Known simplification, not a bug. Do not change without David's explicit instruction.
+- Ceiling Conversation re-fire guard — currently derived from pillar state (all five pillar_levels rows ≥ level 4). If a user declines Orchestrating and completes a second Soloing challenge, the Ceiling Conversation fires again. A DB flag on user_profile should gate this to once. Defer until Phase 7 builds the Orchestrating flow.
+- Orchestrating CTA in `SoloingCompletionScreen` — "Begin Orchestrating →" button replaced with a static acknowledgment card until Phase 7 ships `/orchestrating/onboarding`. Restore the CTA when the route exists.
 - missional → relational rename — requires a Supabase DB migration before any TypeScript changes. Affected columns: daily_entries.missional, pillar_levels.pillar (stored value 'missional'), consistency_profile_sessions.missional_score. Do not rename in TypeScript until the migration is written, tested, and confirmed. Standalone step — do not bundle with any other work.
+- Jamming adaptive morning tone — the Level 2 cron morning block still sends a static JAMMING_NOTIFICATIONS message regardless of pillar state. Adaptive tone for Level 2 is deferred to a future step.
+- S-series video URLs — all seven Soloing video cards (S1–S7) have url: '' placeholder assets. Populate URLs as recordings are completed.
+- JourneyDash Soloing shell destination goal layer — the Soloing shell in JourneyDash renders a thin header only (level name, day count, streak). Destination goal layer is gated at effectiveLevel === 3 and does not show for level-4 users in the journey dashboard. Address in Phase 7 or a standalone step.
 
 ---
 
@@ -376,16 +381,6 @@ At the end of each session:
 2. State what was tested and confirmed working
 3. State the recommended next step (which Phase/Step from PRODUCT.md)
 4. Flag any decisions that were made that David should be aware of
-
----
-
-## Known Deferred Items
-
-- `?addPillar` query param — written by `TuningComplete` and `JammingComplete` on Next Pillar Invitation accept. Jamming and Grooving onboarding flows do not yet consume it. When wired, the onboarding flow must pre-select the invited pillar for goal setup rather than presenting a cold start.
-- `GroovingCompletionScreen` — Next Pillar Invitation Step not yet wired. Safe to defer because `INVITATION_THRESHOLDS[3]` is undefined and the DB field is never written for level-3 users until that threshold is defined.
-- Monthly Pillar Check stagnation variant — `resolveNextPillarInvitation()` returns `null` when all active pillars are at the same level (no gap, none dormant), so the monthly check is skipped. A future step may introduce a stagnation check that targets the lowest gauge-score pillar in this scenario. Do not implement until David explicitly requests it.
-- Orchestrating CTA in `SoloingCompletionScreen` — "Begin Orchestrating →" button replaced with a static acknowledgment card until Phase 7 ships `/orchestrating/onboarding`. Restore the CTA and remove the card when the route exists.
-- missional → relational rename — requires a Supabase DB migration before any TypeScript changes. Affected columns: daily_entries.missional, pillar_levels.pillar (stored value 'missional'), consistency_profile_sessions.missional_score. Do not rename in TypeScript until the migration is written, tested, and confirmed. Standalone step — do not bundle with any other work.
 
 ---
 
@@ -471,10 +466,20 @@ This phase restructures the app's core model from a single-ladder system to a pe
 - [x] Step 47 — G6b video card: Trigger "Setting a direction within your daily habit" video when user first adds a destination goal from the Goals tab. One-time trigger per user.
 - [x] Step 48 — Destination goal expiry notification: Embedded in weekly reflection when end date is within 7 days. Not a standalone push notification.
 
-### Phase 6 — Soloing Level (NEXT)
+### Phase 6 — Soloing Level (COMPLETE)
+
+- [x] Step 49 — Grooving → Soloing transition: restructure GroovingCompletionScreen into 4-phase stepped flow (reflection, per-pillar celebration, Soloing invitation, non-eligible summary). Wired INVITATION_THRESHOLDS[3] = { windowDays: 30, minCompletions: 22 }. Fixed submitCheckin to write pillar_levels.level = 4 and operating_state = 'anchored' atomically with user_profile.current_level = 4. Fixed computeAndWriteNextPillarInvitation to fetch rolling window dynamically from thresholdConfig.windowDays.
+- [x] Step 50 — Soloing onboarding flow: 3-screen flow (identity, what changes, duration picker — 90 or 100 days). Challenge creation with correct duration. Re-fire gate: if any pillar_levels row already at level ≥ 4 with active challenge, skip onboarding and route to /soloing.
+- [x] Step 51 — Soloing dashboard: /soloing route, SoloingDash, SoloingHeader (violet, 🎻 at 21+ streak), SoloingWeeklyReflectionFlow (10-question stewardship pool, no pulse step). Grooving Circle absent. Consistency Groups tab retained. /grooving/page.tsx redirects level-4 active challenges to /soloing.
+- [x] Step 52 — Destination goals unlimited: removed 3-goal cap for Soloing pillars (pillarLevel >= 4). Expanded window ceiling to 100 days for Soloing pillars. Cap condition now explicit in DestinationGoalSection.tsx with named constants. No schema changes required.
+- [x] Step 53 — Orchestrating transition wiring: INVITATION_THRESHOLDS[4] = { windowDays: 30, minCompletions: 24 } (80% matching Soloing advancement bar). SoloingCompletionScreen built as 4-phase stepped flow mirroring GroovingCompletionScreen. Ceiling Conversation fires when all five pillar_levels rows ≥ level 4. Orchestrating CTA replaced with static acknowledgment card until Phase 7 ships /orchestrating/onboarding.
+- [x] Step 54 — Soloing video cards: S1–S7 defined (all url: '' placeholder assets). VideoLibraryTab extended to level 4 with cumulative module access ['A','B','C','D','J','G','S']. SoloingVideoSection wired for inline today-tab cards (S1 on Day 1, S6 on streak-break after 21+ days). S module color: indigo. calcStreakBrokenAfter21 helper in app/soloing/page.tsx.
+- [x] Step 55 — Soloing notification system: SOLOING_NOTIFICATIONS added to lib/constants.ts. Morning block added to cron route for level-4 users. Reuses resolveMorningTone() without modification. Milestone notifications stack on Day 30, 60, 90. No evening, no mid-week (consistent with Grooving). late_rescue cron bug fixed: was 45 1 * * * (8:45 PM CST), now 45 3 * * * (9:45 PM CST).
+- [x] Step 56 — Soloing completion sequence: full summary phase built — 4-stat grid (days, consistency %, longest streak, goals reached), violet CalendarGrid, share card, interactive destination goal reached/released/skip picker (mirrors Grooving pattern), go-again duration picker (90 or 100 days). startSoloingAgain updated to accept optional overrideDurationDays. calcLongestStreak helper in app/soloing/page.tsx.
+
 
 ### Phase 7 — Orchestrating Level (FUTURE)
 
 ---
 
-*This file was last updated: April 2026 — Phase 5 complete, Phase 6 planning*
+*This file was last updated: April 2026 — Phase 6 complete, deployed to main. Alpha testing in progress. Phase 7 planning next.*
