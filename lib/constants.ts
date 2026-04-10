@@ -1,583 +1,40 @@
-import type { VideoEntry, PulseState, ChallengePause } from '@/lib/types'
-
-// ─── Pillar definitions ──────────────────────────────────────────────────────
-
-export const SPIRIT_DEFS = [
-  { id: 'bible',       defaultName: 'Bible Reading',  hint: 'e.g. "The OneYear Bible"' },
-  { id: 'podcasts',    defaultName: 'Podcasts',        hint: 'e.g. "Daily Faith Podcast"' },
-  { id: 'devotionals', defaultName: 'Devotionals',     hint: 'e.g. "Morning Devotional"' },
-  { id: 'journaling',  defaultName: 'Journaling',      hint: 'e.g. "Gratitude Journal"' },
-] as const
-
-export const PHYSICAL_DEFS = [
-  { id: 'steps',             defaultName: 'Step Goal',             hint: 'e.g. "Walk at least 7,000 steps daily"' },
-  { id: 'exercise_training', defaultName: 'Exercise Training',     hint: 'e.g. "Complete my planned workouts every day"' },
-  { id: 'stretching',        defaultName: 'Stretching / Mobility', hint: 'e.g. "Stretch for at least 10 min every day"' },
-  { id: 'sleep_goal',        defaultName: 'Sleep Goal',            hint: 'e.g. "Sleep at least 7 hours per night"' },
-  { id: 'weight_goal',       defaultName: 'Weight Goal',           hint: 'e.g. "Track weight daily"' },
-  { id: 'blood_pressure',    defaultName: 'Blood Pressure',        hint: 'e.g. "Track blood pressure daily"' },
-  { id: 'other',             defaultName: 'Other',                 hint: 'e.g. "Additional physical goal"' },
-] as const
-
-// Goals that group activities by sub-type rather than using a binary physical_goals checkbox
-export const CATEGORIZED_PHYSICAL_IDS = ['exercise_training', 'stretching'] as const
-
-export const PERSONAL_DEFS = [
-  { id: 'mental',    defaultName: 'Mental Sharpening', hint: 'reading, writing, learning, etc.' },
-  { id: 'emotional', defaultName: 'Emotional Health',  hint: 'therapy, meditation, reflection, etc.' },
-  { id: 'hobby',     defaultName: 'Hobby',             hint: 'art, music, gardening, etc.' },
-] as const
-
-export const NUTRI_OPTIONS = [
-  { id: 'track_calories', label: 'Track Calories' },
-  { id: 'fasting_window', label: 'Fasting Window' },
-  { id: 'water',          label: 'Water'           },
-  { id: 'other',          label: 'Other'           },
-] as const
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export type PillarGoal = {
-  id: string
-  defaultName: string
-  hint: string
-  included: boolean
-  customName: string
-  subTypes?: string[]                // exercise_training and stretching use this for categories
-  goalType?: 'standard' | 'tiered'  // tiered = complete when ANY one option is selected
-  tiers?: string[]                   // 2–4 labelled options for tiered goals
-}
-
-export type UserConfig = {
-  name: string
-  start_date: string   // ISO date string YYYY-MM-DD
-  duration: number
-}
-
-export type UserGoals = {
-  spiritual:      PillarGoal[]
-  physical:       PillarGoal[]   // user-defined physical duration goals
-  exerciseTypes:  string[]       // exercise name pool used in logging dropdowns
-  stretchingTypes: string[]      // stretching/mobility name pool used in logging dropdowns
-  nutritional:    string[]       // array of NUTRI_OPTIONS ids
-  personal:       PillarGoal[]
-}
-
-export type PhysicalActivity = {
-  category: string   // sub-type name, e.g. "Strength Training", "Cardio", "Yoga"
-  type:     string   // specific exercise name, e.g. "Bench Press", "Running"
-  duration: number   // minutes
-}
-
-export type NutritionalLog = {
-  calories?: number
-  carbs?:    number
-  fiber?:    number
-  protein?:  number
-  fat?:      number
-}
-
-export type DailyEntry = {
-  entry_date:        string
-  spiritual:         Record<string, boolean>
-  physical_goals:    Record<string, boolean>   // binary goals: steps, sleep_goal
-  activities:        PhysicalActivity[]
-  sleep:             number | null
-  weight:            number | null
-  blood_pressure:    string | null
-  nutritional:       Record<string, boolean>   // checkbox goals (fasting_window, water, other, track_calories)
-  nutritional_log:   NutritionalLog            // macro amounts when track_calories is selected
-  personal:          Record<string, boolean>
-  tiered_selections: Record<string, string>    // goalId → selected tier label ('' if none)
-  updated_at?:       string                    // ISO timestamp; present on history items, never sent on save
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-export function displayName(goal: PillarGoal): string {
-  return goal.customName?.trim() || goal.defaultName
-}
-
-export function todayStr(): string {
-  return new Intl.DateTimeFormat('en-CA').format(new Date())
-}
-
-export function getDayNumber(startDate: string, targetDate?: string): number {
-  const s = new Date(startDate + 'T00:00:00')
-  const t = new Date((targetDate ?? todayStr()) + 'T00:00:00')
-  return Math.max(1, Math.floor((t.getTime() - s.getTime()) / 86400000) + 1)
-}
-
-export function fmtDate(dateKey: string): string {
-  return new Date(dateKey + 'T00:00:00').toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
-  })
-}
-
-// ── Activity helpers ──────────────────────────────────────────────────────────
-
-export function activitiesForCategory(activities: PhysicalActivity[], cat: string): PhysicalActivity[] {
-  return activities.filter(a => (a.category ?? '') === cat)
-}
-
-export function totalMinutes(activities: PhysicalActivity[], cat?: string): number {
-  const list = cat ? activitiesForCategory(activities, cat) : activities
-  return list.reduce((s, a) => s + (Number(a.duration) || 0), 0)
-}
-
-// ── Completion ────────────────────────────────────────────────────────────────
-
-export function calcCompletion(entry: Partial<DailyEntry> | null, goals: UserGoals): number {
-  if (!entry) return 0
-  let s = 0, total = 0
-
-  // Spiritual
-  goals.spiritual.filter(g => g.included).forEach(g => {
-    total++
-    if (g.goalType === 'tiered') {
-      if ((entry as DailyEntry).tiered_selections?.[g.id]) s++
-    } else {
-      if (entry.spiritual?.[g.id]) s++
-    }
-  })
-
-  // Physical — user goals
-  const acts = entry.activities ?? []
-  goals.physical.filter(g => g.included).forEach(g => {
-    total++
-    if (g.id === 'exercise_training') {
-      // Done if any activity belongs to one of the configured sub-types
-      const subs = g.subTypes ?? []
-      if (subs.length > 0) {
-        if (acts.some(a => subs.includes(a.category ?? '') && (a.duration || 0) > 0)) s++
-      } else {
-        if (totalMinutes(acts) > 0) s++
-      }
-    } else if (g.id === 'stretching') {
-      // Always check for the fixed 'Stretching' category — ignore any stale subTypes in DB
-      if (acts.some(a => a.category === 'Stretching' && (a.duration || 0) > 0)) s++
-    } else if (g.id === 'weight_goal') {
-      if (entry.weight) s++
-    } else if (g.id === 'blood_pressure') {
-      if (entry.blood_pressure) s++
-    } else {
-      // Binary or tiered goal (steps, sleep_goal)
-      if (g.goalType === 'tiered') {
-        if ((entry as DailyEntry).tiered_selections?.[g.id]) s++
-      } else {
-        if (entry.physical_goals?.[g.id]) s++
-      }
-    }
-  })
-
-  // If exercise_training goal is NOT set up, still credit general exercise
-  if (!goals.physical.find(g => g.id === 'exercise_training' && g.included)) {
-    total++
-    if (totalMinutes(acts) > 0) s++
-  }
-
-  // Nutritional
-  goals.nutritional.forEach(id => {
-    total++
-    if (id === 'track_calories') {
-      const log = (entry as DailyEntry).nutritional_log ?? {}
-      if (Object.values(log).some(v => v != null && Number(v) > 0)) s++
-    } else {
-      if (entry.nutritional?.[id]) s++
-    }
-  })
-
-  // Personal
-  goals.personal.filter(g => g.included).forEach(g => {
-    total++
-    if (g.goalType === 'tiered') {
-      if ((entry as DailyEntry).tiered_selections?.[g.id]) s++
-    } else {
-      if (entry.personal?.[g.id]) s++
-    }
-  })
-
-  return total ? Math.round((s / total) * 100) : 0
-}
-
-export function defaultGoals(): UserGoals {
-  return {
-    spiritual:       SPIRIT_DEFS.map(d => ({ ...d, included: false, customName: '' })),
-    physical:        PHYSICAL_DEFS.map(d => ({ ...d, included: false, customName: '' })),
-    exerciseTypes:   [],
-    stretchingTypes: [],
-    nutritional:     [],
-    personal:        PERSONAL_DEFS.map(d => ({ ...d, included: false, customName: '' })),
-  }
-}
-
-// ── Per-pillar streak calculation ─────────────────────────────────────────────
-
-export type PillarStreaks = {
-  spiritual:   number
-  physical:    number
-  nutritional: number
-  personal:    number
-}
-
-export function calcPillarStreaks(
-  history: DailyEntry[],
-  goals:   UserGoals,
-  today:   string = todayStr()
-): PillarStreaks {
-  const byDate = new Map(history.map(e => [e.entry_date, e]))
-
-  function streak(checkFn: (e: DailyEntry) => boolean): number {
-    let count = 0
-    const d = new Date(today + 'T00:00:00')
-    while (true) {
-      const key   = d.toISOString().split('T')[0]
-      const entry = byDate.get(key)
-      if (!entry || !checkFn(entry)) break
-      count++
-      d.setDate(d.getDate() - 1)
-    }
-    return count
-  }
-
-  return {
-    spiritual: streak(e =>
-      goals.spiritual.filter(g => g.included).some(g => e.spiritual?.[g.id])
-    ),
-    physical: streak(e => {
-      const acts       = e.activities ?? []
-      const anyActs    = totalMinutes(acts) > 0
-      const anySleep   = !!e.sleep || !!e.weight
-      const anyGoal    = Object.values(e.physical_goals ?? {}).some(Boolean)
-      const anyTiered  = Object.values(e.tiered_selections ?? {}).some(s => !!s)
-      return anyActs || anySleep || anyGoal || anyTiered
-    }),
-    nutritional: streak(e =>
-      goals.nutritional.some(id => {
-        if (id === 'track_calories') {
-          const log = e.nutritional_log ?? {}
-          return Object.values(log).some(v => v != null && Number(v) > 0)
-        }
-        return !!e.nutritional?.[id]
-      })
-    ),
-    personal: streak(e =>
-      goals.personal.filter(g => g.included).some(g => e.personal?.[g.id])
-    ),
-  }
-}
-
-export function emptyEntry(date: string): DailyEntry {
-  return {
-    entry_date:        date,
-    spiritual:         {},
-    physical_goals:    {},
-    activities:        [],
-    sleep:             null,
-    weight:            null,
-    blood_pressure:    null,
-    nutritional:       {},
-    nutritional_log:   {},
-    personal:          {},
-    tiered_selections: {},
-  }
-}
-
-// ─── Video library ────────────────────────────────────────────────────────────
-// url: '' means the video is not yet published — renders a "Coming soon" card.
-// When a video is ready, set url to the YouTube embed URL
-// (e.g. 'https://www.youtube.com/embed/VIDEO_ID').
-
-export const VIDEO_LIBRARY: VideoEntry[] = [
-  // Module A — Living on Purpose
-  { id: 'A1', module: 'A', title: 'Why your life feels like it\'s passing you by',                url: '' },
-  { id: 'A2', module: 'A', title: 'The difference between Living for, with, and on Purpose',      url: '' },
-  { id: 'A3', module: 'A', title: 'Why small habits are not small',                               url: '' },
-  { id: 'A4', module: 'A', title: 'The five attacks against consistency',                          url: '' },
-
-  // Module B — The four pillars
-  { id: 'B1', module: 'B', pillar: 'spiritual',   title: 'Why your spiritual life is the foundation of everything else', url: '' },
-  { id: 'B2', module: 'B', pillar: 'physical',    title: 'Your body is not separate from your purpose',                 url: '' },
-  { id: 'B3', module: 'B', pillar: 'nutritional', title: 'What you eat is what you become',                             url: '' },
-  { id: 'B4', module: 'B', pillar: 'personal',    title: 'You are more than your to-do list',                           url: '' },
-
-  // Module C — Duration goals and the ACT system
-  { id: 'C1', module: 'C', title: 'Why destination goals keep failing you',              url: '' },
-  { id: 'C2', module: 'C', title: 'The one question that changes everything',            url: '' },
-  { id: 'C3', module: 'C', title: 'How to write a goal that actually works — the ACT test', url: '' },
-  { id: 'C4', module: 'C', title: 'What to do when you miss a day',                     url: '' },
-
-  // Module D — Daily challenge coaching
-  { id: 'D1', module: 'D', title: 'Day 1: Let\'s go. Here\'s what today is about.',                    url: '' },
-  { id: 'D2', module: 'D', title: 'Day 2: The awkwardness is normal — here\'s why.',                   url: '' },
-  { id: 'D3', module: 'D', title: 'Day 3: The hardest day. Don\'t quit on day 3.',                     url: '' },
-  { id: 'D4', module: 'D', title: 'Day 4: You made it through the hard part. Halfway there.',          url: '' },
-  { id: 'D5', module: 'D', title: 'Day 5: Notice anything yet? Here\'s what\'s forming.',              url: '' },
-  { id: 'D6', module: 'D', title: 'Day 6: One day left. Don\'t coast across the finish line.',         url: '' },
-  { id: 'D7', module: 'D', title: 'Day 7: You finished. Here\'s what that means.',                     url: '' },
-
-  // Module J — Jamming coaching
-  { id: 'J1', module: 'J', title: 'Welcome to Jamming. Here\'s what\'s different.',                                        url: '' },
-  { id: 'J2', module: 'J', title: 'Why adding a second pillar feels like starting over (and why it\'s not)',                url: '' },
-  { id: 'J3', module: 'J', title: 'The weekly check-in: why reviewing matters more than tracking',                          url: '' },
-  { id: 'J4', module: 'J', title: 'What\'s forming in you right now',                                                      url: '' },
-  { id: 'J5', module: 'J', title: 'Still in it means you\'re winning',                                                     url: '' },
-  { id: 'J6', module: 'J', title: 'Let\'s make this survivable',                                                           url: '' },
-  { id: 'J7', module: 'J', title: 'Jamming complete. You\'ve built something real.',                                        url: '' },
-
-  // Module G — Grooving coaching
-  { id: 'G1',       module: 'G', title: 'Welcome to Grooving. The question changes here.',                    url: '', trigger: 'grooving_onboarding' },
-  { id: 'G2',       module: 'G', title: 'The 25/5 exercise: why this one changes how you see everything',     url: '', trigger: 'focus_exercise_screen' },
-  { id: 'G3',       module: 'G', title: 'The habit calendar: what you\'re actually building here',            url: '', trigger: 'habit_calendar_first_open' },
-  { id: 'G4',       module: 'G', title: 'Your circle: why who watches matters',                               url: '', trigger: 'grooving_circle_setup' },
-  { id: 'G5',       module: 'G', title: 'Rooted. What that means.',                                           url: '', trigger: 'rooted_milestone' },
-  { id: 'G6',       module: 'G', title: 'Now that you\'re rooted — here\'s how to set a direction',           url: '', trigger: 'post_rooted_destination' },
-  { id: 'G6b',      module: 'G', title: 'Setting a direction within your daily habit',                         url: '', trigger: 'first_destination_goal' },
-  { id: 'G7',       module: 'G', title: 'If you need to pause — here\'s what that means.',                    url: '', trigger: 'pause_activation' },
-  { id: 'G_RETURN', module: 'G', title: 'Welcome back. Here\'s what picking up after a pause means.',         url: '', trigger: 'pause_return' },
-  { id: 'G8',       module: 'G', title: 'You finished Grooving. This is what you\'ve built.',                 url: '', trigger: 'grooving_completion' },
-  { id: 'G_SMOOTH', module: 'G', title: 'Smooth sailing. Keep the rhythm.',                                   url: '', trigger: 'pulse_smooth_sailing_grooving' },
-  { id: 'G_ROUGH',  module: 'G', title: 'Rough waters. Here\'s how to navigate.',                             url: '', trigger: 'pulse_rough_waters_grooving' },
-  { id: 'G_WATER',  module: 'G', title: 'Taking on water. Let\'s make this survivable.',                      url: '', trigger: 'pulse_taking_on_water_grooving' },
-
-  // Module S — Soloing coaching (stewardship tone, self-directed, no pulse)
-  // All url: '' until recordings are ready — renders "Coming soon" card.
-  { id: 'S1', module: 'S', title: "Welcome to Soloing. This is what you've already proven.",                    url: '', trigger: 'soloing_day1'           },
-  { id: 'S2', module: 'S', title: "30 days in. Here's what's different about the life you're building.",        url: '', trigger: 'soloing_day30'          },
-  { id: 'S3', module: 'S', title: "Halfway through. The habit isn't the goal anymore — it's the ground.",       url: '', trigger: 'soloing_midpoint'       },
-  { id: 'S4', module: 'S', title: "60 days. What you're carrying into the final stretch.",                      url: '', trigger: 'soloing_day60'          },
-  { id: 'S5', module: 'S', title: "What your goals are telling you about where you're headed.",                 url: '', trigger: 'soloing_goal_quality'   },
-  { id: 'S6', module: 'S', title: "You missed a day. Here's what that actually means at this level.",           url: '', trigger: 'soloing_streak_break'   },
-  { id: 'S7', module: 'S', title: "The last stretch. Don't change anything.",                                   url: '', trigger: 'soloing_approaching_end' },
-]
-
-// Returns the video IDs that should be surfaced on a given challenge day.
-// Day 1 also shows A3, A4, and B videos for selected pillars.
-// Day 3 also shows C4 (recovery video).
-// All other days: just the D video for that day.
-export function getDayVideoIds(dayNumber: number, selectedPillars: string[]): string[] {
-  const pillarToBVideo: Record<string, string> = {
-    spiritual:   'B1',
-    physical:    'B2',
-    nutritional: 'B3',
-    personal:    'B4',
-  }
-
-  if (dayNumber === 1) {
-    const bIds = selectedPillars
-      .map(p => pillarToBVideo[p])
-      .filter((id): id is string => Boolean(id))
-    return ['D1', 'A3', 'A4', ...bIds]
-  }
-
-  if (dayNumber === 3) return ['D3', 'C4']
-
-  const d = `D${dayNumber}`
-  return d in { D2: 1, D4: 1, D5: 1, D6: 1, D7: 1 } ? [d] : []
-}
-
-// Returns J-module video IDs to surface on a given Jamming challenge day.
-// Day 1   → J1 (welcome) + J2 (second pillar framing)
-// Day 2   → J2
-// Day 6   → J3 (before first weekly pulse check)
-// Pulse state → J4 (smooth sailing) | J5 (rough waters) | J6 + C4 (taking on water)
-export function getJammingVideoIds(
-  dayNumber:      number,
-  lastPulseState: PulseState | null,
-): string[] {
-  const ids: string[] = []
-
-  if (dayNumber === 1)            ids.push('J1', 'J2')
-  else if (dayNumber === 2)       ids.push('J2')
-  if (dayNumber === 6)            ids.push('J3')
-
-  if (lastPulseState === 'smooth_sailing')  ids.push('J4')
-  if (lastPulseState === 'rough_waters')    ids.push('J5')
-  if (lastPulseState === 'taking_on_water') ids.push('J6', 'C4')
-
-  return ids
-}
-
-// Returns the G-module video IDs that should be surfaced for a Grooving challenge.
-// G_RETURN (return from pause) surfaces once when a pause has been resumed and disappears
-// after the user marks it watched — identical pattern to J-module videos in Jamming.
-export function getGroovingReturnVideoId(
-  pauseRecord: ChallengePause | null,
-): string[] {
-  if (pauseRecord?.resumed_at) return ['G_RETURN']
-  return []
-}
-
-// Returns the S-module video IDs that should be surfaced for a Soloing challenge.
+// =============================================================================
+// v3 Constants — Daily Consistency Tracker
 //
-// Day triggers (library + inline for S1):
-//   S1 — Day 1 welcome (also surfaced inline in SoloingVideoSection)
-//   S5 — Day 20 goal quality coaching (library only)
-//   S2 — Day 30 milestone
-//   S3 — Challenge midpoint (floor(durationDays / 2))
-//   S4 — Day 60 milestone
-//   S7 — Final 10 days (dayNumber >= durationDays - 9)
+// What lives here:
+//   - PILLAR_CONFIG      — colors, icons, labels (authoritative design tokens)
+//   - PILLAR_ORDER       — canonical display order for the five pillars
+//   - CHALLENGE_DURATIONS — user-selectable total challenge lengths
+//   - LEVEL_NAMES        — LevelNumber → display name
+//   - SCORE_TO_LEVEL     — Consistency Profile score → starting LevelNumber
+//   - ROLLING_WINDOW_THRESHOLDS — advancement rules per level
+//   - DURATION_GOAL_CAP  — max duration goals allowed per level
+//   - DESTINATION_GOAL_CAP — max destination goals per pillar per level
+//   - CLARITY_VIDEOS     — three onboarding clarity video definitions
+//   - Utility functions  — todayStr, getDayNumber, fmtDate, scoreToLevel
 //
-// Event trigger (inline for S6, also surfaced in library today section):
-//   S6 — Streak break: any missed day after a 21+ day streak (once per challenge via watchedVideoIds)
-export function getSoloingVideoIds(
-  dayNumber:    number,
-  durationDays: number,
-  streakBroken: boolean,
-): string[] {
-  const ids: string[] = []
-  if (dayNumber === 1)                              ids.push('S1')
-  if (dayNumber === 20)                             ids.push('S5')
-  if (dayNumber === 30)                             ids.push('S2')
-  if (dayNumber === Math.floor(durationDays / 2))   ids.push('S3')
-  if (dayNumber === 60)                             ids.push('S4')
-  if (dayNumber >= durationDays - 9)                ids.push('S7')
-  if (streakBroken)                                 ids.push('S6')
-  return ids
-}
+// What does NOT live here:
+//   - Component-specific logic
+//   - Supabase queries
+//   - Notification copy (not yet defined for v3)
+// =============================================================================
 
-// ─── Jamming notification copy ────────────────────────────────────────────────
-// All notification message copy lives here — never hardcode in components.
-// Functions receive context and return the message string.
+import type {
+  PillarName,
+  LevelNumber,
+  LevelName,
+  ChallengeDuration,
+  VideoEntry,
+} from '@/lib/types'
 
-function pillarLabel(p: string): string {
-  const map: Record<string, string> = {
-    spiritual: 'Spiritual', physical: 'Physical',
-    nutritional: 'Nutritional', personal: 'Personal',
-  }
-  return map[p] ?? (p.charAt(0).toUpperCase() + p.slice(1))
-}
 
-export const JAMMING_NOTIFICATIONS = {
-  morning_anchor: (ctx: { dayNumber: number; pillars: string[] }) =>
-    `Day ${ctx.dayNumber}. ${ctx.pillars.map(pillarLabel).join(' + ')}. You know what to do.`,
+// =============================================================================
+// PILLAR_CONFIG
+// Authoritative design tokens for all pillar card UI.
+// Always import from here — never hardcode hex values in components.
+// Use Tailwind arbitrary value syntax: bg-[#275578], text-[#82B2DE], etc.
+// =============================================================================
 
-  evening_checkin: (ctx: { pillars: string[] }) =>
-    `You haven't checked in yet today. ${ctx.pillars.map(pillarLabel).join(' and ')} — still time.`,
-
-  late_rescue: () =>
-    `Last chance today. Check in before midnight.`,
-
-  mid_week_encouragement: (ctx: { dayNumber: number }) =>
-    `Midweek. Day ${ctx.dayNumber}. Still in it means you're winning.`,
-
-  miss_day_recovery: () =>
-    `Yesterday slipped. That happens to everyone. What matters is what you do today.`,
-
-  weekly_pulse_prompt: (ctx: { weekNumber: number }) =>
-    `Week ${ctx.weekNumber} — 2 minutes. See your week and tell us how you're doing.`,
-
-  accountability_update: (ctx: { partnerName: string; daysCompleted: number; durationDays: number }) =>
-    `${ctx.partnerName} — ${ctx.daysCompleted} of ${ctx.durationDays} days done this week. Still showing up.`,
-
-  jamming_complete: () =>
-    `You finished Jamming. Seriously — you built something real.`,
-} as const
-
-// Notification cadence by tier
-// minimal  → morning only
-// standard → morning + evening + mid-week
-// full     → morning + evening + mid-week + late rescue (personal message tone)
-export const NOTIFICATION_CADENCE: Record<string, string[]> = {
-  minimal:  ['morning_anchor'],
-  standard: ['morning_anchor', 'evening_checkin', 'mid_week_encouragement'],
-  full:     ['morning_anchor', 'evening_checkin', 'mid_week_encouragement', 'late_rescue'],
-}
-
-// Group notification copy — Step 16g
-// Three types, each matching a specific trigger in the group notification system.
-//
-//   member_joined   — in-app banner shown to the creator when a new member joins
-//   evening_nudge   — cron-driven nudge when co-members have checked in but the user hasn't
-//   full_group_day  — in-app banner shown to all members when everyone reaches 'full' today
-// Maximum number of active group memberships per user (Step 16h)
-export const MAX_GROUPS_PER_USER = 12
-
-export const GROUP_NOTIFICATIONS = {
-  member_joined: (ctx: { memberName: string; groupName: string }) =>
-    `${ctx.memberName} just joined ${ctx.groupName}.`,
-
-  evening_nudge: (ctx: { count: number; groupName: string }) =>
-    `${ctx.count} ${ctx.count === 1 ? 'person' : 'people'} in ${ctx.groupName} ${ctx.count === 1 ? 'has' : 'have'} checked in today. Still time to join them.`,
-
-  full_group_day: (ctx: { groupName: string }) =>
-    `Everyone in ${ctx.groupName} showed up today. That's a full group day.`,
-} as const
-
-export const SOLOING_NOTIFICATIONS = {
-  // ── Morning anchor — tone adapts to pillar mix via resolveMorningTone() ──────
-  //
-  // reflective — all active pillars Anchored (level 4+).
-  //   Verbatim stewardship register from PRODUCT.md line 289.
-  morning_anchor_reflective: () =>
-    `Another day to build the life you've already been building.`,
-
-  // mixed — any active pillar Developing or Building alongside Anchored pillars.
-  //   Leads with stewardship, acknowledges the Developing pillar without urgency.
-  morning_anchor_mixed: (ctx: { dayNumber: number; durationDays: number }) =>
-    `Day ${ctx.dayNumber} of ${ctx.durationDays}. You know how to do this — keep showing up.`,
-
-  // ── Milestone moments — additive, stack alongside morning anchor ───────────
-  // Three milestone moments for Soloing challenges. Each fires once on the
-  // exact day boundary. Does not replace the morning anchor — sits alongside it.
-
-  milestone_day30: () =>
-    `Thirty days into Soloing. The habit isn't something you do anymore — it's something you are.`,
-
-  milestone_day60: () =>
-    `Sixty days. You've been here before. You know how this works. Keep going.`,
-
-  milestone_day90: () =>
-    `Ninety days. Whatever comes next, you've earned it.`,
-} as const
-
-export const GROOVING_NOTIFICATIONS = {
-  morning_anchor: (ctx: { dayNumber: number; durationDays: number }) =>
-    `Day ${ctx.dayNumber} of ${ctx.durationDays}. What will today build toward?`,
-
-  // ── Adaptive morning anchor — Step 42 ────────────────────────────────────
-  // Three tone variants selected by resolveMorningTone() based on pillar mix.
-
-  /** Any pillar Building (Tuning) — encouragement-forward, day-specific. */
-  morning_anchor_motivational: (ctx: { dayNumber: number; durationDays: number }) =>
-    `Day ${ctx.dayNumber} of ${ctx.durationDays}. You're building something — and today is part of it.`,
-
-  /**
-   * All active pillars Developing — coaching tone calibrated to highest level.
-   * highestLevel >= 3 (Grooving): contemplative.
-   * highestLevel === 2 (Jamming-context): peer-tone.
-   */
-  morning_anchor_coaching: (ctx: { dayNumber: number; durationDays: number; highestLevel: number }) =>
-    ctx.highestLevel >= 3
-      ? `Day ${ctx.dayNumber} of ${ctx.durationDays}. What will today build toward?`
-      : `Day ${ctx.dayNumber} of ${ctx.durationDays}. Keep the streak alive.`,
-
-  /** All active pillars Anchored — verbatim from PRODUCT.md. */
-  morning_anchor_reflective: () =>
-    `Another day to build the life you've already been building.`,
-
-  evening_checkin: () =>
-    `How did your pillars go today? Still time to check in.`,
-
-  pattern_alert: (ctx: { dayOfWeek: string }) =>
-    `You have missed ${ctx.dayOfWeek} three weeks running. Want to look at your goals for that day?`,
-
-  rooted_milestone: (ctx: { goalName: string }) =>
-    `${ctx.goalName} — you have done this every day for 30 days. That is not a goal anymore. That is who you are.`,
-
-  grooving_complete: () =>
-    `40 days. You built something that will outlast the challenge.`,
-
-  pause_daily: (ctx: { daysPaused: number }) =>
-    `Day ${ctx.daysPaused} of your pause. Your habits will be here when you return.`,
-
-  weekly_reflection_prompt: () =>
-    `You have reached the end of the week. Take a moment to reflect on how your pillars went.`,
-} as const
-
-// Pillar card design tokens — authoritative source for all pillar card UI.
-// All hex values match PRODUCT.md Visual Design System exactly.
-// Components must import colors and icon paths from here — no hardcoded hex values.
 export const PILLAR_CONFIG = {
   spiritual: {
     background:  '#275578',
@@ -622,3 +79,220 @@ export const PILLAR_CONFIG = {
 } as const
 
 export type PillarConfigKey = keyof typeof PILLAR_CONFIG
+
+
+// =============================================================================
+// PILLAR_ORDER
+// Canonical display order for the five pillars throughout the app.
+// Use this array whenever rendering pillars in sequence.
+// =============================================================================
+
+export const PILLAR_ORDER: PillarName[] = [
+  'spiritual',
+  'physical',
+  'nutritional',
+  'personal',
+  'relational',
+]
+
+
+// =============================================================================
+// CHALLENGE_DURATIONS
+// User-selectable total challenge lengths shown on the onboarding duration screen.
+// Displayed as selectable cards. The chosen value is stored in challenges.duration_days.
+// Note: 14 days is intentionally excluded in v3. The 7-day Tuning cycle and
+// 14-day Jamming cycle are internal pillar progression windows, not challenge lengths.
+// =============================================================================
+
+export const CHALLENGE_DURATIONS: ChallengeDuration[] = [21, 30, 60, 90, 100]
+
+
+// =============================================================================
+// LEVEL_NAMES
+// Maps a LevelNumber to its display name.
+// =============================================================================
+
+export const LEVEL_NAMES: Record<LevelNumber, LevelName> = {
+  1: 'Tuning',
+  2: 'Jamming',
+  3: 'Grooving',
+  4: 'Soloing',
+}
+
+// Short status phrase shown on the Pillar Portrait and pillar cards
+export const LEVEL_STATUS_PHRASES: Record<LevelNumber, string> = {
+  1: 'Starting Fresh',
+  2: 'Finding Your Rhythm',
+  3: 'Building Momentum',
+  4: 'Rooted & Running',
+}
+
+
+// =============================================================================
+// SCORE_TO_LEVEL
+// Maps a Consistency Profile pillar score (0–12) to a starting LevelNumber.
+// Used after the profile is scored to seed pillar_levels.
+// =============================================================================
+
+export function scoreToLevel(score: number): LevelNumber {
+  if (score >= 10) return 4   // Soloing
+  if (score >= 7)  return 3   // Grooving
+  if (score >= 4)  return 2   // Jamming
+  return 1                    // Tuning (0–3)
+}
+
+// Score band boundaries — used for display in the Pillar Portrait
+export const SCORE_BANDS: Array<{ min: number; max: number; level: LevelNumber }> = [
+  { min: 0,  max: 3,  level: 1 },
+  { min: 4,  max: 6,  level: 2 },
+  { min: 7,  max: 9,  level: 3 },
+  { min: 10, max: 12, level: 4 },
+]
+
+
+// =============================================================================
+// ROLLING_WINDOW_THRESHOLDS
+// Advancement rules evaluated per pillar on every pillar save.
+// Source of truth for the rolling window engine in /lib/rolling-window.ts.
+//
+// windowDays: how many calendar days to look back (strict sliding window)
+// required:   minimum completions within that window to advance
+// nextLevel:  the level the pillar advances to when threshold is met
+// =============================================================================
+
+export const ROLLING_WINDOW_THRESHOLDS: Record<
+  number,
+  { windowDays: number; required: number; nextLevel: LevelNumber }
+> = {
+  1: { windowDays: 7,  required: 4,  nextLevel: 2 },   // Tuning  → Jamming
+  2: { windowDays: 14, required: 10, nextLevel: 3 },   // Jamming → Grooving
+  3: { windowDays: 60, required: 48, nextLevel: 4 },   // Grooving → Soloing
+  // Level 4 (Soloing) has no advancement threshold — it is the current ceiling
+}
+
+
+// =============================================================================
+// DURATION_GOAL_CAP
+// Maximum number of active duration goals allowed per pillar at each level.
+// Enforced in application code at save time — never in the database.
+// =============================================================================
+
+export const DURATION_GOAL_CAP: Record<LevelNumber, number> = {
+  1: 1,   // Tuning  — one goal only
+  2: 2,   // Jamming — up to 2
+  3: 3,   // Grooving — up to 3
+  4: 4,   // Soloing — up to 4
+}
+
+
+// =============================================================================
+// DESTINATION_GOAL_CAP
+// Maximum active destination goals per pillar at each level.
+// null = unlimited. 0 = destination goals not available at this level.
+// Enforced in application code at save time.
+// =============================================================================
+
+export const DESTINATION_GOAL_CAP: Record<LevelNumber, number | null> = {
+  1: 0,     // Tuning   — not available
+  2: 0,     // Jamming  — not available
+  3: 3,     // Grooving — up to 3 per pillar
+  4: null,  // Soloing  — unlimited (null = no cap)
+}
+
+// Helper: returns true when destination goals are available at this level
+export function destinationGoalsAvailable(level: LevelNumber): boolean {
+  return level >= 3
+}
+
+// Helper: returns true when the destination goal cap has been reached for a pillar
+export function destinationGoalCapReached(
+  level: LevelNumber,
+  activeCount: number
+): boolean {
+  const cap = DESTINATION_GOAL_CAP[level]
+  if (cap === null) return false   // unlimited
+  return activeCount >= cap
+}
+
+
+// =============================================================================
+// CLARITY_VIDEOS
+// Three onboarding videos shown on the clarity screen (/onboarding/videos).
+// One screen, three video boxes. Watchable in any order. Skippable.
+// url: '' until recordings are complete — renders a "Coming soon" placeholder.
+// =============================================================================
+
+export const CLARITY_VIDEOS: VideoEntry[] = [
+  {
+    id:      'CLARITY_1',
+    module:  'clarity',
+    trigger: 'onboarding_clarity',
+    title:   'Living on Purpose',
+    url:     '',  // ~60 seconds: "Living on Purpose is the how of a life lived with meaning"
+  },
+  {
+    id:      'CLARITY_2',
+    module:  'clarity',
+    trigger: 'onboarding_clarity',
+    title:   'Duration vs. Destination Goals',
+    url:     '',  // ~60 seconds: The Rollercoaster Effect — why duration goals stick
+  },
+  {
+    id:      'CLARITY_3',
+    module:  'clarity',
+    trigger: 'onboarding_clarity',
+    title:   'The Five Pillars',
+    url:     '',  // ~60 seconds: Whole-life vision, Sea of Galilee illustration
+  },
+]
+
+
+// =============================================================================
+// Utility functions
+// =============================================================================
+
+// Returns today's date as an ISO date string (YYYY-MM-DD) in local time.
+// Use this everywhere a "today" date string is needed — never new Date().toISOString().
+export function todayStr(): string {
+  return new Intl.DateTimeFormat('en-CA').format(new Date())
+}
+
+// Returns the 1-based day number within a challenge.
+// Day 1 = start_date. Day 2 = start_date + 1. Etc.
+// targetDate defaults to today if not provided.
+export function getDayNumber(startDate: string, targetDate?: string): number {
+  const s = new Date(startDate + 'T00:00:00')
+  const t = new Date((targetDate ?? todayStr()) + 'T00:00:00')
+  return Math.max(1, Math.floor((t.getTime() - s.getTime()) / 86400000) + 1)
+}
+
+// Formats an ISO date string for display (e.g. "Apr 10, 2026")
+export function fmtDate(dateKey: string): string {
+  return new Date(dateKey + 'T00:00:00').toLocaleDateString('en-US', {
+    month: 'short',
+    day:   'numeric',
+    year:  'numeric',
+  })
+}
+
+// Returns the N calendar dates (inclusive) ending at and including endDate,
+// ordered oldest → newest. Used to build rolling window arrays.
+// endDate defaults to today.
+export function rollingWindowDates(windowDays: number, endDate?: string): string[] {
+  const end = new Date((endDate ?? todayStr()) + 'T00:00:00')
+  const dates: string[] = []
+  for (let i = windowDays - 1; i >= 0; i--) {
+    const d = new Date(end)
+    d.setDate(d.getDate() - i)
+    dates.push(d.toISOString().split('T')[0])
+  }
+  return dates
+}
+
+// Returns the overall daily completion percentage across all active pillars.
+// completedCount: number of pillars where completed = true today
+// activeCount: total number of active (non-dormant) pillars
+export function calcDailyCompletionPct(completedCount: number, activeCount: number): number {
+  if (activeCount === 0) return 0
+  return Math.round((completedCount / activeCount) * 100)
+}
