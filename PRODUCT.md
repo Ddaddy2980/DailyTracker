@@ -2,7 +2,7 @@
 
 This file is the authoritative source of truth for this product. Read this file at the start of every Claude Code session before writing any code.
 
-*Last updated: April 2026 — v2 incorporating Consistency Profile, Pillar-by-Pillar Architecture, Destination Goals, and Steering Mechanism*
+*Last updated: April 2026 — v3 rebuild. Per-pillar progression within a single user-chosen challenge container. Onboarding restructured: challenge length → clarity videos → Consistency Profile → goal setup. All level routing replaced by unified dashboard.*
 
 ---
 
@@ -261,21 +261,16 @@ There is no Edit button on the pillar card. Goal management (adding, editing, re
 
 ### The Unified Challenge Container
 
-Rather than one challenge level governing the entire app, the app uses a Unified Challenge Container: a single active challenge holding all currently-tracked pillars, each operating at its own level independently. One daily check-in, one dashboard, one weekly reflection — each pillar receiving the coaching level it actually needs.
+The app uses a single Unified Challenge Container for every user. One challenge, one dashboard, one daily check-in — with each pillar operating at its own level independently inside that container.
 
-**Challenge duration for multi-level users:**
+**Challenge duration is chosen by the user at onboarding** before the Consistency Profile. Available lengths: **21, 30, 60, 90, or 100 days**. This duration applies to the whole challenge. Pillar-level cycles (7-day Tuning windows, 14-day Jamming windows) run *within* the overall challenge container — they are internal progression mechanics, not user-visible challenge lengths.
 
-| Highest Development Pillar Level | Available Durations | Notes |
-|----------------------------------|--------------------|----|
-| Tuning (Level 1) present | 7 days (required) | If any pillar is Tuning, the challenge runs 7 days. At completion the Tuning pillar advances and the user may restart at a longer duration. |
-| Jamming (Level 2) highest | 14 days | Standard Jamming length. Challenge is always 14 days regardless of whether the user entered Jamming via Tuning or directly via the Consistency Profile. |
-| Grooving (Level 3) highest | 30, 50, or 66 days | Standard Grooving options. |
-| All pillars Anchored | 30, 66, or 100 days | A maintenance challenge. User sets duration; all pillars run in Anchor Mode. |
+**What the dashboard shows:**
+"Day 4 of 60" — the current day of the overall challenge and the total length. Each pillar card shows its own level progression internally.
 
-Anchored pillars always run for the full challenge duration. They do not complete early. When the challenge ends and a Developing pillar advances to Anchored, the user restarts with a new challenge calibrated to their updated pillar profile.
+**Pillar levels are retained between challenges.** When a challenge ends, the user chooses a new duration and begins again. Pillar levels carry forward. The user may optionally retake the Consistency Profile at the start of a new challenge for reassessment.
 
-**Duration is fixed — no user choice is presented:**
-Tuning is always 7 days. Jamming is always 14 days. No duration picker is shown at either level's completion screen. The only levels with a duration choice are Grooving (30, 50, or 66 days) and above.
+**The 7-day Tuning cycle and 14-day Jamming cycle are internal windows**, not separate challenges. A person can be in a 60-day challenge with Physical still in Tuning on day 45 — the Tuning pillar card will show the current rolling 7-day window inside the card. There is no separate challenge start or completion for individual pillar level cycles.
 
 ### Daily Check-In Adaptation (Multi-Level Users)
 
@@ -385,84 +380,94 @@ When a user reaches Soloing in all five pillars, the app names it as the most si
 
 ## Level System — The Progression Architecture
 
-New users complete the Consistency Profile during onboarding, which assigns a starting level to each pillar independently. Levels are per-pillar — a user can be Grooving in Physical and Tuning in Spiritual at the same time. The app coaches each pillar at its own level simultaneously inside the Unified Challenge Container.
+Levels are **per-pillar**, not per-user. A user can be Grooving in Physical and Tuning in Spiritual at the same time. Each pillar progresses independently inside the single Unified Challenge Container.
 
-Users who skip the Consistency Profile default to Tuning (Level 1) for all pillars.
+The Consistency Profile assigns a starting level to each pillar at onboarding. Users who skip the Profile default to Tuning (Level 1) for all pillars.
+
+Advancement is based on **rolling window completion thresholds** — not on completing a fixed challenge block. Past completions that fall outside the rolling window do not count. A person can remain at Tuning in a pillar for an entire 60-day challenge if they do not sustain 4 completions in any 7-day window.
+
+### Rolling Window Advancement Thresholds
+
+| From | To | Window | Required |
+|------|----|--------|----------|
+| Tuning (1) | Jamming (2) | Last 7 calendar days | 4 of 7 |
+| Jamming (2) | Grooving (3) | Last 14 calendar days | 10 of 14 |
+| Grooving (3) | Soloing (4) | Last 60 calendar days | 48 of 60 |
+
+Advancement is evaluated on every pillar save and takes effect immediately when the threshold is met.
 
 ### Level 1 — Tuning
 
-- **Challenge length:** 7 days (any pillar at Tuning requires a 7-day challenge)
-- **Duration goals for this pillar:** 1 goal
-- **Experience:** Fully guided, hand-held, gamified. The focus is proving that daily consistency is possible — one pillar, one goal, seven days.
-- **Advancement criteria:** Complete one 7-day challenge with this pillar active
-- **Key features:** Video coaching library, gamified 7-day challenge map, daily notifications, Day 7 celebration sequence
+- **Internal cycle:** Rolling 7-day window tracked inside the pillar card
+- **Duration goals for this pillar:** 1 goal (max)
+- **Destination goals:** Not available
+- **Experience:** Fully guided, hand-held, gamified. The focus is proving that daily consistency is possible — one pillar, one goal. The 7-day rolling window is visualized inside the pillar card as day-by-day marks. A daily coaching video is available inside the card based on position in the current window.
+- **Advancement criteria:** 4 completions in any rolling 7-day window for this pillar
+- **Key features:** 7-day rolling window visualization inside pillar card, daily video coaching per position, encouragement video when window stalls
 
 ### Level 2 — Jamming
 
-- **Challenge length:** 14 days (when this is the highest active pillar level)
-- **Duration goals for this pillar:** 1–2 goals
-- **Experience:** Peer-tone coaching videos, weekly check-in replaces most daily touchpoints, adaptive pulse check system, accountability partner introduced. The focus is sustaining consistency over a longer haul and learning to recognize how the pillar is doing mid-challenge.
-- **Advancement criteria:** Complete one 14-day Jamming challenge with this pillar active
-- **Key features:** Pulse check system, adaptive notifications, weekly summary view, accountability partner
+- **Internal cycle:** Rolling 14-day window tracked inside the pillar card
+- **Duration goals for this pillar:** 1–2 goals (max)
+- **Destination goals:** Not available
+- **Experience:** The focus is sustaining consistency over a longer window. The 14-day rolling progression is visualized inside the pillar card. Coaching videos available based on position.
+- **Advancement criteria:** 10 completions in any rolling 14-day window for this pillar
+- **Key features:** 14-day rolling window visualization inside pillar card, video coaching
 
 ### Level 3 — Grooving
 
-- **Challenge length:** 30, 50, or 66 days (when this is the highest active pillar level)
-- **Duration goals for this pillar:** 1–3 goals
-- **Experience:** Contemplative coaching tone. The focus shifts from survival to formation. Duration goals are the foundation; destination goals sit on top of them as optional direction-setters. The weekly check explicitly reinforces that duration goal consistency matters more than destination goal hits — a person who hit their daily duration goal all seven days but missed their destination goal target is succeeding. A person who hit their destination goal three times but only completed their duration goal four days is drifting.
-- **Advancement criteria:** Complete one Grooving challenge of 60+ days with high consistency in duration goals for this pillar. Advancement is earned by proving the duration habit, not by hitting destination targets.
-- **Key features:** Habit calendar, Rooted milestone (Day 40–50), Destination goals: up to 3 per pillar, 25/5 focus exercise, Grooving Circle, deeper weekly reflection
+- **Duration goals for this pillar:** 1–3 goals (max)
+- **Destination goals:** Up to 3 per pillar
+- **Experience:** The focus shifts from survival to formation. Duration goals are the foundation; destination goals sit on top as optional direction-setters. The pillar card displays duration goals and destination goals with independent checkboxes.
+- **Advancement criteria:** 48 completions in any rolling 60-day window for this pillar
+- **Key features:** Destination goals (up to 3), video coaching
 
 ### Level 4 — Soloing
 
-- **Challenge length:** 90 or 100 days (when this is the highest active pillar level)
-- **Duration goals for this pillar:** 2–4 goals
-- **Destination goals:** unlimited per pillar
-- **Experience:** Goal quality refinement, stretch goals, cross-pillar insights. The habit is proven and rooted. The coaching register shifts to stewardship — maintaining, refining, and building from strength.
-- **Advancement criteria:** Complete one Soloing challenge with 80%+ consistency in duration goals for this pillar across 90+ days
-
-### Level 5 — Orchestrating
-
-- **Challenge length:** Any length
-- **Duration goals for this pillar:** Unlimited
+- **Duration goals for this pillar:** 2–4 goals (max)
 - **Destination goals:** Unlimited per pillar
-- **Experience:** Create challenge templates, group challenges, coaching dashboard, legacy stats. The person at Orchestrating in a pillar has not just built the habit — they are ready to help others build it.
-- **Advancement criteria:** Earned through Level 4 completion + invitation
+- **Experience:** The habit is proven and rooted. Coaching shifts to stewardship — maintaining, refining, and building from strength.
+- **Advancement criteria:** N/A — Soloing is the current ceiling level
+
+### Level 5 — Orchestrating *(Future)*
+
+- Not yet built. Earned through Level 4 completion + invitation.
 
 ---
 
-## Tuning Level — Full Feature Specification
+## Onboarding Flow (v3)
 
-This is the most important level to help the user find success. If a user does not succeed here, they never see the rest of the app.
+Runs once for all new users. Sequence: commitment → foundation → self-knowledge → goal setup → begin.
+Each step gates the next. Progress is stored in `user_profile` onboarding flags so users can resume if interrupted.
 
-### Onboarding Flow (runs once for all new users before any goals are set)
+**Step 1 — Challenge Length** (`/onboarding/duration`)
+The user chooses the total length of their challenge before anything else. This is a commitment moment — it anchors the whole journey. Available options: **21, 30, 60, 90, or 100 days**. Displayed as selectable cards. No explanation of per-pillar cycles needed here — the chosen number is simply "how long this challenge runs."
 
-The onboarding flow is redesigned for v2. The Consistency Profile is now embedded within it. The sequence moves a person from vision → conviction → self-knowledge → goal setup, in that order.
+**Step 2 — Clarity Videos** (`/onboarding/videos`)
+One screen with three video boxes. The user can watch in any order. Skippable but recommended. Each video is approximately 60 seconds.
 
-**Screen 1 — Welcome: Living on Purpose**
-"Living on Purpose" vision statement. One compelling sentence before they set any goal. Sets the tone: this app is about building a life, not hitting a target.
+- **Video 1 — Living on Purpose:** "Living on Purpose is the *how* of a life lived with meaning." Sets the tone before any goals are set.
+- **Video 2 — Duration vs. Destination:** The Rollercoaster Effect explained. Why duration goals produce lifestyle change when destination goals produce the start-endure-arrive-return cycle. Conceptual foundation for everything else.
+- **Video 3 — The Five Pillars:** The whole-life vision. Most people live strong in one area and neglected in others. This app walks with you toward wholeness across all five. Introduces Spiritual, Physical, Nutritional, Personal, and Relational with the river illustration (Sea of Galilee vs. Dead Sea) for the Relational pillar.
 
-**Screen 2 — The Whole-Life Vision**
-A screen or short video introducing the five-pillar framework through the lens of 1 Thessalonians 5:23: *"Now may the God of peace himself sanctify you completely, and may your whole spirit and soul and body be kept blameless at the coming of our Lord Jesus Christ."*
+**Step 3 — Consistency Profile** (`/onboarding/profile`)
+The full 20-question profile (5 pillars × 4 questions). One pillar at a time: Spiritual → Physical → Nutritional → Personal → Relational. Framing: *"Before we set up anything, let's look at where you already are."* The user feels seen, not evaluated. Scores are saved to `consistency_profile_sessions`. Pillar levels are written to `pillar_levels`.
 
-The message: most people live fractured, one-dimensional lives — strong in one area, neglected in others. This app exists to walk with you toward wholeness across every pillar. The five pillars — Spiritual, Physical, Nutritional, Personal, and Relational — cover every dimension of a life lived on purpose. The Relational pillar is introduced here using the river illustration: a life that only receives, like the Dead Sea, eventually becomes stagnant. A life that gives as it grows, like the Sea of Galilee, teems with life. True wholeness flows outward.
+**Step 4 — Pillar Portrait + Goal Setup** (`/onboarding/goals`)
+Two parts on sequential screens:
 
-Tone: pastoral warmth, not pressure. Invitation, not obligation.
+*Part A — Pillar Portrait:* All five pillars displayed with their starting level name and a status phrase. A personalized statement honoring strong pillars. Development focus identified. The user is encouraged to activate all five pillars — each with one duration goal to start.
 
-**Screen 3 — Duration vs. Destination**
-The Rollercoaster Effect illustrated. Clear, brief, visual. Must appear before goal setup so the user understands why the app works the way it does. This is the conceptual foundation everything else rests on.
+*Part B — Goal Setup (per pillar):* ACT-guided goal setup for each pillar the user activates. Pre-written goal suggestions are selectable and editable. The ACT check (Attainable, Challenging, Trackable) walks through one question per criterion. A pillar with no goal set remains Dormant. The app encourages activating all five but does not require it.
 
-**Screen 4 — Your Consistency Profile**
-The full 20-question Consistency Profile (5 pillars × 4 questions). Presented one pillar at a time. Framing: "Before we set up anything, let's look at where you already are." The user feels seen, not evaluated.
+**Challenge Start Confirmation** (end of Step 4)
+"Your challenge starts today." Shows the chosen duration ("Your 60-day challenge begins now"), all active pillars and their goals. Writes `challenges` row, sets `user_profile.active_challenge_id`, marks `onboarding_completed = true`. Redirects to `/dashboard`.
 
-**Screen 5 — Your Pillar Portrait**
-The Profile output screen. All five pillars displayed with starting level name and status phrase. Personalized statement honoring strong pillars. Development focus identified. Single agency question: "Which pillar do you most want to develop right now?"
+---
 
-**Screen 6 — Goal Setup (per pillar)**
-ACT-guided goal setup for each active pillar, starting with the pillar the user selected as their development focus. Pre-written goal suggestions are selectable and editable. No blank fields. The ACT check (Attainable, Challenging, Trackable) walks through one question per criterion.
+## Tuning Level — Pillar Card Feature Specification
 
-**Screen 7 — Challenge Start Confirmation**
-"Your challenge starts today." Emotional ceremony with challenge card display showing all active pillars and their goals. The challenge duration is set by the highest-development pillar level present (see Unified Challenge Container).
+This is the most important level to help the user find success. If a user does not show consistency here, they cannot advance.
 
 ### Video Coaching Library (all videos ~60 seconds)
 
