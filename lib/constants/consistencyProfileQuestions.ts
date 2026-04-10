@@ -180,35 +180,36 @@ export const CONSISTENCY_PROFILE_QUESTIONS: PillarQuestions[] = [
     ],
   },
   {
-    pillar: 'missional',
+    pillar: 'relational',
     emoji: '🤝',
-    label: 'Missional',
+    label: 'Relational',
     questions: [
       {
         dimension: 'consistency',
         text: 'How consistent is this practice right now?',
         subText:
-          'How consistently do you take intentional action to invest in, encourage, or serve someone outside your immediate family — right now?',
+          'How consistently do you take intentional action to encourage, serve, or invest in someone outside your immediate family — right now?',
         options: OPTIONS_CONSISTENCY,
       },
       {
         dimension: 'duration',
         text: 'How long have you maintained this practice?',
-        subText: 'How long have you maintained a regular practice of outward, others-focused living?',
+        subText:
+          'How long have you maintained a regular habit of being intentionally present and giving in your relationships?',
         options: OPTIONS_DURATION,
       },
       {
         dimension: 'independence',
         text: 'Does this practice depend on outside structure to continue?',
         subText:
-          'Does your engagement with others depend on a church program, a serve schedule, or an organized event to keep you outwardly focused?',
+          'Does your investment in others depend on a scheduled event, an organized group, or an external commitment to keep you engaged?',
         options: OPTIONS_INDEPENDENCE,
       },
       {
         dimension: 'resilience',
         text: 'What happens to this practice when life gets hard?',
         subText:
-          'When life gets hard — busy seasons, personal difficulty, emotional drain — what happens to your investment in others?',
+          'When life gets hard — busy seasons, personal difficulty, emotional drain — what happens to your intentional investment in the people around you?',
         options: OPTIONS_RESILIENCE,
       },
     ],
