@@ -64,6 +64,8 @@ export interface UserProfile {
   onboarding_completed:          boolean
   // Points to the currently active challenge row; null until onboarding is done
   active_challenge_id:           string | null
+  // Duration the user selected on the onboarding duration screen
+  selected_duration_days:        number | null
   created_at:                    string
   updated_at:                    string
 }

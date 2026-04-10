@@ -3,14 +3,8 @@ import { NextResponse } from 'next/server'
 
 const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
-  '/setup(.*)',
-  '/challenge(.*)',
   '/onboarding(.*)',
-  '/consistency-profile(.*)',
-  '/journey(.*)',
-  '/jamming(.*)',
-  '/grooving(.*)',
-  '/profile(.*)',
+  '/goals(.*)',
 ])
 
 // /dev/* routes are invisible outside development.

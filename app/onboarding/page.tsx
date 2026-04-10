@@ -1,35 +1,60 @@
-import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
-import { getUserProfile, getActiveChallenge, getPillarLevels, getLatestFocusPillar } from '@/app/actions'
-import { resolvePillarStates, getChallengeDuration } from '@/lib/pillar-state'
-import OnboardingFlow from './OnboardingFlow'
+import { auth } from '@clerk/nextjs/server'
+import { createServerSupabaseClient } from '@/lib/supabase'
+import type { UserProfile } from '@/lib/types'
+
+// ─── Onboarding router ────────────────────────────────────────────────────────
+// Reads the four step-gate flags and redirects to the first incomplete step.
+// Each step page also redirects forward when its gate is already true, but
+// this central router means navigating to /onboarding always lands correctly.
 
 export default async function OnboardingPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
-  const [profile, challenge] = await Promise.all([getUserProfile(), getActiveChallenge()])
+  const supabase = createServerSupabaseClient()
 
-  // Must complete Consistency Profile before onboarding
-  if (!profile?.consistency_profile_completed) redirect('/consistency-profile')
+  const { data: profile, error } = await supabase
+    .from('user_profile')
+    .select(
+      'challenge_duration_selected, clarity_videos_seen, consistency_profile_completed, goals_setup_completed, onboarding_completed'
+    )
+    .eq('user_id', userId)
+    .single<
+      Pick<
+        UserProfile,
+        | 'challenge_duration_selected'
+        | 'clarity_videos_seen'
+        | 'consistency_profile_completed'
+        | 'goals_setup_completed'
+        | 'onboarding_completed'
+      >
+    >()
 
-  if (profile?.onboarding_completed) {
-    redirect(challenge?.is_continuous ? '/journey' : '/dashboard')
+  if (error || !profile) {
+    redirect('/onboarding/duration')
   }
 
-  // Determine duration options and focus pillar from the completed Consistency Profile
-  const [pillarLevels, focusPillar] = await Promise.all([
-    getPillarLevels(),
-    getLatestFocusPillar(),
-  ])
+  if (profile.onboarding_completed) {
+    redirect('/dashboard')
+  }
 
-  const pillarStates = resolvePillarStates(pillarLevels)
-  const { options: durationOptions } = getChallengeDuration(pillarStates, pillarLevels)
+  if (!profile.challenge_duration_selected) {
+    redirect('/onboarding/duration')
+  }
 
-  return (
-    <OnboardingFlow
-      durationOptions={durationOptions}
-      focusPillar={focusPillar}
-    />
-  )
+  if (!profile.clarity_videos_seen) {
+    redirect('/onboarding/videos')
+  }
+
+  if (!profile.consistency_profile_completed) {
+    redirect('/onboarding/profile')
+  }
+
+  if (!profile.goals_setup_completed) {
+    redirect('/onboarding/goals')
+  }
+
+  // All steps done but onboarding_completed still false — goals API sets it
+  redirect('/onboarding/goals')
 }
