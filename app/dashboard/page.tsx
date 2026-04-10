@@ -1,44 +1,100 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
-import { getUserConfig, getUserGoals, getEntry, getHistory, getUserProfile } from '@/app/actions'
-import { todayStr } from '@/lib/constants'
-import AppShell from './AppShell'
+import { createServerSupabaseClient } from '@/lib/supabase'
+import { getDayNumber, todayStr } from '@/lib/constants'
+import type { UserProfile, Challenge, PillarLevel, DurationGoal, PillarDailyEntry } from '@/lib/types'
+import DashboardShell from '@/components/dashboard/DashboardShell'
 
-// Always fetch fresh data from Supabase — never serve a cached page
+// Always fetch fresh data — never serve a cached page
 export const dynamic = 'force-dynamic'
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: { today?: string }
-}) {
+export default async function DashboardPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
-  // Level guard: Level 1 users belong in the challenge view, not the tracker.
-  const profile = await getUserProfile()
-  if (profile && !profile.onboarding_completed) redirect('/onboarding')
-  if (profile && profile.current_level === 1) redirect('/challenge')
+  const supabase = createServerSupabaseClient()
 
-  const config = await getUserConfig()
-  if (!config) redirect('/setup')
+  // Fetch user_profile first — need it to gate the rest
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .single<UserProfile>()
 
-  // Use client-provided local date if present; fall back to server UTC date
-  const today = searchParams.today ?? todayStr()
+  if (profileError) {
+    console.error('DashboardPage: failed to load user_profile:', profileError)
+    redirect('/onboarding')
+  }
 
-  const [goals, todayEntry, history] = await Promise.all([
-    getUserGoals(),
-    getEntry(today),
-    getHistory(90),
+  if (!profile?.onboarding_completed) redirect('/onboarding')
+  if (!profile?.active_challenge_id) redirect('/onboarding')
+
+  // Fetch remaining data in parallel
+  const [
+    challengeResult,
+    pillarLevelsResult,
+    durationGoalsResult,
+    todayEntriesResult,
+  ] = await Promise.all([
+    supabase
+      .from('challenges')
+      .select('*')
+      .eq('id', profile.active_challenge_id)
+      .single<Challenge>(),
+
+    supabase
+      .from('pillar_levels')
+      .select('*')
+      .eq('user_id', userId)
+      .returns<PillarLevel[]>(),
+
+    supabase
+      .from('duration_goals')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .returns<DurationGoal[]>(),
+
+    supabase
+      .from('pillar_daily_entries')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('entry_date', todayStr())
+      .returns<PillarDailyEntry[]>(),
   ])
 
+  if (challengeResult.error) {
+    console.error('DashboardPage: failed to load challenge:', challengeResult.error)
+    redirect('/onboarding')
+  }
+
+  const challenge = challengeResult.data
+  if (!challenge) redirect('/onboarding')
+
+  const pillarLevels = pillarLevelsResult.data ?? []
+  const durationGoals = durationGoalsResult.data ?? []
+  const todayEntries = todayEntriesResult.data ?? []
+
+  if (pillarLevelsResult.error) {
+    console.error('DashboardPage: failed to load pillar_levels:', pillarLevelsResult.error)
+  }
+  if (durationGoalsResult.error) {
+    console.error('DashboardPage: failed to load duration_goals:', durationGoalsResult.error)
+  }
+  if (todayEntriesResult.error) {
+    console.error('DashboardPage: failed to load pillar_daily_entries:', todayEntriesResult.error)
+  }
+
+  const currentDay = getDayNumber(challenge.start_date)
+
   return (
-    <AppShell
-      config={config}
-      goals={goals}
-      todayEntry={todayEntry}
-      history={history}
-      today={today}
+    <DashboardShell
+      challenge={challenge}
+      pillarLevels={pillarLevels}
+      durationGoals={durationGoals}
+      todayEntries={todayEntries}
+      currentDay={currentDay}
+      userId={userId}
     />
   )
 }
