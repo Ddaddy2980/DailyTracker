@@ -8,7 +8,7 @@ import HistoryWeekGrid from '@/components/history/HistoryWeekGrid'
 export const dynamic = 'force-dynamic'
 
 interface HistoryPageProps {
-  searchParams: Promise<{ week?: string }>
+  searchParams: { week?: string }
 }
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -68,8 +68,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
 
   // Resolve weekStart from search param — must be a valid Sunday on or after challenge start
   const today = todayStr()
-  const params = await searchParams
-  const rawWeek = params.week
+  const rawWeek = searchParams.week
   const currentWeekStart = getWeekStart(today)
   let weekStart = currentWeekStart
   if (rawWeek && ISO_DATE_RE.test(rawWeek)) {

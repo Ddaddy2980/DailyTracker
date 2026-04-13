@@ -9,7 +9,7 @@ import DashboardShell from '@/components/dashboard/DashboardShell'
 export const dynamic = 'force-dynamic'
 
 interface DashboardPageProps {
-  searchParams: Promise<{ date?: string }>
+  searchParams: { date?: string }
 }
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -79,8 +79,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   // Resolve viewingDate from search param — must be a valid date within the challenge window
   const today = todayStr()
-  const params = await searchParams
-  const rawDate = params.date
+  const rawDate = searchParams.date
   let viewingDate = today
   if (rawDate && ISO_DATE_RE.test(rawDate) && rawDate >= challenge.start_date && rawDate <= today) {
     viewingDate = rawDate
