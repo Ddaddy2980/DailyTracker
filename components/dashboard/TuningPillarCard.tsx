@@ -1,28 +1,62 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { PILLAR_CONFIG, LEVEL_NAMES } from '@/lib/constants'
-import type { PillarLevel, DurationGoal, PillarDailyEntry, GoalCompletions } from '@/lib/types'
+import { PILLAR_CONFIG, LEVEL_NAMES, rollingWindowDates } from '@/lib/constants'
+import type { PillarLevel, DurationGoal, PillarDailyEntry, GoalCompletions, DayMark, LevelNumber } from '@/lib/types'
 
-interface PillarCardProps {
+interface CheckinApiResponse {
+  success: boolean
+  completed: boolean
+  advanced: boolean
+  newLevel: LevelNumber | null
+}
+
+interface TuningPillarCardProps {
   pillarLevel: PillarLevel
   goals: DurationGoal[]
   todayEntry: PillarDailyEntry | null
+  windowEntries: PillarDailyEntry[]
   challengeId: string
+  challengeStartDate: string
   userId: string
   entryDate: string
 }
 
-export default function PillarCard({
+function buildDots(
+  windowEntries: PillarDailyEntry[],
+  challengeStartDate: string,
+  isCompletedToday: boolean,
+  entryDate: string,
+): DayMark[] {
+  const dates = rollingWindowDates(7, entryDate)
+  const lastDate = dates[dates.length - 1]
+
+  return dates.map((date) => {
+    // Days before the challenge started are not applicable
+    if (date < challengeStartDate) return 'future'
+
+    // Optimistic update: mark the viewing date as completed if all goals are checked
+    if (date === lastDate && isCompletedToday) return 'completed'
+
+    const entry = windowEntries.find((e) => e.entry_date === date)
+    return entry?.completed === true ? 'completed' : 'missed'
+  })
+}
+
+export default function TuningPillarCard({
   pillarLevel,
   goals,
   todayEntry,
+  windowEntries,
   challengeId,
+  challengeStartDate,
   entryDate,
-}: PillarCardProps) {
+}: TuningPillarCardProps) {
   const { pillar, level } = pillarLevel
   const config = PILLAR_CONFIG[pillar]
+  const router = useRouter()
 
   const [isOpen, setIsOpen] = useState(false)
   const [completions, setCompletions] = useState<GoalCompletions>(() => {
@@ -30,9 +64,14 @@ export default function PillarCard({
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [advancedToLevel, setAdvancedToLevel] = useState<LevelNumber | null>(null)
 
   const isCompletedToday =
     goals.length > 0 && goals.every((g) => completions[g.id] === true)
+
+  const dots = buildDots(windowEntries, challengeStartDate, isCompletedToday, entryDate)
+  const completedInWindow = dots.filter((d) => d === 'completed').length
+  const applicableDays = dots.filter((d) => d !== 'future').length
 
   function toggleGoal(goalId: string) {
     setCompletions((prev) => ({ ...prev, [goalId]: !prev[goalId] }))
@@ -40,7 +79,7 @@ export default function PillarCard({
 
   async function handleSave() {
     setSaving(true)
-    await fetch('/api/checkin', {
+    const res = await fetch('/api/checkin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -50,10 +89,17 @@ export default function PillarCard({
         entry_date: entryDate,
       }),
     })
+    const data = (await res.json()) as CheckinApiResponse
     setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-    setIsOpen(false)
+
+    if (data.advanced && data.newLevel) {
+      setAdvancedToLevel(data.newLevel)
+      setTimeout(() => router.refresh(), 2500)
+    } else {
+      setSaved(true)
+      setIsOpen(false)
+      setTimeout(() => setSaved(false), 2000)
+    }
   }
 
   const saveLabel = saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'
@@ -111,6 +157,19 @@ export default function PillarCard({
           style={{ backgroundColor: config.background }}
         >
           <div className="border-t mt-0 pt-3" style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
+            {/* Advancement toast — replaces content when level-up fires */}
+            {advancedToLevel !== null ? (
+              <div className="py-4 text-center">
+                <p className="font-semibold mb-1" style={{ color: config.title }}>
+                  You&apos;ve advanced to {LEVEL_NAMES[advancedToLevel]}!
+                </p>
+                <p className="text-sm" style={{ color: config.subtitle }}>
+                  Your dashboard is updating…
+                </p>
+              </div>
+            ) : (
+            <>
+            {/* Duration goals */}
             {goals.length === 0 ? (
               <p className="text-sm italic mb-3" style={{ color: config.subtitle }}>
                 No duration goals set yet.
@@ -138,6 +197,40 @@ export default function PillarCard({
               </ul>
             )}
 
+            {/* 7-day rolling window dot visualization */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-medium" style={{ color: config.subtitle }}>
+                  Last 7 days
+                </span>
+                <span className="text-xs" style={{ color: config.subtitle }}>
+                  {completedInWindow} of {applicableDays}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                {dots.map((mark, i) => (
+                  <span
+                    key={i}
+                    className="w-5 h-5 rounded-full flex-shrink-0"
+                    style={
+                      mark === 'completed'
+                        ? { backgroundColor: config.title }
+                        : mark === 'missed'
+                        ? {
+                            backgroundColor: 'transparent',
+                            border: `2px solid ${config.subtitle}`,
+                          }
+                        : {
+                            backgroundColor: 'transparent',
+                            border: `2px solid ${config.subtitle}`,
+                            opacity: 0.25,
+                          }
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+
             <button
               type="button"
               onClick={handleSave}
@@ -147,13 +240,8 @@ export default function PillarCard({
             >
               {saveLabel}
             </button>
-
-            <p
-              className="text-xs italic mt-2 text-center"
-              style={{ color: config.subtitle }}
-            >
-              Level progress tracker coming in next phase
-            </p>
+            </>
+            )}
           </div>
         </div>
       )}

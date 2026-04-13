@@ -42,7 +42,9 @@ export type OnboardingStep =
   | 'complete'   // onboarding_completed
 
 // Per-goal completion map — stored as JSONB in pillar_daily_entries.goal_completions
-// Keys are duration_goal UUIDs, values are completion booleans
+// Keys are goal UUIDs (duration_goal or destination_goal), values are completion booleans.
+// The `completed` boolean on the entry row is derived from duration goals only —
+// destination goal keys in this map are stored for history but never affect `completed`.
 export type GoalCompletions = Record<string, boolean>
 
 // Status of a single day mark in the rolling window visualization inside a pillar card

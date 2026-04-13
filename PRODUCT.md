@@ -245,7 +245,7 @@ At any point in a challenge, each pillar exists in one of four operating states.
 Closed card state displays:
 
 Pillar icon and name
-Operating state (Anchored / Developing / Building / Dormant)
+Operating level (Tuning / Jamming / Grooving / Soloing / Orchestrating) — if pillar is dormant, show "Dormant"
 Duration goal count only ("2 active goals" — duration goals only, never destination goals)
 Consistency gauge
 Down chevron indicating expandable
@@ -258,6 +258,33 @@ Save button at bottom of open card
 Tapping Save commits all check-ins for this pillar and closes the card
 
 There is no Edit button on the pillar card. Goal management (adding, editing, releasing duration goals and destination goals) is handled from the Goals tab.
+
+### The Goals Page
+
+The Goals page is accessible from the main navigation tab (not buried in settings). It is the only place users manage their goals mid-challenge. The dashboard pillar card is check-in only — no goal editing there.
+
+**Layout:**
+One card per active pillar, stacked vertically. Each card shows the pillar name, current level, and the user's current duration goals. Grooving+ cards also show destination goals below a visual divider.
+
+**Adding a duration goal:**
+Tapping "Add goal" opens an input row. The user types the goal text, then must confirm three ACT checkboxes before saving:
+- **A — Attainable**: the goal is physically possible on any given day
+- **C — Challenging**: the goal requires intentional effort
+- **T — Trackable**: the user can clearly determine at end of day whether they did it or not
+
+All three must be checked before the "Add Goal" button activates. The save cap for the user's current level is enforced — the "Add goal" button is hidden when the cap is reached.
+
+**Goal suggestions:**
+A collapsible suggestions list appears below the input. These are pre-written ACT-compliant suggestions for each pillar. Tapping a suggestion populates the text field and auto-checks the ACT boxes. The user can still edit the text after selecting.
+
+**Removing a duration goal:**
+A remove control appears next to each existing goal. Removing soft-deletes the goal (`is_active = false`) — the goal row is hidden from the UI but preserved in the database so rolling window history remains accurate. At least one duration goal must remain active for a pillar to stay active.
+
+**Destination goals (Grooving and Soloing only):**
+Below a visual divider: user can add, edit, or release destination goals. Release sets `status = 'released'` (not deleted). Cap enforced per level (3 for Grooving, unlimited for Soloing).
+
+**Onboarding goal setup:**
+During onboarding, all five pillars are shown. The user sets one duration goal per pillar they want to activate (or leaves it dormant). There is no ACT checklist in onboarding — goal entry is simpler. Destination goals are not available in onboarding. A note appears on any Grooving-level pillar: *"Destination goals can be added once you begin your journey."* All goals are saved as a batch when the user taps "Start My Challenge →" — no per-goal API calls during onboarding.
 
 ### The Unified Challenge Container
 
@@ -274,7 +301,7 @@ The app uses a single Unified Challenge Container for every user. One challenge,
 
 ### Daily Check-In Adaptation (Multi-Level Users)
 
-- **Anchored pillars:** Compact, muted card. Single tap confirmation. No coaching content.
+- **Anchored pillars:** Full check-in card. Goal-by-goal confirmation. No coaching content.
 - **Developing pillars:** Full check-in card. Goal-by-goal confirmation. Optional reflection sentence. Appropriate to the pillar's level.
 - **Building pillars (Tuning):** Prominent, celebratory card with gamification and streak visual.
 
@@ -292,7 +319,7 @@ The Steering Mechanism is the set of features that keeps the five-pillar vision 
 ### The Five-Pillar Dashboard
 
 Available from the beginning of every challenge. A primary navigation item — not buried in settings. Shows:
-- Each pillar card with its current level name, operating state (Anchored / Developing / Building / Dormant), and its Consistency Gauge
+- Each pillar card with its current operating level (Tuning / Jamming / Grooving / Soloing / Orchestrating), and its Consistency Gauge
 - Dormant pillars in muted state with quiet invitation: *"This pillar is waiting."*
 - The Life on Purpose Score — only shown when all five pillars are active (see below)
 
@@ -424,7 +451,7 @@ Advancement is evaluated on every pillar save and takes effect immediately when 
 
 ### Level 4 — Soloing
 
-- **Duration goals for this pillar:** 2–4 goals (max)
+- **Duration goals for this pillar:** 1–4 goals (max)
 - **Destination goals:** Unlimited per pillar
 - **Experience:** The habit is proven and rooted. Coaching shifts to stewardship — maintaining, refining, and building from strength.
 - **Advancement criteria:** N/A — Soloing is the current ceiling level
@@ -638,42 +665,23 @@ Grooving is the first level where survival is no longer the question. The coachi
 
 **The Core Coaching Message for Grooving:** "You are no longer building a habit. You are becoming a person who has these habits. That is a different thing entirely."
 
+### How a User Enters Grooving
+
+A user enters Grooving by one of two means:
+
+1. **Via Consistency Profile** — Their profile score for this pillar places them at Level 3 at the start of their challenge. They begin in Grooving immediately.
+2. **By completing Jamming** — Their rolling 14-day window for this pillar hits 10 of 14 completions. Advancement fires automatically on the next check-in save.
+
+There is no separate Grooving challenge or onboarding flow. The user is already inside their unified challenge container. The pillar advances within that container.
+
 ### Jamming → Grooving Transition Experience
 
-Trigger: Fires when a 14-day Jamming challenge is marked complete for this pillar.
+When a pillar advances from Jamming to Grooving mid-challenge:
 
-- **Path A users** (came through Tuning): 21 total days in app for this pillar at time of Grooving invitation.
-- **Path B users** (entered via Consistency Profile): 14 total days in app for this pillar at time of Grooving invitation. The app acknowledges this: *"You came in with a foundation already built. You've now proven it in the app. Grooving is where it goes deeper."*
-
-1. Full Jamming completion celebration screen — Jamming badge alongside Tuning badge.
-2. **"What changed?" reflection prompt** — "In one sentence — what is different about you since you started Tuning?" Saved and shown back at key moments.
-3. **Grooving invitation card** — Challenge length choice: 30, 50, or 66 days. "30 days if you want a strong win. 50 days to go deeper. 66 days if you're ready to make this permanent."
-4. **Carry-forward of Jamming goals** — All proven goals pre-populated. User reviews and confirms.
-
-### Grooving Onboarding Flow (3 screens)
-
-**Screen 1 — Challenge length and pillar selection**
-- 30, 50, 66-day options. Introduce full five-pillar access for the first time, including the Relational pillar. ACT check for new goals: one question only.
-
-**Screen 2 — The 25/5 Focus Exercise**
-- Full exercise: write 25 things to accomplish in the next 2–5 years, circle and rank top 5.
-- Top 5 saved to profile. Reference point for destination goal introduction later.
-- Optional but strongly encouraged.
-
-**Screen 3 — Introducing the Grooving Circle**
-- Up to 5 people who receive weekly consistency summary.
-- Members see: days completed per pillar, current streak, one optional reflection sentence.
-- Members do NOT see: individual goals, pulse state, personal notes.
-- Optional but presented as the strongest predictor of Grooving completion.
-
-### The Habit Calendar
-
-- Grid view of every day in the challenge, color-coded by completion state: full, partial, missed, future
-- Each pillar has its own color lane within the day cell
-- Clicking any completed day shows goals and reflection for that day
-- "Your strongest pillar" and "most consistent day of the week" calculated and displayed
-- Pattern insight at Week 4: "You've missed [day] three weeks in a row. Want to adjust your goal for that day?"
-- Accessible as a primary navigation item — not buried
+- A welcome moment fires inside the dashboard acknowledging the advancement.
+- The user is told they can now add **additional duration goals** (up to 3 for this pillar) and **destination goals** (up to 3 for this pillar).
+- A short video explains what Grooving means and how destination goals work. *(Video content TBD — deferred until recording is complete.)*
+- No challenge restart. No new challenge length selection. The existing challenge continues.
 
 ### The "Habit Taken Root" Milestone — Day 40–50
 
@@ -879,7 +887,7 @@ The goal is witnessed consistency, not performance or competition. The moment th
 id (uuid, PK)
 name (text) — group name set by creator, max 30 characters
 created_by (text) — Clerk user_id of creator
-invite_code (text, unique) — short alphanumeric code e.g. 'GRACE-7F2K'
+invite_code (text, unique) — short alphanumeric code e.g. 'GROUP-7F2K'
 invite_url_enabled (boolean, default true) — whether the deep-link invite URL is active
 max_members (integer, default 12)
 created_at (timestamptz)

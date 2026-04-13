@@ -55,15 +55,19 @@ Read this file at the start of every session along with PRODUCT.md and CLAUDE.lo
 
 /components
   /ui                     — reusable UI primitives (buttons, cards, inputs, checkboxes)
-  /dashboard              — dashboard shell and header components
+  /dashboard              — dashboard shell, header, and all pillar card components
+                            (TuningPillarCard, JammingPillarCard, GroovingPillarCard,
+                             SoloingPillarCard, DormantPillarCard, PillarCard fallback)
+  /goals                  — goal management components shared across onboarding and mid-challenge
+                            (GoalEditorCard, GoalInputRow, ACTChecklist, GoalSuggestions)
   /onboarding             — onboarding step components
-  /pillar-cards           — pillar card components (one per level: Tuning, Jamming, Grooving, Soloing)
   /shared                 — components used across multiple features
 
 /lib
   /supabase.ts            — Supabase client singleton
   /types.ts               — all TypeScript interfaces and types
-  /constants.ts           — app-wide constants (PILLAR_CONFIG, level thresholds, goal caps)
+  /constants.ts           — app-wide constants (PILLAR_CONFIG, level thresholds, goal caps,
+                            DURATION_GOAL_SUGGESTIONS per pillar for ACT-compliant goal ideas)
   /utils.ts               — shared utility functions
   /rolling-window.ts      — rolling window advancement calculation logic
 
@@ -142,7 +146,7 @@ if (error) {
 | `pillar_levels` | user_id, pillar, level (1–4), is_active, profile_score |
 | `duration_goals` | user_id, pillar, goal_text, is_active |
 | `destination_goals` | user_id, pillar, goal_text, status, start_date, end_date |
-| `pillar_daily_entries` | user_id, challenge_id, pillar, entry_date, completed, goal_completions (jsonb) |
+| `pillar_daily_entries` | user_id, challenge_id, pillar, entry_date, completed, goal_completions (jsonb — stores both duration and destination goal UUID keys) |
 | `consistency_profile_sessions` | user_id, five pillar scores (0–12 each), is_reassessment |
 
 ---

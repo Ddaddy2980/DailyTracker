@@ -216,6 +216,53 @@ export function destinationGoalCapReached(
 
 
 // =============================================================================
+// DURATION_GOAL_SUGGESTIONS
+// Pre-written ACT-compliant goal suggestions shown per pillar in GoalSuggestions.
+// Tap a suggestion to fill the goal input and auto-check all three ACT boxes.
+// Relational suggestions use Think ONE / Four B's framing — no missional language.
+// Replace placeholder copy with final copy before launch.
+// =============================================================================
+
+export const DURATION_GOAL_SUGGESTIONS: Record<PillarName, string[]> = {
+  spiritual: [
+    'Read scripture for 10 minutes',
+    'Spend 10 minutes in prayer',
+    'Write one thing I am grateful to God for',
+    'Meditate on a verse for 5 minutes',
+    'Listen to a worship song with full intention',
+  ],
+  physical: [
+    'Complete a 20-minute workout',
+    'Walk for 30 minutes',
+    'Do 10 minutes of stretching or mobility work',
+    'Complete a bodyweight strength routine',
+    'Do any active movement for at least 20 minutes',
+  ],
+  nutritional: [
+    'Eat a whole-food breakfast',
+    'Drink 8 glasses of water',
+    'Eat at least 3 servings of vegetables',
+    'Avoid added sugar for the day',
+    'Prepare at least one home-cooked meal',
+  ],
+  personal: [
+    'Read for 20 minutes',
+    'Spend 15 minutes on a personal development skill',
+    'Write in a journal for 10 minutes',
+    'Review and prioritize my top 3 tasks for the day',
+    'Spend 10 minutes learning something new',
+  ],
+  relational: [
+    'Have a meaningful conversation with someone I care about',
+    'Send an encouraging message to a friend or family member',
+    'Be fully present with my family for 30 minutes — no phone',
+    'Pray intentionally for one person in my life today',
+    'Look for one opportunity to serve or encourage someone today',
+  ],
+}
+
+
+// =============================================================================
 // CLARITY_VIDEOS
 // Three onboarding videos shown on the clarity screen (/onboarding/videos).
 // One screen, three video boxes. Watchable in any order. Skippable.
@@ -295,4 +342,12 @@ export function rollingWindowDates(windowDays: number, endDate?: string): string
 export function calcDailyCompletionPct(completedCount: number, activeCount: number): number {
   if (activeCount === 0) return 0
   return Math.round((completedCount / activeCount) * 100)
+}
+
+// Returns the Sunday of the week containing dateStr, as YYYY-MM-DD.
+// Used to anchor week grid navigation.
+export function getWeekStart(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  d.setDate(d.getDate() - d.getDay()) // rewind to Sunday
+  return new Intl.DateTimeFormat('en-CA').format(d)
 }

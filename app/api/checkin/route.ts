@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { PILLAR_ORDER, todayStr } from '@/lib/constants'
-import type { DurationGoal, GoalCompletions } from '@/lib/types'
+import { PILLAR_ORDER, todayStr, rollingWindowDates } from '@/lib/constants'
+import { evaluateRollingWindow } from '@/lib/rolling-window'
+import type { DurationGoal, GoalCompletions, PillarDailyEntry, PillarLevel, LevelNumber } from '@/lib/types'
 
 interface CheckinRequestBody {
   pillar: unknown
   challengeId: unknown
   goalCompletions: unknown
+  entry_date?: unknown
 }
 
 export async function POST(request: NextRequest) {
@@ -23,7 +25,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { pillar, challengeId, goalCompletions } = body
+  const { pillar, challengeId, goalCompletions, entry_date } = body
+
+  // Validate optional entry_date
+  const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+  if (entry_date !== undefined && (typeof entry_date !== 'string' || !ISO_DATE_RE.test(entry_date))) {
+    return NextResponse.json({ error: 'Invalid entry_date' }, { status: 400 })
+  }
+  const effectiveDate: string = (typeof entry_date === 'string' ? entry_date : null) ?? todayStr()
 
   // Validate pillar
   if (typeof pillar !== 'string' || !PILLAR_ORDER.includes(pillar as (typeof PILLAR_ORDER)[number])) {
@@ -51,6 +60,7 @@ export async function POST(request: NextRequest) {
   }
 
   const typedGoalCompletions = goalCompletions as GoalCompletions
+  const typedPillar = pillar as (typeof PILLAR_ORDER)[number]
 
   const supabase = createServerSupabaseClient()
 
@@ -59,7 +69,7 @@ export async function POST(request: NextRequest) {
     .from('duration_goals')
     .select('id')
     .eq('user_id', userId)
-    .eq('pillar', pillar)
+    .eq('pillar', typedPillar)
     .eq('is_active', true)
     .returns<Pick<DurationGoal, 'id'>[]>()
 
@@ -70,7 +80,7 @@ export async function POST(request: NextRequest) {
 
   const goals = activeGoals ?? []
 
-  // completed = true only when every active goal is checked
+  // completed = true only when every active duration goal is checked
   const completed =
     goals.length > 0 &&
     goals.every((g) => typedGoalCompletions[g.id] === true)
@@ -81,8 +91,8 @@ export async function POST(request: NextRequest) {
       {
         user_id:          userId,
         challenge_id:     challengeId,
-        pillar,
-        entry_date:       todayStr(),
+        pillar:           typedPillar,
+        entry_date:       effectiveDate,
         completed,
         goal_completions: typedGoalCompletions,
       },
@@ -94,5 +104,67 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to save check-in' }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true, completed })
+  // Only evaluate advancement when the pillar was fully completed on today's date.
+  // Retroactive edits to past days do not trigger level-up.
+  if (!completed || effectiveDate !== todayStr()) {
+    return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
+  }
+
+  // Fetch current pillar level and last 60 days of entries in parallel.
+  // 60 days covers the largest rolling window (Grooving → Soloing).
+  // evaluateRollingWindow filters internally to the correct window for the level.
+  const windowStart = rollingWindowDates(60)[0]
+
+  const [levelResult, entriesResult] = await Promise.all([
+    supabase
+      .from('pillar_levels')
+      .select('level')
+      .eq('user_id', userId)
+      .eq('pillar', typedPillar)
+      .single<Pick<PillarLevel, 'level'>>(),
+
+    supabase
+      .from('pillar_daily_entries')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('pillar', typedPillar)
+      .gte('entry_date', windowStart)
+      .lte('entry_date', todayStr())
+      .returns<PillarDailyEntry[]>(),
+  ])
+
+  if (levelResult.error) {
+    console.error('checkin: failed to load pillar_levels for advancement check:', levelResult.error)
+    // Non-fatal — entry was already saved; return success without advancement
+    return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
+  }
+
+  const currentLevel = levelResult.data.level as LevelNumber
+  const entries = entriesResult.data ?? []
+
+  const result = evaluateRollingWindow(entries, currentLevel, typedPillar)
+
+  if (!result.shouldAdvance || result.nextLevel === null) {
+    return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
+  }
+
+  // Advance the pillar level
+  const { error: advanceError } = await supabase
+    .from('pillar_levels')
+    .update({ level: result.nextLevel })
+    .eq('user_id', userId)
+    .eq('pillar', typedPillar)
+
+  if (advanceError) {
+    console.error('checkin: failed to advance pillar level:', advanceError)
+    // Non-fatal — entry was saved; report no advancement rather than erroring
+    return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
+  }
+
+  return NextResponse.json({
+    success:   true,
+    completed,
+    advanced:  true,
+    newLevel:  result.nextLevel,
+  })
 }
