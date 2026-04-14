@@ -104,11 +104,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to save check-in' }, { status: 500 })
   }
 
-  // Only evaluate advancement when the pillar was fully completed on today's date.
-  // Retroactive edits to past days do not trigger level-up.
+  // Only evaluate advancement and sync group status for today's completions.
+  // Retroactive edits to past days do not trigger level-up or group sync.
   if (!completed || effectiveDate !== todayStr()) {
     return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
   }
+
+  // Sync group daily status — non-blocking, non-fatal
+  void syncGroupDailyStatus(userId, effectiveDate)
 
   // Fetch current pillar level and last 60 days of entries in parallel.
   // 60 days covers the largest rolling window (Grooving → Soloing).
@@ -167,4 +170,61 @@ export async function POST(request: NextRequest) {
     advanced:  true,
     newLevel:  result.nextLevel,
   })
+}
+
+// ---------------------------------------------------------------------------
+// syncGroupDailyStatus
+// Called after a successful today's pillar save when completed = true.
+// Finds all active groups this user belongs to and upserts a completed = true
+// row in group_daily_status for each. Non-fatal — errors are logged only.
+// ---------------------------------------------------------------------------
+async function syncGroupDailyStatus(userId: string, today: string): Promise<void> {
+  const supabase = createServerSupabaseClient()
+
+  // Get all active group memberships for this user where the group is active
+  const { data: memberships, error: membershipError } = await supabase
+    .from('group_members')
+    .select('group_id')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .returns<{ group_id: string }[]>()
+
+  if (membershipError || !memberships || memberships.length === 0) {
+    if (membershipError) {
+      console.error('checkin: group status sync — failed to fetch memberships:', membershipError)
+    }
+    return
+  }
+
+  const groupIds = memberships.map((m) => m.group_id)
+
+  // Only sync to groups with status = 'active' (not paused/archived)
+  const { data: activeGroups, error: groupsError } = await supabase
+    .from('consistency_groups')
+    .select('id')
+    .in('id', groupIds)
+    .eq('status', 'active')
+    .returns<{ id: string }[]>()
+
+  if (groupsError || !activeGroups || activeGroups.length === 0) {
+    if (groupsError) {
+      console.error('checkin: group status sync — failed to fetch active groups:', groupsError)
+    }
+    return
+  }
+
+  const rows = activeGroups.map((g) => ({
+    group_id:    g.id,
+    user_id:     userId,
+    status_date: today,
+    completed:   true,
+  }))
+
+  const { error: upsertError } = await supabase
+    .from('group_daily_status')
+    .upsert(rows, { onConflict: 'group_id,user_id,status_date' })
+
+  if (upsertError) {
+    console.error('checkin: group status sync — failed to upsert group_daily_status:', upsertError)
+  }
 }

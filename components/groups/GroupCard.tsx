@@ -1,160 +1,151 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import type { GroupWithMembers } from '@/lib/types'
-import { clearJoinNotification, markFullGroupDayNotified } from '@/app/actions-groups'
-import { todayStr } from '@/lib/constants'
-import GroupMemberRow from './GroupMemberRow'
+import { useState } from 'react'
+import type { GroupWithDetails } from '@/lib/types'
+import GroupManageSheet from './GroupManageSheet'
 
-interface Props {
-  group:          GroupWithMembers
-  onManage:       () => void   // opens the manage sheet (Step 16f)
+interface GroupCardProps {
+  group: GroupWithDetails
+  currentUserId: string
+  onRefresh: (groupId: string) => void
+  onDeleted: (groupId: string) => void
 }
 
-export default function GroupCard({ group, onManage }: Props) {
-  // Grace period: 'none' status is hidden before 9 pm local time for other members
-  const [isAfterGracePeriod, setIsAfterGracePeriod] = useState(false)
-  const [copied, setCopied] = useState(false)
+export default function GroupCard({
+  group,
+  currentUserId,
+  onRefresh,
+  onDeleted,
+}: GroupCardProps) {
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [copyLabel, setCopyLabel] = useState('Copy')
 
-  // ── Join notification banner (creator only) ───────────────────────────────
-  const isCreator = group.members.find(m => m.isCurrentUser)?.user_id === group.created_by
-  const showJoinBanner =
-    isCreator &&
-    !!group.pendingJoinNotification &&
-    group.pendingJoinNotification.seenAt === null
-  const [joinBannerDismissed, setJoinBannerDismissed] = useState(false)
+  const isCreator = group.user_id === currentUserId
 
-  function handleDismissJoinBanner() {
-    setJoinBannerDismissed(true)
-    void clearJoinNotification(group.id)
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(group.invite_code)
+      setCopyLabel('Copied!')
+      setTimeout(() => setCopyLabel('Copy'), 2000)
+    } catch {
+      // Fallback: do nothing silently
+    }
   }
 
-  // ── Full-group-day banner (all members) ──────────────────────────────────
-  const today            = todayStr()
-  const flags            = group.group_daily_flags
-  const showFullGroupDay =
-    !!flags &&
-    flags.date === today &&
-    !flags.notified
-
-  // Fire-and-forget: mark as notified once on first render so it never repeats
-  useEffect(() => {
-    if (showFullGroupDay) {
-      void markFullGroupDayNotified(group.id)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showFullGroupDay, group.id])
-
-  useEffect(() => {
-    function checkTime() {
-      setIsAfterGracePeriod(new Date().getHours() >= 21)
-    }
-    checkTime()
-    // Re-evaluate every minute so the state flips live at 9 pm
-    const id = setInterval(checkTime, 60_000)
-    return () => clearInterval(id)
-  }, [])
-
-  function handleCopyCode() {
-    void navigator.clipboard.writeText(group.invite_code)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  const activeCount = group.members.filter(m => m.active).length
-  const fullToday   = group.members.every(
-    m => m.todayStatus?.completion_status === 'full'
-  )
+  // Sort: current user first, rest alphabetical
+  const sorted = [...group.members].sort((a, b) => {
+    if (a.user_id === currentUserId) return -1
+    if (b.user_id === currentUserId) return 1
+    return a.display_name.localeCompare(b.display_name)
+  })
 
   return (
-    <div className="bg-white border border-[var(--card-border)] rounded-2xl overflow-hidden">
+    <>
+      <div className="bg-[#1C2333] rounded-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-3">
+          <div>
+            <p className="text-white font-bold text-base leading-tight">{group.name}</p>
+            <p className="text-slate-400 text-xs mt-0.5">
+              {group.member_count} {group.member_count === 1 ? 'member' : 'members'}
+            </p>
+          </div>
 
-      {/* Header */}
-      <div className="flex items-start justify-between px-4 pt-4 pb-3 border-b border-[var(--card-border)]">
-        <div className="space-y-0.5 min-w-0">
-          <p className="text-[var(--text-primary)] font-bold text-sm truncate">{group.name}</p>
-          <p className="text-[var(--text-secondary)] text-xs">{activeCount} member{activeCount !== 1 ? 's' : ''}</p>
+          <div className="flex items-center gap-2">
+            {/* Invite code pill */}
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 bg-[#2A3347] px-3 py-1.5 rounded-lg"
+            >
+              <span className="text-white font-mono font-bold text-sm tracking-widest">
+                {group.invite_code}
+              </span>
+              <span className="text-slate-400 text-xs">{copyLabel}</span>
+            </button>
+
+            {/* Manage button */}
+            <button
+              onClick={() => setSheetOpen(true)}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#2A3347] text-slate-300 hover:text-white"
+              aria-label="Manage group"
+            >
+              <span className="text-lg leading-none">···</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 ml-3">
-          {/* Invite code pill + copy */}
-          <button
-            onClick={handleCopyCode}
-            className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200
-              rounded-lg px-2.5 py-1 transition-colors"
-            title="Copy invite code"
-          >
-            <span className="text-xs font-mono font-bold text-[var(--text-primary)] tracking-wider">
-              {group.invite_code}
-            </span>
-            <span className="text-[var(--text-muted)] text-xs">{copied ? '✓' : '⎘'}</span>
-          </button>
+        {/* Divider */}
+        <div className="h-px bg-[#2A3347] mx-4" />
 
-          {/* Manage button */}
-          <button
-            onClick={onManage}
-            className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] text-sm transition-colors px-1"
-            title="Manage group"
-          >
-            ···
-          </button>
+        {/* Member rows */}
+        <div className="px-4 py-2">
+          {sorted.length === 0 ? (
+            <p className="text-slate-500 text-sm py-2">No members yet.</p>
+          ) : (
+            sorted.map((member) => {
+              const isMe = member.user_id === currentUserId
+              return (
+                <div
+                  key={member.user_id}
+                  className={`flex items-center justify-between py-2.5 ${
+                    isMe ? 'opacity-100' : 'opacity-90'
+                  }`}
+                >
+                  <span
+                    className={`text-sm ${
+                      isMe ? 'text-white font-medium' : 'text-slate-300'
+                    }`}
+                  >
+                    {member.display_name}
+                    {isMe && (
+                      <span className="ml-2 text-xs text-slate-500 font-normal">You</span>
+                    )}
+                  </span>
+
+                  {/* Check-in circle */}
+                  <div
+                    className={`w-5 h-5 rounded-full border-2 transition-colors ${
+                      member.completed_today
+                        ? 'bg-emerald-500 border-emerald-500'
+                        : 'bg-transparent border-slate-600'
+                    }`}
+                  />
+                </div>
+              )
+            })
+          )}
         </div>
+
+        {/* Waiting state when only 1 member */}
+        {group.member_count === 1 && (
+          <div className="px-4 pb-4 pt-1">
+            <p className="text-slate-500 text-xs">
+              Share your code to invite others.
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* ── Join notification banner (creator only, dismissible) ─────────── */}
-      {showJoinBanner && !joinBannerDismissed && group.pendingJoinNotification && (
-        <div className="bg-violet-50 border-b border-violet-100 px-4 py-2.5
-          flex items-center justify-between gap-3">
-          <p className="text-violet-700 text-xs font-semibold leading-snug">
-            {group.pendingJoinNotification.memberName} just joined {group.pendingJoinNotification.groupName}.
-          </p>
-          <button
-            onClick={handleDismissJoinBanner}
-            className="text-violet-400 hover:text-violet-600 text-sm shrink-0 transition-colors"
-            aria-label="Dismiss"
-          >
-            ×
-          </button>
-        </div>
+      {sheetOpen && (
+        <GroupManageSheet
+          group={group}
+          currentUserId={currentUserId}
+          isCreator={isCreator}
+          onClose={() => setSheetOpen(false)}
+          onRefresh={() => {
+            setSheetOpen(false)
+            onRefresh(group.id)
+          }}
+          onDeleted={() => {
+            setSheetOpen(false)
+            onDeleted(group.id)
+          }}
+          onLeft={() => {
+            setSheetOpen(false)
+            onDeleted(group.id)
+          }}
+        />
       )}
-
-      {/* ── Full-group-day celebration banner (all members, auto-dismisses) ─ */}
-      {showFullGroupDay && (
-        <div className="bg-emerald-50 border-b border-emerald-100 px-4 py-2.5">
-          <p className="text-emerald-600 text-xs font-bold text-center tracking-wide">
-            🎉 Everyone in {group.name} showed up today. That&apos;s a full group day.
-          </p>
-        </div>
-      )}
-
-      {/* Full-group celebration banner (existing — driven by live member status) */}
-      {fullToday && group.members.length > 1 && (
-        <div className="bg-emerald-50 border-b border-emerald-100 px-4 py-2">
-          <p className="text-emerald-600 text-xs font-bold text-center tracking-wide">
-            🎉 Full group day — everyone showed up
-          </p>
-        </div>
-      )}
-
-      {/* Member list */}
-      <div className="px-1 py-1 divide-y divide-slate-100">
-        {group.members.map(member => (
-          <GroupMemberRow
-            key={member.id}
-            member={member}
-            isAfterGracePeriod={isAfterGracePeriod}
-          />
-        ))}
-      </div>
-
-      {/* Column labels — only shown when there are other members */}
-      {group.members.length > 1 && (
-        <div className="flex items-center gap-3 px-4 pb-2.5 pt-0">
-          <span className="flex-1" />
-          <span className="text-[var(--text-muted)] text-xs w-5 text-center">today</span>
-        </div>
-      )}
-
-    </div>
+    </>
   )
 }

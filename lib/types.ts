@@ -201,3 +201,44 @@ export interface VideoEntry {
   module:  VideoModule
   trigger: string        // logical trigger name for wiring
 }
+
+
+// =============================================================================
+// Groups — Phase 5
+// Tables: consistency_groups, group_members, group_daily_status
+// =============================================================================
+
+export type GroupStatus = 'active' | 'paused' | 'archived'
+
+export interface ConsistencyGroup {
+  id:          string
+  user_id:     string       // Clerk user_id of the creator (owner)
+  name:        string
+  invite_code: string       // 5-char alphanumeric, generated app-side
+  max_members: number       // default 10
+  status:      GroupStatus
+  created_at:  string
+}
+
+export interface GroupMember {
+  id:           string
+  group_id:     string
+  user_id:      string      // Clerk user_id
+  display_name: string      // full name from Clerk, captured at join time
+  joined_at:    string
+  is_active:    boolean     // false = left or removed
+}
+
+export interface GroupDailyStatus {
+  id:          string
+  group_id:    string
+  user_id:     string
+  status_date: string       // ISO date YYYY-MM-DD
+  completed:   boolean      // true when member has checked any pillar today
+}
+
+// Assembled composite — one per group, passed to GroupCard
+export interface GroupWithDetails extends ConsistencyGroup {
+  member_count: number
+  members: (GroupMember & { completed_today: boolean })[]
+}
