@@ -33,38 +33,48 @@ interface ProgressRingProps {
 
 function ProgressRing({ pct, titleColor, subtitleColor }: ProgressRingProps) {
   const offset = CIRCUMFERENCE * (1 - pct)
+  const label = `${Math.round(pct * 100)}%`
   return (
-    <svg
-      width="36"
-      height="36"
-      viewBox="0 0 36 36"
-      className="-rotate-90 flex-shrink-0"
-      aria-hidden="true"
-    >
-      {/* track */}
-      <circle
-        cx="18"
-        cy="18"
-        r="15"
-        fill="none"
-        stroke={subtitleColor}
-        strokeOpacity={0.3}
-        strokeWidth="3"
-      />
-      {/* progress */}
-      <circle
-        cx="18"
-        cy="18"
-        r="15"
-        fill="none"
-        stroke={titleColor}
-        strokeWidth="3"
-        strokeDasharray={CIRCUMFERENCE}
-        strokeDashoffset={offset}
-        strokeLinecap="round"
-        style={{ transition: 'stroke-dashoffset 0.3s ease' }}
-      />
-    </svg>
+    <div className="relative w-9 h-9 flex-shrink-0">
+      <svg
+        width="36"
+        height="36"
+        viewBox="0 0 36 36"
+        className="-rotate-90 w-full h-full"
+        aria-hidden="true"
+      >
+        {/* track */}
+        <circle
+          cx="18"
+          cy="18"
+          r="15"
+          fill="none"
+          stroke={subtitleColor}
+          strokeOpacity={0.3}
+          strokeWidth="3"
+        />
+        {/* progress */}
+        <circle
+          cx="18"
+          cy="18"
+          r="15"
+          fill="none"
+          stroke={titleColor}
+          strokeWidth="3"
+          strokeDasharray={CIRCUMFERENCE}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 0.3s ease' }}
+        />
+      </svg>
+      {/* percentage label — sits over the SVG, not rotated */}
+      <span
+        className="absolute inset-0 flex items-center justify-center text-[8px] font-bold leading-none"
+        style={{ color: titleColor }}
+      >
+        {label}
+      </span>
+    </div>
   )
 }
 
