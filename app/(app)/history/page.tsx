@@ -20,7 +20,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
   const supabase = createServerSupabaseClient()
 
   const { data: profile, error: profileError } = await supabase
-    .from('user_profiles')
+    .from('user_profile')
     .select('*')
     .eq('user_id', userId)
     .single<UserProfile>()

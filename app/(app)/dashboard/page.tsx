@@ -22,7 +22,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   // Fetch user_profile first — need it to gate the rest
   const { data: profile, error: profileError } = await supabase
-    .from('user_profiles')
+    .from('user_profile')
     .select('*')
     .eq('user_id', userId)
     .single<UserProfile>()
