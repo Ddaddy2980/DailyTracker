@@ -2,7 +2,7 @@
 
 This file is the authoritative source of truth for this product. Read this file at the start of every Claude Code session before writing any code.
 
-*Last updated: April 2026 — v3 rebuild. Per-pillar progression within a single user-chosen challenge container. Onboarding restructured: challenge length → clarity videos → Consistency Profile → goal setup. All level routing replaced by unified dashboard.*
+*Last updated: April 2026 — v3 Phase 9 complete. Full user lifecycle built: onboarding → daily check-in → challenge completion → restart. Per-pillar progression within a single user-chosen challenge container. Onboarding restructured: username → challenge length → clarity videos → Consistency Profile → goal setup. All level routing replaced by unified dashboard. Internal groups redesign: invitation/request system, public/private visibility, username-based identity.*
 
 ---
 
@@ -89,7 +89,7 @@ These hex values are the authoritative source. Do not substitute Tailwind color 
 
 All icons are located in /public:
 
-- App logo: logo_2.png
+- App logo: Logo.png
 - Spiritual pillar: spiritual_icon.png
 - Physical pillar: physical_icon.png
 - Nutritional pillar: nutritional_icon.png
@@ -292,8 +292,14 @@ The app uses a single Unified Challenge Container for every user. One challenge,
 
 **Challenge duration is chosen by the user at onboarding** before the Consistency Profile. Available lengths: **21, 30, 60, 90, or 100 days**. This duration applies to the whole challenge. Pillar-level cycles (7-day Tuning windows, 14-day Jamming windows) run *within* the overall challenge container — they are internal progression mechanics, not user-visible challenge lengths.
 
+**Mid-challenge duration change:** The user can adjust their challenge length at any point from the Goals page. Options: switch to any standard preset (21/30/60/90/100 days) or tap "Add a Week" to extend the current challenge by 7 days. The challenge day counter continues uninterrupted. If the user shortens below their current day, the challenge ends immediately and they are taken to the completion screen.
+
 **What the dashboard shows:**
 "Day 4 of 60" — the current day of the overall challenge and the total length. Each pillar card shows its own level progression internally.
+
+**Completion countdown:** In the final 5 days of a challenge, a banner appears on the dashboard with a day-specific encouragement message (e.g., "Final day. Make it count."). Not shown on past-day views or while paused.
+
+**Challenge completion:** When the effective day exceeds the challenge duration, the challenge is marked complete server-side and the user is redirected to a completion screen. The screen shows: duration, dates, overall consistency %, and a per-pillar summary (final level + completion %). From the completion screen the user begins a new challenge.
 
 **Pillar levels are retained between challenges.** When a challenge ends, the user chooses a new duration and begins again. Pillar levels carry forward. The user may optionally retake the Consistency Profile at the start of a new challenge for reassessment.
 
@@ -348,8 +354,8 @@ The gauge reflects two inputs combined into one score:
 The Next Pillar Invitation only fires when a user meets a minimum completion threshold, evaluated against a rolling calendar window — not a single challenge boundary:
 - Tuning (Level 1): 4 or more completions in the last 7 calendar days for that pillar
 - Jamming (Level 2): 10 or more completions in the last 14 calendar days for that pillar
-- Grooving (Level 3): threshold not yet defined — invitation deferred for this level
-Logic lives in `lib/next-pillar-invitation.ts` as `meetsRollingWindowThreshold`. The field `next_pillar_invitation_pillar` is written as soon as the threshold is met on any check-in — not only at challenge completion. The UI surfaces it only at the completion moment.
+- Grooving (Level 3): 48 or more completions in the last 60 calendar days for that pillar
+Advancement logic lives in `lib/rolling-window.ts` as `evaluateRollingWindow`. Evaluated on every pillar save. Advancement fires immediately when the threshold is met — not only at challenge completion.
 
 **Pillar gauges are independent.** A person who hits all their Personal goals but misses four days in Nutritional will see their Personal gauge rise and their Nutritional gauge fall. There is no hiding a struggling pillar behind a strong one. Each pillar is accountable to itself.
 
@@ -464,30 +470,33 @@ Advancement is evaluated on every pillar save and takes effect immediately when 
 
 ## Onboarding Flow (v3)
 
-Runs once for all new users. Sequence: commitment → foundation → self-knowledge → goal setup → begin.
+Runs once for all new users. Sequence: identity → commitment → foundation → self-knowledge → goal setup → begin.
 Each step gates the next. Progress is stored in `user_profile` onboarding flags so users can resume if interrupted.
 
-**Step 1 — Challenge Length** (`/onboarding/duration`)
-The user chooses the total length of their challenge before anything else. This is a commitment moment — it anchors the whole journey. Available options: **21, 30, 60, 90, or 100 days**. Displayed as selectable cards. No explanation of per-pillar cycles needed here — the chosen number is simply "how long this challenge runs."
+**Step 1 — Username** (`/onboarding/username`)
+The user chooses their in-app username before anything else. This is their identity throughout the app — in groups, in notifications, in settings. Username must be 3–20 characters, lowercase, alphanumeric + underscore only. Real-time availability check with debounced feedback. The `@` prefix is shown as decoration in the input. Once set, can be changed at any time from Settings → Account.
 
-**Step 2 — Clarity Videos** (`/onboarding/videos`)
+**Step 2 — Challenge Length** (`/onboarding/duration`)
+The user chooses the total length of their challenge. This is a commitment moment — it anchors the whole journey. Available options: **21, 30, 60, 90, or 100 days**. Displayed as selectable cards. No explanation of per-pillar cycles needed here — the chosen number is simply "how long this challenge runs."
+
+**Step 3 — Clarity Videos** (`/onboarding/videos`)
 One screen with three video boxes. The user can watch in any order. Skippable but recommended. Each video is approximately 60 seconds.
 
 - **Video 1 — Living on Purpose:** "Living on Purpose is the *how* of a life lived with meaning." Sets the tone before any goals are set.
 - **Video 2 — Duration vs. Destination:** The Rollercoaster Effect explained. Why duration goals produce lifestyle change when destination goals produce the start-endure-arrive-return cycle. Conceptual foundation for everything else.
 - **Video 3 — The Five Pillars:** The whole-life vision. Most people live strong in one area and neglected in others. This app walks with you toward wholeness across all five. Introduces Spiritual, Physical, Nutritional, Personal, and Relational with the river illustration (Sea of Galilee vs. Dead Sea) for the Relational pillar.
 
-**Step 3 — Consistency Profile** (`/onboarding/profile`)
+**Step 4 — Consistency Profile** (`/onboarding/profile`)
 The full 20-question profile (5 pillars × 4 questions). One pillar at a time: Spiritual → Physical → Nutritional → Personal → Relational. Framing: *"Before we set up anything, let's look at where you already are."* The user feels seen, not evaluated. Scores are saved to `consistency_profile_sessions`. Pillar levels are written to `pillar_levels`.
 
-**Step 4 — Pillar Portrait + Goal Setup** (`/onboarding/goals`)
+**Step 5 — Pillar Portrait + Goal Setup** (`/onboarding/goals`)
 Two parts on sequential screens:
 
 *Part A — Pillar Portrait:* All five pillars displayed with their starting level name and a status phrase. A personalized statement honoring strong pillars. Development focus identified. The user is encouraged to activate all five pillars — each with one duration goal to start.
 
 *Part B — Goal Setup (per pillar):* ACT-guided goal setup for each pillar the user activates. Pre-written goal suggestions are selectable and editable. The ACT check (Attainable, Challenging, Trackable) walks through one question per criterion. A pillar with no goal set remains Dormant. The app encourages activating all five but does not require it.
 
-**Challenge Start Confirmation** (end of Step 4)
+**Challenge Start Confirmation** (end of Step 5)
 "Your challenge starts today." Shows the chosen duration ("Your 60-day challenge begins now"), all active pillars and their goals. Writes `challenges` row, sets `user_profile.active_challenge_id`, marks `onboarding_completed = true`. Redirects to `/dashboard`.
 
 ---
@@ -806,8 +815,8 @@ A small, private group of up to 5 people who receive a weekly digest of the user
 ### Life Interruption Recovery System
 
 **Challenge pause feature:**
-- Pause for up to 14 days. Extends challenge end date. Streak preserved.
-- Reason required: Travel, Illness, Family, Work, Other. One use per challenge.
+- Pause for up to 14 total days per challenge (cumulative across multiple pauses). Extends effective challenge end date. Streak preserved.
+- Reason optional. Pause can be taken immediately or scheduled for a known future date.
 - Grooving Circle receives: "[Name] has paused their challenge. They'll be back soon."
 
 **Return from pause:** "Welcome back. [X] days paused. Your challenge continues where you left off." Day 1 back is treated as a milestone.
@@ -880,16 +889,33 @@ The core question the group answers every day is simple: *"Did everyone show up 
 
 ### Group Structure
 
-- A user can create a group and invite others by sharing an invite code
+- A user can create up to 5 groups (ownership cap)
 - Maximum 10 members per group (including the creator), enforced at join time
 - A user can belong to multiple groups
-- Groups have a name, an invite code, and a status: `active`, `paused`, or `archived`
+- Groups have a name, a visibility setting (public or private), and a status: `active` or deleted
+- Groups are identified by their name within the app — invite codes are retired
 
-### Invite Code
+### Public vs. Private Groups
 
-Each group is assigned a unique 5-character alphanumeric invite code at creation time (e.g. `A3K9M`), generated app-side. The creator can share the code directly or use the "Share invite link" button to send a deep link. The invite link can be toggled on or off — when off, the code no longer accepts new members. Codes do not expire.
+**Public groups** are discoverable through the "Find a group" search. Any user can search by group name or by owner `@username` and send a request to join. The owner must approve all requests — there is no auto-accept, even for public groups. The 10-member cap is the reason: the owner controls who enters.
 
-**Deep-link format:** `[app-domain]/join/[invite_code]`
+**Private groups** do not appear in search results. The owner must invite members by `@username` directly. Only the owner-initiated invitation flow is available.
+
+The creator sets public or private at creation and can toggle it at any time from the group management sheet.
+
+### Joining a Group
+
+**Public group flow:**
+1. User taps "Find a group" → search modal opens
+2. Search by group name (plain text) or by `@username` to see a specific person's groups
+3. User taps "Request" on any result → request sent to group owner
+4. Owner accepts or declines from their group management sheet
+
+**Private group flow:**
+1. Owner opens group management sheet → invites user by `@username`
+2. User receives notification in the app → accepts or declines inline
+
+All invitations and requests expire after 7 days automatically — no cron required.
 
 ### Daily Check-In Indicator
 
@@ -901,7 +927,7 @@ This is the only activity signal shown — no pillar breakdown, no goal details,
 
 ### Display Names
 
-A member's display name in the group is their full name from Clerk sign-up (first + last name). No separate display name entry is required when joining or creating a group. Display name is captured at join time and is not live-synced.
+A member's display name in the group is their `@username` from `user_profile`. No separate display name entry is required when joining or creating a group. Display name is set at join time from the user's current username. If a user later changes their username in Settings → Account, their display name updates across all their groups automatically.
 
 ### Data Model
 
@@ -909,22 +935,21 @@ A member's display name in the group is their full name from Clerk sign-up (firs
 ```
 id (uuid, PK)
 user_id (text) — Clerk user_id of creator (owner)
-name (text) — group name set by creator
-invite_code (text, unique) — 5-char alphanumeric e.g. 'A3K9M', generated app-side
+name (text) — group name; UNIQUE per owner (case-insensitive)
+is_public (boolean, default true) — discoverable in search when true
 max_members (integer, default 10)
-status (text) — 'active' | 'paused' | 'archived'
+status (text) — 'active' only (no pause/archive in v3)
 created_at (timestamptz)
 ```
 
 **group_members**
 ```
 id (uuid, PK)
-group_id (uuid, FK → consistency_groups)
+group_id (uuid, FK → consistency_groups CASCADE)
 user_id (text) — Clerk user_id
-display_name (text) — full name from Clerk, captured at join time
+display_name (text) — username from user_profile, captured at join time
 joined_at (timestamptz)
 is_active (boolean, default true) — false when member leaves or is removed
-unique: (group_id, user_id)
 ```
 
 **group_daily_status**
@@ -937,6 +962,19 @@ completed (boolean) — true when member has checked any pillar today
 unique: (group_id, user_id, status_date)
 ```
 
+**group_invitations**
+```
+id (uuid, PK)
+group_id (uuid, FK → consistency_groups CASCADE)
+type (text) — 'invitation' (owner→user) | 'request' (user→owner)
+from_user_id (text) — who sent it
+to_user_id (text) — who receives and responds to it
+status (text) — 'pending' | 'accepted' | 'declined'
+created_at (timestamptz)
+expires_at (timestamptz) — now() + 7 days; expired rows filtered out automatically
+UNIQUE partial index: (group_id, from_user_id, to_user_id) WHERE status='pending'
+```
+
 **Why group_daily_status exists**: Rather than querying every member's pillar_daily_entries in real time when the group view opens, a lightweight status row is upserted each time a member checks in. The group card becomes a single fast query rather than N joins across N members' data.
 
 **Write timing**: `group_daily_status` is upserted from `/api/checkin` on every today's pillar save. Past-day retroactive edits do not update group status.
@@ -947,17 +985,20 @@ unique: (group_id, user_id, status_date)
 
 **Empty state (not in any group)**
 *"You're not in a Consistency Group yet. Groups are small — up to 10 people — and private. Everyone sees a simple circle each day. Nothing more."*
-Two options: "Create a group" and "Join a group with a code."
+Two options: "+ Create a group" and "+ Find a group."
+
+**Pending notifications bar** (when group invitations or join requests are waiting)
+Shown above the group list. Each row: group name, who's involved, Accept and Decline buttons inline. Optimistically removed on respond. Disappears when all are handled.
 
 **Group card (one per group)**
-- Group name + invite code with copy button + member count
-- One row per member: display name (left) + check-in circle (right)
+- Group name + member count + Private badge (if not public)
+- One row per member: `@username` (left) + check-in circle (right)
 - Current user's row always appears first
 - All other members in alphabetical order by display name
 - No sorting by completion or any performance metric — ever
 
 **Single-member state**
-*"Waiting for others to join. Share your group code: [CODE]"* — show code prominently with copy and share buttons.
+Public: *"Others can find and request to join."* Private: *"Invite others using the manage menu above."*
 
 **End of day, no one checked in**
 No shaming language. Show empty circles with a quiet note: *"Tomorrow is a new day."*
@@ -983,9 +1024,10 @@ Their row disappears from the group view immediately. No announcement to the gro
 ### Group Management
 
 **Creator permissions**
-- Rename the group
-- Toggle the invite link on or off
-- Pause the group — freezes the group in place; members are not removed; check-in syncing stops while paused
+- Rename the group (must remain unique per owner, case-insensitive)
+- Toggle between public and private visibility
+- Invite members by `@username` (private invitation sent in-app)
+- Accept or decline pending join requests
 - Remove a member (`is_active = false` — removed member is not notified in-app)
 - Delete the group — removes the group and all membership records permanently
 
@@ -1025,165 +1067,124 @@ Router: App Router (Next.js 14, `/app` directory)
 
 ---
 
-## Current Database Schema (Supabase)
+## Current Database Schema (Supabase — v3)
 
-### Existing Tables (do not modify structure — only add to)
+All tables are in production. Ten migrations have been run (see `supabase/migrations/`). The v2 tables (`daily_entries`, `user_config`, `user_goals`, `weekly_notes`) are retired — do not reference them.
 
-**daily_entries** — One row per user per day. All pillar data stored as JSONB.
+For the authoritative table reference including all columns, see CLAUDE.md → v3 Table Reference.
 
-| Column | Type |
-|--------|------|
-| id | uuid, PK |
-| user_id | text — Clerk user ID |
-| entry_date | date |
-| spiritual | jsonb |
-| activities | jsonb |
-| sleep | numeric |
-| weight | numeric |
-| blood_pressure | text |
-| nutritional | jsonb |
-| personal | jsonb |
-| physical_goals | jsonb |
-| nutritional_log | jsonb |
-| tiered_selections | jsonb |
-| created_at, updated_at | timestamptz |
+### v3 Tables (production — all ten migrations run)
 
-**user_config** — One row per user.
+**user_profile** — One row per user. Onboarding gate flags + pointer to active challenge.
 
-| Column | Type |
-|--------|------|
-| id | uuid, PK |
-| user_id | text, unique |
-| name | text, default 'Champion' |
-| start_date | date |
-| duration | integer, default 100 |
-| created_at, updated_at | timestamptz |
+| Column | Key columns |
+|--------|-------------|
+| user_id | Clerk user ID (PK lookup) |
+| username | Unique lowercase username (3–20 chars, alphanumeric + underscore) |
+| username_set | Boolean — first onboarding gate; must be true before other steps proceed |
+| challenge_duration_selected, clarity_videos_seen, consistency_profile_completed, goals_setup_completed, onboarding_completed | Boolean gate flags for each remaining onboarding step |
+| active_challenge_id | UUID pointing to current challenge row |
+| selected_duration_days | Duration chosen on onboarding duration screen |
 
-**user_goals** — One row per user. All pillar goals as JSONB arrays.
+**challenges** — One row per challenge (past + current).
 
-| Column | Type |
-|--------|------|
-| id | uuid, PK |
-| user_id | text, unique |
-| spiritual | jsonb array |
-| physical | jsonb array |
-| exercise_types | jsonb array |
-| stretching_types | jsonb array |
-| nutritional | jsonb array |
-| personal | jsonb array |
-| updated_at | timestamptz |
+| Column | Notes |
+|--------|-------|
+| user_id | Clerk user ID |
+| duration_days | integer — user-chosen length; may exceed presets after "Add a Week" |
+| start_date | date (YYYY-MM-DD) |
+| status | 'active' \| 'completed' \| 'abandoned' |
+| completed_at | timestamptz — written when status flips to completed |
+| pulse_state | 'smooth_sailing' \| 'rough_waters' \| 'taking_on_water' — updated on every today check-in |
+| is_paused, paused_at, pause_reason | Current pause state |
+| pause_days_used | Cumulative calendar days from all past pauses (does not include active pause) |
+| scheduled_pause_date, scheduled_pause_reason | Pre-scheduled pause; auto-activates on that date |
 
-**weekly_notes** — One row per user per week.
+**pillar_levels** — One row per user per pillar. Independent progression.
 
-| Column | Type |
-|--------|------|
-| id | uuid, PK |
-| user_id | text |
-| week_start | date |
-| notes | text |
-| updated_at | timestamptz |
+| Column | Notes |
+|--------|-------|
+| pillar | 'spiritual' \| 'physical' \| 'nutritional' \| 'personal' \| 'relational' |
+| level | 1 (Tuning) \| 2 (Jamming) \| 3 (Grooving) \| 4 (Soloing) |
+| is_active | false = Dormant (no active duration goal) |
+| profile_score | 0–12 from Consistency Profile; null if skipped |
 
----
+**duration_goals** — One row per goal. Soft-deleted (is_active=false) not hard-deleted.
 
-### New Tables Required for v2 (add via migration)
+| Column | Notes |
+|--------|-------|
+| pillar | Which pillar this goal belongs to |
+| goal_text | ACT-validated goal description |
+| is_active | false = soft-deleted; preserved for rolling window history |
 
-**user_profile**
+**destination_goals** — Grooving+ only. Time-bound personal challenges.
 
-| Column | Type |
-|--------|------|
-| id | uuid, PK |
-| user_id | text, unique |
-| current_level | integer, default 1 — *deprecated; run in parallel with pillar_levels during migration* |
-| onboarding_completed | boolean, default false |
-| purpose_statement | text |
-| selected_pillars | jsonb |
-| accountability_user_id | text, nullable |
-| notification_tier | text, default 'standard' — 'minimal' \| 'standard' \| 'full' |
-| last_pulse_check_at | timestamptz, nullable |
-| accountability_partner_name | text, nullable |
-| accountability_partner_contact | text, nullable |
-| focus_list_25 | jsonb, nullable |
-| focus_top_5 | jsonb, nullable — always `FocusTop5Item[] \| null` with `{ rank, text }` format |
-| what_changed_reflection | text, nullable |
-| rooted_milestone_fired | boolean, default false |
-| rooted_milestone_date | date, nullable |
-| rooted_goal_id | text, nullable |
-| consistency_profile_completed | boolean, default false |
-| life_on_purpose_score | integer, nullable — composite of all five pillar gauge scores; only calculated and displayed when all five pillars are active |
-| next_pillar_invitation_pillar | text, nullable — cleared after user responds |
-| last_pillar_check_at | timestamptz, nullable — enforces 30-day Monthly Pillar Check cadence |
-| created_at, updated_at | timestamptz |
+| Column | Notes |
+|--------|-------|
+| pillar | Which pillar this goal is attached to |
+| goal_text | Goal description |
+| status | 'active' \| 'completed' \| 'released' \| 'expired' |
+| start_date, end_date | Time window for the destination goal |
 
-**challenges**
+**pillar_daily_entries** — One row per user per pillar per day per challenge.
 
-| Column | Type |
-|--------|------|
-| id | uuid, PK |
-| user_id | text |
-| level | integer |
-| duration_days | integer |
-| start_date | date |
-| end_date | date |
-| status | text — 'active' \| 'completed' \| 'abandoned' |
-| pillar_goals | jsonb — snapshot of goals at challenge start |
-| pillar_level_snapshot | jsonb, nullable — each pillar's level and operating_state at challenge start. Example: `{ "spiritual": { "level": 5, "state": "anchored" }, "physical": { "level": 4, "state": "anchored" }, "nutritional": { "level": 3, "state": "developing" }, "personal": { "level": 3, "state": "developing" } }` |
-| days_completed | integer, default 0 |
-| consistency_pct | numeric, default 0 |
-| created_at, updated_at | timestamptz |
+| Column | Notes |
+|--------|-------|
+| challenge_id | Scopes entries to one challenge — past challenges preserved |
+| pillar | Which pillar |
+| entry_date | YYYY-MM-DD |
+| completed | boolean — true when all duration goals checked for this pillar that day |
+| goal_completions | jsonb — map of goal UUIDs → boolean (duration + destination goals) |
 
-**video_progress**
+**consistency_profile_sessions** — Score record for each Consistency Profile taken.
 
-| Column | Type |
-|--------|------|
-| id | uuid, PK |
-| user_id | text |
-| video_id | text — e.g. 'A1', 'G6b' |
+| Column | Notes |
+|--------|-------|
+| spiritual, physical, nutritional, personal, relational | Individual pillar scores (0–12 each) |
+| is_reassessment | true if taken at challenge restart rather than initial onboarding |
+
+**video_progress** — One row per user per video watched.
+
+| Column | Notes |
+|--------|-------|
+| video_id | e.g. 'A1', 'D3', 'G-Smooth' — matches VIDEO_LIBRARY keys in lib/constants.ts |
 | watched_at | timestamptz |
-| triggered_by | text |
 
-**daily_reflections**
+**consistency_groups** — Accountability groups.
 
-| Column | Type |
-|--------|------|
-| id | uuid, PK |
-| user_id | text |
-| challenge_id | uuid, FK → challenges |
-| day_number | integer |
-| reflection_text | text |
-| created_at | timestamptz |
+| Column | Notes |
+|--------|-------|
+| user_id | Creator's Clerk user ID |
+| name | Group name — UNIQUE per owner (case-insensitive) |
+| is_public | boolean — discoverable in search when true |
+| max_members | default 10 |
+| status | 'active' only in v3 |
 
-**rewards**
+**group_members** — Membership rows.
 
-| Column | Type |
-|--------|------|
-| id | uuid, PK |
-| user_id | text |
-| reward_type | text — 'tuning_badge' \| 'day3_survival' \| 'halfway' \| 'day7_complete' \| 'rooted' \| etc. |
-| challenge_id | uuid, FK → challenges, nullable |
-| earned_at | timestamptz |
+| Column | Notes |
+|--------|-------|
+| group_id | FK → consistency_groups CASCADE |
+| user_id | Clerk user ID |
+| display_name | Username from user_profile, captured at join time; cascades on username change |
+| is_active | false when member leaves or is removed |
 
-**pulse_checks**
+**group_invitations** — Pending joins and requests.
 
-| Column | Type |
-|--------|------|
-| id | uuid, PK |
-| user_id | text |
-| challenge_id | uuid, FK → challenges |
-| week_number | integer |
-| pulse_state | text — 'smooth_sailing' \| 'rough_waters' \| 'taking_on_water' |
-| trigger_type | text — 'scheduled_weekly' \| 'missed_day' \| 'partial_completion' |
-| recorded_at | timestamptz |
+| Column | Notes |
+|--------|-------|
+| group_id | FK → consistency_groups CASCADE |
+| type | 'invitation' (owner→user) \| 'request' (user→owner) |
+| from_user_id, to_user_id | Who sent it; who responds |
+| status | 'pending' \| 'accepted' \| 'declined' |
+| expires_at | now() + 7 days — expired rows auto-filtered from all queries |
 
-**grooving_circle_members**
+**group_daily_status** — Lightweight daily check-in indicator per member per group.
 
-| Column | Type |
-|--------|------|
-| id | uuid, PK |
-| user_id | text |
-| member_name | text |
-| member_contact | text — email or phone |
-| added_at | timestamptz |
-| active | boolean, default true |
+| Column | Notes |
+|--------|-------|
+| group_id, user_id, status_date | UNIQUE constraint — one row per member per day per group |
+| completed | true when member has checked in on any pillar today |
 
 **destination_goals** — Pillar-level destination goals (Grooving+)
 
@@ -1350,7 +1351,7 @@ Migration note for Claude Code: Confirm whether duration_goal_destinations was a
 - Repo: Ddaddy2980/DailyTracker
 - URL: https://github.com/Ddaddy2980/DailyTracker
 - Production branch: main
-- Active development branch: v2-rebuild
+- Active development branch: v3-phase1
 
 ---
 
@@ -1362,6 +1363,5 @@ App is in private testing with David only. Fresh start — existing data wiped a
 
 *Last updated: April 2026*
 *Maintained by: David / Altared Life, LLC*
-*Last updated: April 2026*
-*v2 additions: Consistency Profile, Pillar-by-Pillar Architecture, Steering Mechanism, Destination Goals (Phase 5 complete)*
+*v3 Phase 9 complete: Username system + internal groups redesign. Ten Supabase migrations run. Full user lifecycle built and tested.*
 

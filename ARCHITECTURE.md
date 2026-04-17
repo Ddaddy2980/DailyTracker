@@ -29,11 +29,12 @@ One dashboard for all users at all levels. Level logic lives inside per-pillar c
 ## v3 Onboarding Steps (gates in user_profile)
 
 ```
-1. challenge_duration_selected  → /onboarding/duration
-2. clarity_videos_seen          → /onboarding/videos
+0. username_set                  → /onboarding/username  (NEW — first step, Phase 9)
+1. challenge_duration_selected   → /onboarding/duration
+2. clarity_videos_seen           → /onboarding/videos
 3. consistency_profile_completed → /onboarding/profile
-4. goals_setup_completed        → /onboarding/goals
-5. onboarding_completed         → /dashboard
+4. goals_setup_completed         → /onboarding/goals
+5. onboarding_completed          → /dashboard
 ```
 
 ## v3 Rolling Window Advancement Thresholds
@@ -245,9 +246,9 @@ Sun–Sat calendar grid. Rows per active pillar + ALL row. Cells show duration g
 
 - [x] Step 12 — Dashboard day navigator + History week grid: `DayNavigator`, `HistoryWeekGrid`; `/api/checkin` updated for optional `entry_date` (retroactive edits never trigger advancement); all pillar cards receive `entryDate` prop; dot windows end at `viewingDate`; history server component; `getWeekStart` helper in `constants.ts`
 
-### Phase 5 — Groups
+### Phase 5 — Groups (COMPLETE)
 
-Groups requires a new Supabase migration. Three new tables: `consistency_groups`, `group_members`, `group_daily_status`.
+Three new tables added via migration `20260410000002_v3_groups.sql` (confirmed run): `consistency_groups`, `group_members`, `group_daily_status`.
 
 #### DB Migration
 
@@ -287,21 +288,449 @@ RLS: anon key = own rows only; service role bypasses for writes.
 
 On every pillar save in `/api/checkin/`, if user belongs to any groups, upsert `group_daily_status` with the overall daily `completed` boolean.
 
+#### Additional Changes (Step 14)
+
+- `UserAvatarMenu` added to `components/shared/`; rendered in `app/(app)/layout.tsx` top bar
+- Progress ring percentage label added center of SVG ring in `GroovingPillarCard` and `SoloingPillarCard`
+- Groups feature uses binary check-in indicator: empty circle → green filled on any pillar completion
+- Group status sync in `/api/checkin` is non-blocking (`void syncGroupDailyStatus(...)`) — failure never breaks checkin
+- No Pause feature: groups are active or deleted only — pause deferred to Step 17 (Challenge Completion)
+
 #### Build Steps
 
-- [ ] Step 13 — Groups DB migration: `20260410000002_v3_groups.sql`; run in Supabase SQL Editor
-- [ ] Step 14 — Groups API + UI: all routes + components listed above; `GroupView`, `GroupCard`, `CreateGroupModal`, `JoinGroupModal`, `GroupManageSheet`; `/app/join/[inviteCode]/page.tsx`; daily status sync in `/api/checkin/`
+- [x] Step 13 — Groups DB migration: `20260410000002_v3_groups.sql`; confirmed run in Supabase SQL Editor; creates `consistency_groups`, `group_members`, `group_daily_status` with RLS
+- [x] Step 14 — Groups API + UI: all routes + components listed above; `GroupView`, `GroupCard`, `CreateGroupModal`, `JoinGroupModal`, `GroupManageSheet`; `/app/join/[inviteCode]/page.tsx`; daily status sync in `/api/checkin/`; `UserAvatarMenu` in shared top bar; progress ring % labels on Grooving/Soloing cards; fixed `user_profile` table name in dashboard/history/goals
 
-### Phase 6 — Clarity Videos & Coaching (FUTURE)
+### Phase 6 — Clarity Videos & Coaching
 
-- [ ] Step 15 — Clarity video screen: `video_progress` table migration (or boolean flags on `user_profile`); gate "Continue" button by all three videos marked watched; populate URLs when recordings are ready
-- [ ] Step 16 — Per-level coaching video cards: level-specific encouragement video triggers inside pillar cards (e.g., stall detection at Tuning); `VideoLibraryTab` rebuilt for v3
+- [x] Step 15 — Clarity video screen: `video_progress` table migration (Option A — new table, reusable for Step 16); `PUT /api/onboarding/videos` marks individual videos watched; `ClarityVideoCard` redesigned as 3D gray push button with "Press to Play Video" / "Rewatch Video" label and checkmark on completion; `ClarityVideosScreen` gates "Continue" button until all 3 videos clicked; page restores watch state from DB on revisit; populate `url` in `CLARITY_VIDEOS` constant when recordings are ready
+- [x] Step 16 — Per-level coaching video cards: `pulse_state` + `pulse_updated_at` added to `challenges` (migration 20260410000004); `computePulseState()` in `lib/pulse.ts`; `/api/checkin` updates pulse state non-blockingly after every today save; `VIDEO_LIBRARY` (all A/B/C/D/J/G series) + `selectTuningVideo/selectJammingVideo/selectGroovingVideo` helpers in `lib/constants.ts`; `VideoModal` shared component (slides up from bottom, marks watched on open); Video button on `TuningPillarCard`, `JammingPillarCard`, `GroovingPillarCard` (play icon → checkmark after watched, stops header expand propagation); Tuning: pillar intro on Day 1, stall→C4 after 3 missed days, D-series otherwise (shared across all Tuning pillars); Jamming/Grooving: pulse-driven video selection; Soloing: no video button; `/api/videos/watched` PUT route; `VideoLibrary` component with section groupings and watched checkboxes; `/videos` page fully built
+- [x] Step 16b — Life Pause feature: `20260410000005_challenge_pause.sql` (6 new columns on `challenges`); `getEffectiveChallengeDay()` in `lib/constants.ts`; `Challenge` interface updated; `/api/challenges/pause` (POST immediate/scheduled, DELETE cancel); `/api/challenges/resume` (POST, accumulates pause_days_used); `/api/checkin` 403 guard when paused; `dashboard/page.tsx` auto-activates scheduled pauses on load + uses effective day; `PausedDashboard` component (freeze view + Resume button); `LifePauseBanner` (taking_on_water trigger, dismissible, one-tap pause or schedule link); `DashboardHeader` gets isPaused prop (amber badge + bar); `DashboardShell` renders paused/banner states; `ChallengePauseTools` component on Goals page (immediate pause form, scheduled pause form, cancel, resume)
 
-### Phase 7 — Challenge Completion & Restart (FUTURE)
+#### Life Pause Architecture Notes
 
-- [ ] Step 17 — Challenge completion screen: detect when `today > start_date + duration_days`; show stats (days completed, per-pillar %) and restart / continue options
-- [ ] Step 18 — Challenge restart: new challenge row with optional Consistency Profile retake; pillar levels carry forward
+- `pause_days_used` accumulates at resume time only — does NOT include the currently-active pause
+- `getEffectiveChallengeDay()` freezes at paused_at day when paused; subtracts pause_days_used when running
+- Scheduled pause auto-activates server-side in `dashboard/page.tsx` on every page load — no cron needed
+- 14-day maximum enforced in `/api/challenges/pause`; remaining days shown in Goals Challenge Tools
+- Groups: paused user simply shows as not checked in — no special handling needed
+- Resume API returns `{ pausedDays }` — client shows "Welcome back. You paused for X days." toast
+
+### Phase 7 — Challenge Completion & Restart (COMPLETE)
+
+No new DB migration required — uses existing `challenges` table `status` and `completed_at` columns.
+
+#### Detection Logic
+
+A challenge is complete when:
+```ts
+getEffectiveChallengeDay(challenge) > challenge.duration_days
+```
+This uses the pause-adjusted day formula, so paused days don't count against the user.
+
+Detection happens in `dashboard/page.tsx` — if the challenge is active and the effective day exceeds the duration, mark it complete (server-side write) and redirect to `/completion`.
+
+#### Step 17 — Challenge Completion Screen
+
+**Files to create:**
+```
+/app/(app)/completion/page.tsx          — server component; redirects here from dashboard when complete
+/components/completion/CompletionScreen.tsx — client component; stats + CTAs
+```
+
+**Files to modify:**
+```
+/app/(app)/dashboard/page.tsx           — add completion check before rendering DashboardShell;
+                                          write status='completed' + completed_at; redirect to /completion
+/app/api/challenges/complete/route.ts   — POST; sets challenges.status='completed', completed_at=now()
+```
+
+**Completion screen contents:**
+- Celebration header: "You did it." or equivalent
+- Challenge summary: duration (e.g. "30 Days"), dates (start → end)
+- Per-pillar summary card: final level reached (Tuning/Jamming/Grooving/Soloing) + completion % across the challenge
+- Overall consistency % (total completed days / total challenge days)
+- Two CTAs:
+  - "Start a New Challenge" — triggers Step 18 restart flow
+  - "Keep Going" (optional) — only shown if David wants a continue-without-restart option; deferred until he decides
+
+**Data needed (all from existing tables):**
+- `challenges` — start_date, duration_days, pause_days_used
+- `pillar_levels` — final level per pillar
+- `pillar_daily_entries` — count of completed entries per pillar over challenge window
+
+**Architecture notes:**
+- No new Supabase migration needed
+- `completed_at` is already on `challenges` table
+- Write `status = 'completed'` in `dashboard/page.tsx` server-side before redirect (or via `/api/challenges/complete` POST)
+- `completion/page.tsx` must guard: if `challenges.status !== 'completed'`, redirect to `/dashboard`
+- `user_profile.active_challenge_id` is NOT cleared on completion — still needed for restart flow (Step 18 creates a new challenge and points `active_challenge_id` to it)
+
+#### Step 18 — Challenge Restart
+
+**Files to create:**
+```
+/app/api/challenges/restart/route.ts    — POST; creates new challenge row, updates user_profile
+```
+
+**Files to modify:**
+```
+/components/completion/CompletionScreen.tsx — "Start a New Challenge" button calls /api/challenges/restart
+/app/onboarding/profile/page.tsx        — reachable from restart flow for optional Consistency Profile retake
+```
+
+**Restart flow:**
+1. User taps "Start a New Challenge" on the completion screen
+2. Client POSTs to `/api/challenges/restart` with `{ retakeProfile: boolean }`
+3. API creates a new `challenges` row:
+   - `user_id` = userId
+   - `start_date` = today
+   - `duration_days` = same as previous challenge (or allow re-selection — TBD with David)
+   - `status` = 'active'
+   - `pause_days_used` = 0 (fresh start)
+   - `pulse_state` = 'smooth_sailing'
+4. API updates `user_profile.active_challenge_id` to the new challenge ID
+5. If `retakeProfile = true`: redirect to `/onboarding/profile` (sets `consistency_profile_completed = false` first so the gate re-opens); pillar levels re-seeded from new scores
+6. If `retakeProfile = false`: pillar levels carry forward unchanged; redirect to `/dashboard`
+
+**Architecture notes:**
+- Duration selection on restart: simplest approach is to carry forward the previous `duration_days`. If David wants the user to re-select, add a duration picker to the completion screen before triggering restart.
+- Pillar levels carry forward by default — user does not lose Jamming/Grooving/Soloing status they earned
+- `goals_setup_completed`, `onboarding_completed` remain `true` — user does not re-do onboarding
+- Only `consistency_profile_completed` is temporarily set to `false` if `retakeProfile = true`
+- Rolling window evaluation for the new challenge starts fresh from the new `start_date`
+- Old `pillar_daily_entries` from the previous challenge are preserved in the DB for history but scoped by `challenge_id`, so they do not interfere with the new challenge
+
+#### Build Steps
+
+- [x] Step 17 — Challenge completion screen: completion check in `dashboard/page.tsx` (server-side write + redirect); `/api/challenges/complete` POST (idempotent); `/app/(app)/completion/page.tsx` server component (guards status !== 'completed' → redirect /dashboard); `CompletionScreen` client component — "You did it." header, challenge summary card with dates + overall %, per-pillar rows in PILLAR_CONFIG colors, "Start a New Challenge" CTA entry point into Step 18 flow
+- [x] Step 18 — Challenge completion countdown + restart + mid-challenge duration change:
+  - `CompletionCountdownBanner.tsx` — 5 distinct messages for days 5 through 1; dark blue gradient card; rendered in `DashboardShell` when `daysRemaining` 1–5, today view only, not paused
+  - `/api/challenges/restart` POST — accepts `{ retakeProfile, durationDays }`; creates new challenge row (fresh start_date, pulse reset, pause_days_used=0); updates `active_challenge_id`; if retake: resets `consistency_profile_completed`; returns `{ redirectTo }`
+  - `CompletionScreen.tsx` extended — 3-step restart flow: idle → choose type (keep profile / retake profile) → choose duration (preset grid); `useRouter` redirect on success
+  - `ProfileFlow.tsx` — `isRetake` prop added; redirects to `/dashboard` after retake instead of `/onboarding/goals`
+  - `/app/onboarding/profile/page.tsx` — reads `?retake=1` search param; skips "already completed" redirect when retaking
+  - `/api/challenges/duration` PATCH — accepts any positive integer (presets or "Add a Week" non-preset values); returns `{ wouldCompleteNow }` when new duration < current effective day
+  - `ChallengeDurationEditor.tsx` — 3D pill button ("X days · Change Duration?") → expands to preset grid + "Add a Week" (+7 days to current); warning modal if shortening past current day; placed at top of Goals page above pillar cards
+  - `app/(app)/goals/page.tsx` — expanded challenge select to include `id, duration_days, start_date, paused_at`; added `ChallengeDurationEditor` above pillar cards (hidden when paused); `getEffectiveChallengeDay` used for current day
+  - `lib/types.ts` — `Challenge.duration_days` changed from `ChallengeDuration` to `number` (accepts any integer after "Add a Week")
 
 ---
 
-*This file was last updated: April 2026 — v3 Phase 4 complete (Step 12). Phase 5 Groups is next (Steps 13–14). Full rebuild roadmap set through Phase 7. v2 code removed from branch.*
+### Phase 8 — Settings (COMPLETE)
+
+No new DB migration required — all data fetched from existing tables and Clerk.
+
+#### Purpose
+
+Account management accessible from the avatar menu. Settings is not a primary navigation feature — it lives behind `UserAvatarMenu` in the top bar. It is not in the bottom nav.
+
+#### Entry Point
+
+`UserAvatarMenu` dropdown gains a "Settings" item above Sign Out that navigates to `/settings`. Sign out remains in the avatar menu only — it does not move to Settings.
+
+#### Settings Page Layout
+
+Three sections rendered vertically:
+
+**1. Account**
+Display name (Clerk `firstName + lastName`) and email address. Read-only in v3.
+
+**2. Challenge**
+Current challenge length display + `ChallengeDurationEditor` (moved from the Goals page). Shows current duration and allows switching to any preset or adding a week. When paused: shows one-liner "Duration changes are unavailable while your challenge is paused." `ChallengeDurationEditor` file path stays at `/components/goals/ChallengeDurationEditor.tsx` — only the importing page changes.
+
+**3. Consistency Profile**
+Single line: "Retake Consistency Profile Questionnaire" + button. Navigates to `/onboarding/profile?retake=1`. After retake: redirects to `/dashboard`. No change to the existing retake flow.
+
+#### Files Created
+
+```
+/app/(app)/settings/page.tsx              — server component; Clerk currentUser() for name/email;
+                                            challenge fetch for duration editor
+/components/settings/AccountSection.tsx   — display name + email (read-only)
+/components/settings/ChallengeSection.tsx — current duration display + ChallengeDurationEditor;
+                                            one-liner shown when paused instead of hiding
+/components/settings/ProfileSection.tsx   — "Retake Consistency Profile Questionnaire" button
+```
+
+#### Files Modified
+
+```
+/components/shared/UserAvatarMenu.tsx     — "Settings" link added above Sign Out (with border-t divider)
+/app/(app)/goals/page.tsx                 — ChallengeDurationEditor removed; challenge select
+                                            trimmed to is_paused, pause_days_used,
+                                            scheduled_pause_date, scheduled_pause_reason only;
+                                            getEffectiveChallengeDay import removed
+```
+
+#### Data Fetched in settings/page.tsx
+
+```ts
+// Clerk
+currentUser()              // firstName, lastName, emailAddresses[0]
+
+// Supabase
+user_profile               // active_challenge_id
+challenges                 // id, duration_days, start_date, is_paused, paused_at, pause_days_used
+```
+
+No `consistency_profile_sessions` fetch — the Profile section is a retake button only, no score display.
+
+#### Architecture Decisions
+
+- Settings is avatar-menu-only — not in bottom nav. It is account management, not a primary feature.
+- Sign out stays in the avatar menu dropdown only — not duplicated in Settings.
+- `ChallengeDurationEditor` file path unchanged — only the importing page changes (Goals → Settings).
+- Profile retake from Settings → `/onboarding/profile?retake=1` → existing retake flow → `/dashboard`.
+- Paused challenge: ChallengeSection shows a one-liner instead of hiding the section entirely.
+
+#### Build Steps
+
+- [x] Step 19 — Settings page: `/app/(app)/settings/page.tsx` (Clerk + Supabase fetch); `AccountSection`, `ChallengeSection`, `ProfileSection` components in `/components/settings/`; "Settings" added to `UserAvatarMenu` above Sign Out with border-t divider; `ChallengeDurationEditor` moved from Goals page to Settings (file path unchanged); Goals page challenge select simplified to 4 fields only; `getEffectiveChallengeDay` import removed from Goals page
+
+---
+
+### History Page — Visual Polish (COMPLETE)
+
+Applied to `HistoryWeekGrid.tsx`, `HistoryMonthGrid.tsx`, `HistoryProgressReport.tsx`.
+
+#### Week View
+
+- Container: `bg-white` → `bg-slate-700` (matches active tab pill color)
+- Empty cells (no entry): `bg-slate-100` → `bg-slate-600` (medium gray)
+- Future / pre-challenge cells: `bg-slate-100` → `bg-slate-800` (darker, clearly inactive)
+- Pillar label column: text-only colored word → rounded chip with pillar `background` color + `title` text color
+- Nav arrows, week range, ALL row: adjusted for dark background (white/slate-300 text, slate-600 hover)
+- Completion colors: pastel → solid (`bg-emerald-600`, `bg-amber-500`, `bg-red-600`), all `text-white`
+
+#### Month View
+
+- Container: `bg-white` → `bg-slate-700`
+- All numbered day cells (valid, invalid, today): always `bg-slate-600` base — no transparent cells
+- Days-of-week header (Sun–Sat): `text-slate-400` → `text-slate-300`
+- Invalid day numbers (future / pre-challenge): `text-slate-600` (invisible) → `text-slate-300` (light gray, visible)
+- Today with no entry: `ring-slate-300` → `ring-white`
+- Completion colors: same solid palette as Week view
+
+#### Progress View
+
+- Pillar Progress chart: header → `bg-slate-700`; SVG area + legend → `bg-slate-600`; grid lines and axis labels lightened for dark background
+- Pillar Summary: header → `bg-slate-700`; each pillar row → full pillar `background` color; all text uses `title` / `subtitle` colors from `PILLAR_CONFIG`; green/yellow/red counts use `text-emerald-300`, `text-amber-300`, `text-red-300`
+
+---
+
+### Phase 9 — Username System + Internal Groups Redesign (COMPLETE)
+
+Two migrations required. Build in order: Phase A (username) first, then Phase B (groups).
+
+#### Purpose
+
+Every user needs a persistent username within the app that becomes their identity in groups. The current Clerk display-name approach is fragile (names change, names aren't unique) and exposes personal names. Simultaneously, the invite-code group join flow is being retired in favor of an internal invitation/request system with public/private group visibility.
+
+---
+
+#### Phase A — Username System
+
+##### DB Migration (new file: `20260410000006_username.sql`)
+
+```sql
+-- Add to user_profile
+ALTER TABLE user_profile
+  ADD COLUMN username text UNIQUE,
+  ADD COLUMN username_set boolean NOT NULL DEFAULT false;
+
+-- Lowercase constraint
+ALTER TABLE user_profile
+  ADD CONSTRAINT username_lowercase CHECK (username = lower(username));
+```
+
+##### Onboarding Gate Update
+
+`username_set` becomes the **first gate** checked before all existing steps. Updated onboarding sequence:
+
+```
+0. username_set               → /onboarding/username  (NEW — first step)
+1. challenge_duration_selected → /onboarding/duration
+2. clarity_videos_seen         → /onboarding/videos
+3. consistency_profile_completed → /onboarding/profile
+4. goals_setup_completed       → /onboarding/goals
+5. onboarding_completed        → /dashboard
+```
+
+##### Files to Create
+
+```
+/app/onboarding/username/page.tsx              — server component; checks username_set gate;
+                                                 redirects to /onboarding/duration if already set
+/components/onboarding/UsernameSetupScreen.tsx — client component; username text input;
+                                                 real-time availability check (debounced GET);
+                                                 "Continue" button calls POST then advances gate
+/app/api/onboarding/username/route.ts          — GET ?username= (availability check, returns { available });
+                                                 POST { username } (saves to user_profile, sets username_set=true)
+/app/api/settings/username/route.ts            — PATCH { username }; updates user_profile.username;
+                                                 cascades update to ALL group_members.display_name rows
+                                                 where group_members.user_id = this userId
+```
+
+##### Files to Modify
+
+```
+/app/onboarding/page.tsx (or router)           — add username_set as first gate check
+/components/settings/AccountSection.tsx        — show username instead of Clerk name;
+                                                 add inline edit with availability check on submit;
+                                                 calls PATCH /api/settings/username
+/lib/types.ts                                  — UserProfile: add username: string | null, username_set: boolean
+```
+
+##### Architecture Notes
+
+- `group_members.display_name` populated from `username` (not Clerk name) at join/create time — affects `/api/groups` POST and `/api/groups/join` (or its replacement in Phase B)
+- Username must be lowercase, 3–20 characters, alphanumeric + underscore only (enforce in API + client validation)
+- Availability check is case-insensitive: `lower(username) = lower(:input)`
+- On username change: existing group_members rows updated atomically in the same DB transaction as the user_profile update
+- `AccountSection.tsx` will show the `username` field instead of Clerk `firstName + lastName` after this step
+
+##### Build Steps (Phase A)
+
+- [x] Step 20 — Username system: DB migration `20260410000006_username.sql` (confirmed run); `/app/onboarding/username/page.tsx` + `UsernameSetupScreen.tsx` (`'use client'`, debounced availability check, `@`-prefixed input, 3–20 char alphanumeric + underscore); `/api/onboarding/username` (GET availability + POST save, validates regex, excludes self); onboarding router gate updated (`username_set` first, fallback to `/onboarding/username`); `AccountSection.tsx` fully rewritten as `'use client'` with inline edit + `unchanged` state; `/api/settings/username` PATCH (update user_profile + cascade to group_members.display_name); `app/(app)/settings/page.tsx` fetches `username` from user_profile; groups POST + join routes use username instead of Clerk name; `lib/types.ts` UserProfile updated
+
+---
+
+#### Phase B — Internal Groups Redesign
+
+##### DB Migration (new file: `20260410000007_groups_redesign.sql`)
+
+```sql
+-- Add public/private visibility to groups
+ALTER TABLE consistency_groups
+  ADD COLUMN is_public boolean NOT NULL DEFAULT true;
+
+-- Invitation/request system
+CREATE TABLE group_invitations (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id      uuid NOT NULL REFERENCES consistency_groups(id) ON DELETE CASCADE,
+  type          text NOT NULL CHECK (type IN ('invitation', 'request')),
+  from_user_id  text NOT NULL,
+  to_user_id    text NOT NULL,
+  status        text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  expires_at    timestamptz NOT NULL DEFAULT (now() + interval '7 days')
+);
+
+-- Prevent duplicate pending invitations/requests
+CREATE UNIQUE INDEX group_invitations_pending_unique
+  ON group_invitations (group_id, from_user_id, to_user_id)
+  WHERE status = 'pending';
+
+-- RLS: users can read invitations where they are from_user_id or to_user_id
+ALTER TABLE group_invitations ENABLE ROW LEVEL SECURITY;
+```
+
+Note: `invite_code` column is left in `consistency_groups` but no longer used. No data migration required.
+
+##### New API Routes
+
+```
+GET  /api/users/search?username=                    — find user by exact username (returns { userId, username }); used by owner when inviting
+GET  /api/groups/discover?q=                        — search public groups by name (plain text, max 10) or by owner (@username prefix, max 20); includes owner_username on every result
+GET  /api/groups/notifications                      — pending invitations/requests for current user (type='invitation', to_user_id=userId, status='pending', expires_at > now())
+POST /api/groups/[id]/invite                        — owner only; POST { toUsername }; creates group_invitations row (type='invitation'); resolves username → user_id via user_profile lookup
+POST /api/groups/invitations/[invitationId]/respond — POST { action: 'accept'|'decline' }; updates status; if accepted: inserts group_members row with username as display_name
+GET  /api/groups/requests                           — owner only; pending join requests for a group (type='request', group_id=id, status='pending')
+```
+
+##### Retired API Routes
+
+```
+POST /api/groups/join          — retired; replaced by invitation/request system
+```
+
+##### Modified API Routes
+
+```
+POST /api/groups               — remove invite_code generation; no change to rest
+GET  /api/groups/[id]          — include is_public in response
+PATCH /api/groups/[id]/manage  — add is_public toggle support; remove invite code management
+```
+
+##### New Components
+
+```
+/components/groups/GroupDiscoverModal.tsx    — replaces JoinGroupModal; search public groups by name;
+                                              public group: "Request to Join" button (creates request);
+                                              private group: not shown in search results
+/components/groups/GroupInvitePanel.tsx      — shown inside GroupManageSheet for group owners;
+                                              username search input → send invitation;
+                                              list of pending outgoing invitations with cancel option
+/components/groups/GroupNotificationsCard.tsx — shown at top of GroupView when pending invitations exist;
+                                               each row: group name + accept/decline buttons inline
+```
+
+##### Modified Components
+
+```
+/components/groups/GroupManageSheet.tsx     — remove invite code / share link section;
+                                              add public/private toggle switch;
+                                              add GroupInvitePanel for owners
+/components/groups/GroupView.tsx            — replace "Join with code" CTA with "Find a group" button
+                                              (opens GroupDiscoverModal);
+                                              add GroupNotificationsCard above group list when notifications > 0
+/components/groups/GroupCard.tsx            — remove invite_code pill; member display uses username
+/app/(app)/groups/page.tsx                  — fetch notifications count to pass to GroupView
+/lib/types.ts                               — ConsistencyGroup: add is_public: boolean;
+                                              new GroupInvitation interface
+```
+
+##### Retired Files
+
+```
+/components/groups/JoinGroupModal.tsx       — replaced by GroupDiscoverModal.tsx
+/app/join/[inviteCode]/page.tsx             — retired entirely; route returns 404 or redirects to /groups
+```
+
+##### Flow Descriptions
+
+**Joining a public group:**
+1. User taps "Find a group" in GroupView → GroupDiscoverModal opens
+2. User searches by group name → results show public groups only
+3. User taps "Request to Join" → POST `/api/groups/[id]/invite` with type='request'
+4. Group owner sees pending request in GroupManageSheet → accept or decline
+
+**Joining a private group:**
+1. Owner must invite the user by username via GroupInvitePanel inside GroupManageSheet
+2. POST `/api/groups/[id]/invite` with type='invitation', toUsername=target
+3. Invited user sees GroupNotificationsCard in their GroupView → accept or decline
+
+**Auto-expiry:**
+- `expires_at` is set to `now() + interval '7 days'` at creation time
+- All notification queries filter `expires_at > now()` — expired rows naturally disappear
+- No cron job needed; stale rows remain in DB but are never surfaced
+
+##### Build Steps (Phase B)
+
+- [x] Step 21 — Internal groups redesign: DB migration `20260410000007_groups_redesign.sql` (is_public + group_invitations table, confirmed run); DB migration `20260410000008_group_name_unique_per_owner.sql` (per-owner case-insensitive unique index, confirmed run); new API routes: `users/search` (exact username lookup), `groups/discover` (name or @username search, exports `DiscoverResult`), `groups/notifications` (pending invitations for current user), `groups/[id]/invite` (GET pending outgoing, POST create invitation/request, DELETE cancel), `groups/invitations/[id]/respond` (accept/decline, `memberUserId` pattern), `groups/requests` (owner sees pending requests); `GroupDiscoverModal.tsx` (replaces JoinGroupModal; detects `@` prefix; @-search groups by owner; name-search flat list); `GroupInvitePanel.tsx` (inside GroupManageSheet; username search → send invitation; pending list with cancel); `GroupNotificationsCard.tsx` (handles both invitation + request types; optimistic removal); modified: `GroupManageSheet` (public/private toggle + GroupInvitePanel, pb-24 for bottom nav clearance), `GroupView` (GroupDiscoverModal, GroupNotificationsCard, side-by-side create + find buttons), `GroupCard` (@ prefix on display_name, Private badge, no invite_code pill), `groups POST` (5-group cap, username for display_name, 23505 catch), `groups/[id]/manage` (toggle_public replaces toggle_invite, 23505 catch on rename), `groups/page.tsx` (no type filter on notifications — fetches both invitations and requests), `CreateGroupModal` (surfaces API error), `lib/types.ts` (is_public + GroupInvitation interface); retired: `JoinGroupModal.tsx` (deleted), `/join/[inviteCode]/page.tsx` (redirects to /groups), `/api/groups/join` (retired)
+
+---
+
+### Future Additions
+
+#### Destination Goal Types (Unscheduled)
+
+Within destination goals, users will maintain a personal list of "types" for tracking activity variety — for example, a Physical destination goal of "Strength training 3x per week" could have types like "Upper Body", "Lower Body", "Full Body". On check-in, the user selects a type from their saved list.
+
+**Open design questions to resolve before building:**
+- Is a type selected per check-in instance, or is it a static property of the goal?
+- Is the type list scoped per destination goal, or shared across all goals in a pillar?
+- What is the storage model — a new `destination_goal_types` table, or a jsonb column?
+- Does type history feed into any stats or reporting?
+- Does the UI treatment differ per pillar?
+
+Phase and step number to be assigned once design questions are resolved.
+
+#### Apple Health Connectivity (Unscheduled)
+
+Integration with Apple Health for automatic Physical and Nutritional pillar data. Deferred until the app is wrapped for iOS. No design decisions made.
+
+---
+
+*This file was last updated: April 2026 — v3 Phase 9 complete (Steps 20–21). Username system + internal groups redesign built and tested. Ten Supabase migrations confirmed run (migrations 6, 7, 8 added in Phase 9). All video URLs pending recordings.*

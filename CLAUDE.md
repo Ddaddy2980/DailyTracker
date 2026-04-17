@@ -45,23 +45,35 @@ Read this file at the start of every session along with PRODUCT.md and CLAUDE.lo
 
 ```
 /app
-  /onboarding             — 4-step onboarding flow (duration → videos → profile → goals)
+  /onboarding             — 5-step onboarding flow (username → duration → videos → profile → goals)
   /dashboard              — unified dashboard (all users, all levels)
   /goals                  — mid-challenge goal management
+  /history                — week-at-a-glance history grid
+  /groups                 — accountability groups list + management
+  /join/[inviteCode]      — deep-link handler for group invite codes
+  /settings               — account management page (avatar menu only, not bottom nav)
   /api                    — API routes
-    /checkin              — per-pillar save + rolling window advancement
-    /goals                — goal CRUD
+    /checkin              — per-pillar save + rolling window advancement + group status sync
+    /goals                — goal CRUD (duration + destination)
     /onboarding           — onboarding step writes
+    /groups               — group CRUD (create, list, join, manage, leave/remove)
 
 /components
   /ui                     — reusable UI primitives (buttons, cards, inputs, checkboxes)
-  /dashboard              — dashboard shell, header, and all pillar card components
+  /dashboard              — dashboard shell, header, day navigator, and all pillar card components
                             (TuningPillarCard, JammingPillarCard, GroovingPillarCard,
-                             SoloingPillarCard, DormantPillarCard, PillarCard fallback)
+                             SoloingPillarCard, DormantPillarCard, PillarCard fallback,
+                             DayNavigator)
+  /history                — HistoryWeekGrid, HistoryTabs, HistoryMonthGrid, HistoryProgressReport
   /goals                  — goal management components shared across onboarding and mid-challenge
-                            (GoalEditorCard, GoalInputRow, ACTChecklist, GoalSuggestions)
+                            (GoalEditorCard, GoalInputRow, ACTChecklist, GoalSuggestions,
+                             ChallengeDurationEditor, ChallengePauseTools)
+  /groups                 — GroupView, GroupCard, CreateGroupModal, GroupDiscoverModal,
+                            GroupManageSheet, GroupInvitePanel, GroupNotificationsCard
   /onboarding             — onboarding step components
+  /settings               — AccountSection, ChallengeSection, ProfileSection
   /shared                 — components used across multiple features
+                            (BottomNav, UserAvatarMenu — UserAvatarMenu rendered in (app)/layout.tsx)
 
 /lib
   /supabase.ts            — Supabase client singleton
@@ -139,15 +151,34 @@ if (error) {
 
 ### v3 Table Reference
 
+All ten migrations have been run in Supabase.
+
+| Migration file | Status |
+|----------------|--------|
+| `20260410000000_v3_clean_schema.sql` | ✓ Run |
+| `20260410000001_add_selected_duration.sql` | ✓ Run |
+| `20260410000002_v3_groups.sql` | ✓ Run |
+| `20260410000003_video_progress.sql` | ✓ Run |
+| `20260410000004_pulse_state.sql` | ✓ Run |
+| `20260410000005_challenge_pause.sql` | ✓ Run |
+| `20260410000006_username.sql` | ✓ Run |
+| `20260410000007_groups_redesign.sql` | ✓ Run |
+| `20260410000008_group_name_unique_per_owner.sql` | ✓ Run |
+
 | Table | Key columns |
 |-------|-------------|
-| `user_profile` | user_id, onboarding step flags, active_challenge_id |
-| `challenges` | user_id, duration_days (21/30/60/90/100), start_date, status |
+| `user_profile` | user_id, onboarding step flags (incl. username_set), active_challenge_id, selected_duration_days, username (unique, lowercase), username_set |
+| `challenges` | user_id, duration_days (any integer), start_date, status, pulse_state, pause fields |
 | `pillar_levels` | user_id, pillar, level (1–4), is_active, profile_score |
 | `duration_goals` | user_id, pillar, goal_text, is_active |
 | `destination_goals` | user_id, pillar, goal_text, status, start_date, end_date |
 | `pillar_daily_entries` | user_id, challenge_id, pillar, entry_date, completed, goal_completions (jsonb — stores both duration and destination goal UUID keys) |
 | `consistency_profile_sessions` | user_id, five pillar scores (0–12 each), is_reassessment |
+| `consistency_groups` | id, user_id (creator), name, invite_code (unused — legacy), max_members (10), status ('active'), is_public (boolean), created_at — UNIQUE INDEX on (user_id, lower(name)) |
+| `group_members` | id, group_id FK→consistency_groups CASCADE, user_id, display_name (= username), joined_at, is_active |
+| `group_daily_status` | id, group_id FK, user_id, status_date, completed — UNIQUE(group_id, user_id, status_date) |
+| `group_invitations` | id, group_id FK CASCADE, type ('invitation'\|'request'), from_user_id, to_user_id, status ('pending'\|'accepted'\|'declined'), created_at, expires_at (now() + 7 days) — UNIQUE partial index on (group_id, from_user_id, to_user_id) WHERE status='pending' |
+| `video_progress` | user_id, video_id, watched_at |
 
 ---
 
