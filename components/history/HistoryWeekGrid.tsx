@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { getWeekStart, PILLAR_CONFIG } from '@/lib/constants'
 import type { PillarLevel, DurationGoal, PillarDailyEntry, PillarName } from '@/lib/types'
 
@@ -178,10 +179,15 @@ export default function HistoryWeekGrid({
           return (
           <div key={pillar} className="grid grid-cols-8 gap-1 items-center">
             <div
-              className="rounded-md px-1 py-0.5 text-[10px] font-semibold truncate text-center"
-              style={{ backgroundColor: config.background, color: config.title }}
+              className="w-8 h-8 rounded-full flex items-center justify-center mx-auto flex-shrink-0"
+              style={{ backgroundColor: config.background }}
             >
-              {config.label}
+              <Image
+                src={config.icon}
+                alt={config.label}
+                width={20}
+                height={20}
+              />
             </div>
             {weekDates.map((date) => {
               const isFuture = date > today
