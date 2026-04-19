@@ -23,18 +23,20 @@ Read this file at the start of every session along with PRODUCT.md and CLAUDE.lo
 - Auth: Clerk (`@clerk/nextjs` v7)
 - Database: Supabase (`@supabase/supabase-js` v2)
 - Hosting: Vercel
-- **Current version: v3** — active branch is `v3-phase1`
+- **Current version: v3** — live on `main`, deployed to `altared-tracker.com`
 
 ---
 
 ## Branch Rules
 
-- Never commit directly to `main`
-- All active development happens on branch: `v3-phase1`
+- `main` is the live production branch — always deployed to Vercel
+- All new feature development happens on branch: `v3-phase1` (kept as the working branch)
 - Create feature sub-branches off `v3-phase1` for each build step:
-  e.g. `step-2-types-constants`, `step-3-onboarding`
+  e.g. `step-22-feature-name`
 - When David says "this is ready", merge the feature branch into `v3-phase1`
-- Only merge `v3-phase1` into `main` when David explicitly says "ready to go live"
+- To deploy: merge `v3-phase1` into `main` then push — Vercel auto-deploys
+- Push to GitHub via HTTPS with embedded token (SSH not configured on this machine):
+  `git -c credential.helper= push https://TOKEN@github.com/Ddaddy2980/DailyTracker.git main`
 - All v2 branches are retired — do not use them as a base for new work
 
 ---
