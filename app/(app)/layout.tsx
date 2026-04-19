@@ -37,11 +37,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-[#EBEBEC]">
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 h-14 px-4 flex items-center">
+      <header
+        className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 flex items-center"
+        style={{ paddingTop: 'env(safe-area-inset-top)', minHeight: 'calc(3.5rem + env(safe-area-inset-top))' }}
+      >
         {/* Left: app icon */}
         <div className="w-10 flex-shrink-0">
           <Image
-            src="/logo_2.png"
+            src="/Logo.png"
             alt="Daily Consistency Tracker"
             width={36}
             height={36}
@@ -67,7 +70,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
-      <div className="pb-24">{children}</div>
+      <div style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}>{children}</div>
       <BottomNav />
     </div>
   )

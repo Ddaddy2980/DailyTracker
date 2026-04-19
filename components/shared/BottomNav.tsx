@@ -69,7 +69,10 @@ export default function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 px-1 py-2">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 px-1 pt-2"
+      style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 8px)' }}
+    >
       <div className="flex items-center justify-around max-w-lg mx-auto">
         {TABS.map(tab => {
           const isActive = pathname.startsWith(tab.href)
@@ -78,11 +81,11 @@ export default function BottomNav() {
             <Link
               key={tab.id}
               href={tab.href}
-              className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-colors min-w-0"
+              className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors min-w-0 min-h-[44px] justify-center"
               style={{ color: isActive ? '#1e40af' : '#94a3b8' }}
             >
               <Icon />
-              <span className="text-[9px] font-semibold">{tab.label}</span>
+              <span className="text-[10px] font-semibold leading-none">{tab.label}</span>
             </Link>
           )
         })}

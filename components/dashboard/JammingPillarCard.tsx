@@ -130,6 +130,7 @@ export default function JammingPillarCard({
     } else {
       setSaved(true)
       setIsOpen(false)
+      router.refresh()
       setTimeout(() => setSaved(false), 2000)
     }
   }

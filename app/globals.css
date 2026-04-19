@@ -3,6 +3,21 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior-y: none;
+  }
+
+  /* Prevent iOS tap highlight flash */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */
+  input, textarea, select {
+    font-size: max(16px, 1em);
+  }
+
   :root {
     --app-bg: #f0f2f5;
     --card-bg: #ffffff;

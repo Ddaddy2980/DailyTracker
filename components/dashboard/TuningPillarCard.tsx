@@ -114,6 +114,7 @@ export default function TuningPillarCard({
     } else {
       setSaved(true)
       setIsOpen(false)
+      router.refresh()
       setTimeout(() => setSaved(false), 2000)
     }
   }

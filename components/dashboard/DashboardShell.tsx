@@ -93,8 +93,8 @@ export default function DashboardShell({
           <CompletionCountdownBanner daysRemaining={daysRemaining} />
         )}
 
-        {/* Life pause banner — today view only, not paused, taking_on_water pulse */}
-        {isViewingToday && !isPaused && pulseState === 'taking_on_water' && (
+        {/* Life pause banner — today view only, not paused, taking_on_water pulse, at least day 4 */}
+        {isViewingToday && !isPaused && pulseState === 'taking_on_water' && effectiveDay > 3 && (
           <LifePauseBanner />
         )}
 

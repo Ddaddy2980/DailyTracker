@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { PILLAR_CONFIG, LEVEL_NAMES } from '@/lib/constants'
 import type { PillarLevel, DurationGoal, PillarDailyEntry, GoalCompletions } from '@/lib/types'
@@ -28,6 +29,7 @@ export default function PillarCard({
   const [completions, setCompletions] = useState<GoalCompletions>(() => {
     return todayEntry?.goal_completions ?? {}
   })
+  const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -52,8 +54,9 @@ export default function PillarCard({
     })
     setSaving(false)
     setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
     setIsOpen(false)
+    router.refresh()
+    setTimeout(() => setSaved(false), 2000)
   }
 
   const saveLabel = saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'
