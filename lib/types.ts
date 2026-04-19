@@ -31,6 +31,10 @@ export type ChallengeDuration = 21 | 30 | 60 | 90 | 100
 
 export type ChallengeStatus = 'active' | 'completed' | 'abandoned'
 
+// Computed health signal written to challenges.pulse_state after every checkin save.
+// Drives coaching video selection and notification tier.
+export type PulseState = 'smooth_sailing' | 'rough_waters' | 'taking_on_water'
+
 export type DestinationGoalStatus = 'active' | 'completed' | 'released' | 'expired'
 
 // Onboarding steps — each maps to a boolean gate column in user_profile
@@ -58,6 +62,9 @@ export type DayMark = 'completed' | 'missed' | 'future'
 export interface UserProfile {
   id:                            string
   user_id:                       string
+  // Username — Phase 9; first onboarding gate
+  username:                      string | null
+  username_set:                  boolean
   // Onboarding step gates — each flips to true when the step is completed
   challenge_duration_selected:   boolean
   clarity_videos_seen:           boolean
@@ -73,13 +80,23 @@ export interface UserProfile {
 }
 
 export interface Challenge {
-  id:            string
-  user_id:       string
-  duration_days: ChallengeDuration   // 21 | 30 | 60 | 90 | 100
-  start_date:    string              // ISO date YYYY-MM-DD
-  status:        ChallengeStatus
-  completed_at:  string | null
-  created_at:    string
+  id:               string
+  user_id:          string
+  duration_days:    number   // preset at onboarding (21|30|60|90|100); may grow via "Add a Week"
+  start_date:       string              // ISO date YYYY-MM-DD
+  status:           ChallengeStatus
+  completed_at:     string | null
+  // Computed health signal — updated on every checkin save (today only)
+  pulse_state:      PulseState
+  pulse_updated_at: string | null
+  // Life Pause — Step 16b
+  is_paused:              boolean         // true while a pause is active
+  paused_at:              string | null   // ISO timestamp when current pause began
+  pause_reason:           string | null   // user-supplied reason (optional)
+  pause_days_used:        number          // accumulated calendar days from all past pauses
+  scheduled_pause_date:   string | null   // YYYY-MM-DD; auto-activates on that date
+  scheduled_pause_reason: string | null   // user-supplied reason for scheduled pause
+  created_at:       string
 }
 
 export interface PillarLevel {
@@ -192,7 +209,24 @@ export interface OnboardingPillarGoal {
 
 // Video entry — clarity videos and per-level coaching videos
 // url: '' while not yet recorded — renders a "Coming soon" placeholder
-export type VideoModule = 'clarity' | 'tuning' | 'jamming' | 'grooving' | 'soloing'
+// Module breakdown:
+//   'clarity'    — three onboarding clarity videos (already in CLARITY_VIDEOS)
+//   'foundation' — Module A: Living on Purpose (A1–A4)
+//   'pillars'    — Module B: Five Pillar intros (B1–B5)
+//   'goals'      — Module C: Duration goals & ACT (C1–C4)
+//   'tuning'     — Module D: Daily Tuning coaching (D1–D7)
+//   'jamming'    — J series: Jamming coaching & pulse response
+//   'grooving'   — G series: Grooving coaching & pulse response
+//   'soloing'    — future; no coaching videos defined yet
+export type VideoModule =
+  | 'clarity'
+  | 'foundation'
+  | 'pillars'
+  | 'goals'
+  | 'tuning'
+  | 'jamming'
+  | 'grooving'
+  | 'soloing'
 
 export interface VideoEntry {
   id:      string
@@ -200,6 +234,20 @@ export interface VideoEntry {
   url:     string        // YouTube embed URL or '' for placeholder
   module:  VideoModule
   trigger: string        // logical trigger name for wiring
+}
+
+// A named group of videos for the library page display
+export interface VideoLibrarySection {
+  title:       string
+  description: string
+  videoIds:    string[]
+}
+
+export interface VideoProgress {
+  id:         string
+  user_id:    string
+  video_id:   string
+  watched_at: string
 }
 
 
@@ -214,9 +262,10 @@ export interface ConsistencyGroup {
   id:          string
   user_id:     string       // Clerk user_id of the creator (owner)
   name:        string
-  invite_code: string       // 5-char alphanumeric, generated app-side
+  invite_code: string       // retained in DB but no longer surfaced in UI (Phase 9)
   max_members: number       // default 10
   status:      GroupStatus
+  is_public:   boolean      // true = discoverable by name search; false = invite-only
   created_at:  string
 }
 
@@ -235,6 +284,20 @@ export interface GroupDailyStatus {
   user_id:     string
   status_date: string       // ISO date YYYY-MM-DD
   completed:   boolean      // true when member has checked any pillar today
+}
+
+export type InvitationType = 'invitation' | 'request'
+export type InvitationStatus = 'pending' | 'accepted' | 'declined'
+
+export interface GroupInvitation {
+  id:           string
+  group_id:     string
+  type:         InvitationType
+  from_user_id: string
+  to_user_id:   string
+  status:       InvitationStatus
+  created_at:   string
+  expires_at:   string
 }
 
 // Assembled composite — one per group, passed to GroupCard

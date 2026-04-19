@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { SignIn } from '@clerk/nextjs'
-import { getUserProfile } from '@/app/actions'
 
 // ── Clerk appearance ──────────────────────────────────────────────────────────
 
@@ -28,12 +27,7 @@ export default async function SignInRoute() {
   const { userId } = await auth()
 
   if (userId) {
-    const profile = await getUserProfile()
-    if (profile?.onboarding_completed) {
-      redirect('/journey')
-    } else {
-      redirect('/onboarding')
-    }
+    redirect('/')
   }
 
   return (

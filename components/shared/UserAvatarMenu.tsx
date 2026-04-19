@@ -32,7 +32,7 @@ export default function UserAvatarMenu() {
     : (user?.emailAddresses?.[0]?.emailAddress?.[0] ?? '?').toUpperCase()
 
   const displayName = [firstName, lastName].filter(Boolean).join(' ') ||
-    user?.emailAddresses?.[0]?.emailAddress ?? ''
+    (user?.emailAddresses?.[0]?.emailAddress ?? '')
 
   async function handleSignOut() {
     await signOut()

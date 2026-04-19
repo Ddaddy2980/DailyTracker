@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import type { UserProfile, PillarLevel } from '@/lib/types'
-import GoalsFlow from '@/components/onboarding/GoalsFlow'
+import OnboardingGoalsClient from '@/components/onboarding/OnboardingGoalsClient'
 
 export default async function GoalsPage() {
   const { userId } = await auth()
@@ -27,7 +27,7 @@ export default async function GoalsPage() {
     .returns<PillarLevel[]>()
 
   return (
-    <GoalsFlow
+    <OnboardingGoalsClient
       pillarLevels={pillarLevels ?? []}
       durationDays={profile?.selected_duration_days ?? 30}
     />

@@ -24,7 +24,9 @@ import type {
   LevelNumber,
   LevelName,
   ChallengeDuration,
+  PulseState,
   VideoEntry,
+  VideoLibrarySection,
 } from '@/lib/types'
 
 
@@ -295,6 +297,208 @@ export const CLARITY_VIDEOS: VideoEntry[] = [
 
 
 // =============================================================================
+// VIDEO_LIBRARY
+// All coaching and onboarding videos indexed by ID.
+// url: '' until recordings are complete — UI renders a Coming Soon placeholder.
+// IDs match the PRODUCT.md module naming: A1–A4, B1–B5, C1–C4, D1–D7, J1–J7, G series.
+// CLARITY_1–3 are also included here so the library page can reference them
+// consistently — video_progress rows use these IDs across all contexts.
+// =============================================================================
+
+export const VIDEO_LIBRARY: Record<string, VideoEntry> = {
+  // ── Clarity (onboarding) ────────────────────────────────────────────────────
+  CLARITY_1: { id: 'CLARITY_1', module: 'clarity', trigger: 'onboarding_clarity',
+    title: 'Living on Purpose', url: '' },
+  CLARITY_2: { id: 'CLARITY_2', module: 'clarity', trigger: 'onboarding_clarity',
+    title: 'Duration vs. Destination Goals', url: '' },
+  CLARITY_3: { id: 'CLARITY_3', module: 'clarity', trigger: 'onboarding_clarity',
+    title: 'The Five Pillars', url: '' },
+
+  // ── Module A — Living on Purpose (foundation) ───────────────────────────────
+  A1: { id: 'A1', module: 'foundation', trigger: 'tuning_day0',
+    title: 'Why your life feels like it\'s passing you by', url: '' },
+  A2: { id: 'A2', module: 'foundation', trigger: 'tuning_day0',
+    title: 'The difference between Living for, with, and on Purpose', url: '' },
+  A3: { id: 'A3', module: 'foundation', trigger: 'tuning_day1',
+    title: 'Why small habits are not small', url: '' },
+  A4: { id: 'A4', module: 'foundation', trigger: 'tuning_day1',
+    title: 'The five attacks against consistency', url: '' },
+
+  // ── Module B — Five Pillar intros ───────────────────────────────────────────
+  B1: { id: 'B1', module: 'pillars', trigger: 'tuning_spiritual_day1',
+    title: 'Why your spiritual life is the foundation of everything else', url: '' },
+  B2: { id: 'B2', module: 'pillars', trigger: 'tuning_physical_day1',
+    title: 'Your body is not separate from your purpose', url: '' },
+  B3: { id: 'B3', module: 'pillars', trigger: 'tuning_nutritional_day1',
+    title: 'What you eat is what you become', url: '' },
+  B4: { id: 'B4', module: 'pillars', trigger: 'tuning_personal_day1',
+    title: 'You are more than your to-do list', url: '' },
+  B5: { id: 'B5', module: 'pillars', trigger: 'tuning_relational_day1',
+    title: 'Think ONE — living intentionally for others', url: '' },
+
+  // ── Module C — Duration goals & ACT ────────────────────────────────────────
+  C1: { id: 'C1', module: 'goals', trigger: 'onboarding_goals',
+    title: 'Why destination goals keep failing you', url: '' },
+  C2: { id: 'C2', module: 'goals', trigger: 'onboarding_goals',
+    title: 'The one question that changes everything', url: '' },
+  C3: { id: 'C3', module: 'goals', trigger: 'goal_setup',
+    title: 'How to write a goal that actually works — the ACT test', url: '' },
+  C4: { id: 'C4', module: 'goals', trigger: 'tuning_stall',
+    title: 'What to do when you miss a day', url: '' },
+
+  // ── Module D — Daily Tuning coaching (D1–D7) ───────────────────────────────
+  D1: { id: 'D1', module: 'tuning', trigger: 'tuning_day1',
+    title: 'Day 1: Let\'s go. Here\'s what today is about.', url: '' },
+  D2: { id: 'D2', module: 'tuning', trigger: 'tuning_day2',
+    title: 'Day 2: The awkwardness is normal — here\'s why.', url: '' },
+  D3: { id: 'D3', module: 'tuning', trigger: 'tuning_day3',
+    title: 'Day 3: The hardest day. Don\'t quit on day 3.', url: '' },
+  D4: { id: 'D4', module: 'tuning', trigger: 'tuning_day4',
+    title: 'Day 4: You made it through the hard part. Halfway there.', url: '' },
+  D5: { id: 'D5', module: 'tuning', trigger: 'tuning_day5',
+    title: 'Day 5: Notice anything yet? Here\'s what\'s forming.', url: '' },
+  D6: { id: 'D6', module: 'tuning', trigger: 'tuning_day6',
+    title: 'Day 6: One day left. Don\'t coast across the finish line.', url: '' },
+  D7: { id: 'D7', module: 'tuning', trigger: 'tuning_day7',
+    title: 'Day 7: You finished. Here\'s what that means.', url: '' },
+
+  // ── J Series — Jamming ──────────────────────────────────────────────────────
+  J1: { id: 'J1', module: 'jamming', trigger: 'jamming_onboarding',
+    title: 'Welcome to Jamming. Here\'s what\'s different.', url: '' },
+  J2: { id: 'J2', module: 'jamming', trigger: 'jamming_day1_2',
+    title: 'Why adding a second pillar feels like starting over (and why it\'s not)', url: '' },
+  J3: { id: 'J3', module: 'jamming', trigger: 'jamming_day6',
+    title: 'The weekly check-in: why reviewing matters more than tracking', url: '' },
+  J4: { id: 'J4', module: 'jamming', trigger: 'pulse_smooth_sailing',
+    title: 'What\'s forming in you right now', url: '' },
+  J5: { id: 'J5', module: 'jamming', trigger: 'pulse_rough_waters',
+    title: 'Still in it means you\'re winning', url: '' },
+  J6: { id: 'J6', module: 'jamming', trigger: 'pulse_taking_on_water',
+    title: 'Let\'s make this survivable', url: '' },
+  J7: { id: 'J7', module: 'jamming', trigger: 'jamming_completion',
+    title: 'Jamming complete. You\'ve built something real.', url: '' },
+
+  // ── G Series — Grooving ─────────────────────────────────────────────────────
+  G1: { id: 'G1', module: 'grooving', trigger: 'grooving_onboarding',
+    title: 'Welcome to Grooving. The question changes here.', url: '' },
+  G2: { id: 'G2', module: 'grooving', trigger: 'grooving_25_5',
+    title: 'Why the 25/5 exercise will change how you see your time', url: '' },
+  G3: { id: 'G3', module: 'grooving', trigger: 'grooving_calendar',
+    title: 'What the habit calendar is really showing you', url: '' },
+  G4: { id: 'G4', module: 'grooving', trigger: 'grooving_circle',
+    title: 'The people who finish are the people who feel witnessed', url: '' },
+  G5: { id: 'G5', module: 'grooving', trigger: 'grooving_rooted',
+    title: 'Something just happened — your habit has taken root', url: '' },
+  G6: { id: 'G6', module: 'grooving', trigger: 'grooving_destination_intro',
+    title: 'From how to where — introducing destination goals', url: '' },
+  G6b: { id: 'G6b', module: 'grooving', trigger: 'grooving_first_destination_goal',
+    title: 'Setting a direction within your daily habit', url: '' },
+  G7: { id: 'G7', module: 'grooving', trigger: 'grooving_pause',
+    title: 'What to do when life interrupts your challenge', url: '' },
+  'G-Return': { id: 'G-Return', module: 'grooving', trigger: 'grooving_return',
+    title: 'Welcome back. You didn\'t quit — you paused.', url: '' },
+  G8: { id: 'G8', module: 'grooving', trigger: 'grooving_completion',
+    title: 'Grooving complete. Look at what you\'ve built.', url: '' },
+  'G-Smooth': { id: 'G-Smooth', module: 'grooving', trigger: 'pulse_smooth_sailing',
+    title: 'You\'re in the groove. Notice what that feels like.', url: '' },
+  'G-Rough': { id: 'G-Rough', module: 'grooving', trigger: 'pulse_rough_waters',
+    title: 'Long challenges have hard weeks. This is one of them.', url: '' },
+  'G-Water': { id: 'G-Water', module: 'grooving', trigger: 'pulse_taking_on_water',
+    title: 'Let\'s figure out what this challenge needs to look like for you to finish it.', url: '' },
+}
+
+// Maps pillar name to its Module B intro video ID (shown on Day 1 of Tuning)
+const PILLAR_INTRO_VIDEO_ID: Record<PillarName, string> = {
+  spiritual:   'B1',
+  physical:    'B2',
+  nutritional: 'B3',
+  personal:    'B4',
+  relational:  'B5',
+}
+
+// ---------------------------------------------------------------------------
+// selectTuningVideo
+// Returns the appropriate coaching video for a Tuning-level pillar card.
+//
+// - Day 1 of the challenge → pillar-specific intro (Module B)
+// - Stalled (3+ of last 3 days missed) → recovery video (C4)
+// - Otherwise → daily coaching D1–D7, capped at D7 (shared across all Tuning pillars)
+// ---------------------------------------------------------------------------
+export function selectTuningVideo(
+  pillar: PillarName,
+  challengeDay: number,
+  stalledDays: number
+): VideoEntry {
+  if (challengeDay <= 1) return VIDEO_LIBRARY[PILLAR_INTRO_VIDEO_ID[pillar]]
+  if (stalledDays >= 3)  return VIDEO_LIBRARY['C4']
+  return VIDEO_LIBRARY[`D${Math.min(challengeDay, 7)}`]
+}
+
+// ---------------------------------------------------------------------------
+// selectJammingVideo
+// Returns the coaching video for a Jamming-level pillar card, driven by pulse state.
+// ---------------------------------------------------------------------------
+export function selectJammingVideo(pulseState: PulseState): VideoEntry {
+  if (pulseState === 'smooth_sailing')   return VIDEO_LIBRARY['J4']
+  if (pulseState === 'rough_waters')     return VIDEO_LIBRARY['J5']
+  return VIDEO_LIBRARY['J6']
+}
+
+// ---------------------------------------------------------------------------
+// selectGroovingVideo
+// Returns the coaching video for a Grooving-level pillar card, driven by pulse state.
+// ---------------------------------------------------------------------------
+export function selectGroovingVideo(pulseState: PulseState): VideoEntry {
+  if (pulseState === 'smooth_sailing')   return VIDEO_LIBRARY['G-Smooth']
+  if (pulseState === 'rough_waters')     return VIDEO_LIBRARY['G-Rough']
+  return VIDEO_LIBRARY['G-Water']
+}
+
+// ---------------------------------------------------------------------------
+// VIDEO_LIBRARY_SECTIONS
+// Ordered section groupings for the /videos library page.
+// Pulse-response videos (J4/J5/J6, G-Smooth/Rough/Water) are intentionally
+// excluded — they surface via the pillar card button, not as browse-able content.
+// ---------------------------------------------------------------------------
+export const VIDEO_LIBRARY_SECTIONS: VideoLibrarySection[] = [
+  {
+    title:       'Clarity',
+    description: 'The three foundation videos from your onboarding',
+    videoIds:    ['CLARITY_1', 'CLARITY_2', 'CLARITY_3'],
+  },
+  {
+    title:       'Getting Started',
+    description: 'The why behind Living on Purpose',
+    videoIds:    ['A1', 'A2', 'A3', 'A4'],
+  },
+  {
+    title:       'The Five Pillars',
+    description: 'An introduction to each area of your life',
+    videoIds:    ['B1', 'B2', 'B3', 'B4', 'B5'],
+  },
+  {
+    title:       'Duration Goals & the ACT Test',
+    description: 'Why duration goals work — and how to write one that sticks',
+    videoIds:    ['C1', 'C2', 'C3', 'C4'],
+  },
+  {
+    title:       'Tuning — Daily Coaching',
+    description: 'One video per day of your first 7-day window',
+    videoIds:    ['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7'],
+  },
+  {
+    title:       'Jamming',
+    description: 'Coaching for your 14-day consistency window',
+    videoIds:    ['J1', 'J2', 'J3', 'J7'],
+  },
+  {
+    title:       'Grooving',
+    description: 'Formation-level coaching for the long haul',
+    videoIds:    ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G6b', 'G7', 'G8'],
+  },
+]
+
+// =============================================================================
 // Utility functions
 // =============================================================================
 
@@ -342,6 +546,33 @@ export function rollingWindowDates(windowDays: number, endDate?: string): string
 export function calcDailyCompletionPct(completedCount: number, activeCount: number): number {
   if (activeCount === 0) return 0
   return Math.round((completedCount / activeCount) * 100)
+}
+
+// Returns the effective challenge day number, accounting for paused days.
+//
+// While paused:  freezes at the day the challenge was paused (paused_at date),
+//                minus any previously accumulated pause days (pause_days_used).
+//                This prevents the day counter from advancing during a pause.
+//
+// While running: subtracts pause_days_used from the raw calendar day so the user
+//                does not lose credit for days that were legitimately paused.
+//
+// pause_days_used is accumulated at resume time only — it does NOT include
+// the current active pause (that gets added when the user resumes).
+export function getEffectiveChallengeDay(challenge: {
+  start_date:      string
+  is_paused:       boolean
+  paused_at:       string | null
+  pause_days_used: number
+}, viewingDate?: string): number {
+  if (challenge.is_paused && challenge.paused_at) {
+    // Freeze the counter at the day the pause began
+    const pausedOnDate = challenge.paused_at.slice(0, 10)
+    const dayAtPause = getDayNumber(challenge.start_date, pausedOnDate)
+    return Math.max(1, dayAtPause - challenge.pause_days_used)
+  }
+  const rawDay = getDayNumber(challenge.start_date, viewingDate ?? todayStr())
+  return Math.max(1, rawDay - challenge.pause_days_used)
 }
 
 // Returns the Sunday of the week containing dateStr, as YYYY-MM-DD.
