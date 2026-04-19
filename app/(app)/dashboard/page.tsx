@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { getDayNumber, todayStr } from '@/lib/constants'
+import { getDayNumber, todayStr, getEffectiveChallengeDay } from '@/lib/constants'
 import type { UserProfile, Challenge, PillarLevel, DurationGoal, DestinationGoal, PillarDailyEntry } from '@/lib/types'
 import DashboardShell from '@/components/dashboard/DashboardShell'
 
@@ -44,7 +44,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   ] = await Promise.all([
     supabase
       .from('challenges')
-      .select('*')
+      .select('id, user_id, duration_days, start_date, status, pulse_state, is_paused, paused_at, pause_reason, pause_days_used, scheduled_pause_date, scheduled_pause_reason')
       .eq('id', profile.active_challenge_id)
       .single<Challenge>(),
 
@@ -76,6 +76,65 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   const challenge = challengeResult.data
   if (!challenge) redirect('/onboarding')
+
+  // Auto-activate a scheduled pause if the date has arrived
+  if (
+    !challenge.is_paused &&
+    challenge.scheduled_pause_date &&
+    challenge.scheduled_pause_date <= todayStr()
+  ) {
+    const supabaseForPause = createServerSupabaseClient()
+    const { error: pauseActivateError } = await supabaseForPause
+      .from('challenges')
+      .update({
+        is_paused:             true,
+        paused_at:             new Date().toISOString(),
+        pause_reason:          challenge.scheduled_pause_reason,
+        scheduled_pause_date:  null,
+        scheduled_pause_reason: null,
+      })
+      .eq('id', challenge.id)
+    if (pauseActivateError) {
+      console.error('DashboardPage: failed to auto-activate scheduled pause:', pauseActivateError)
+    } else {
+      // Re-read challenge with updated pause state before continuing
+      const { data: refreshed } = await supabaseForPause
+        .from('challenges')
+        .select('id, user_id, duration_days, start_date, status, pulse_state, is_paused, paused_at, pause_reason, pause_days_used, scheduled_pause_date, scheduled_pause_reason')
+        .eq('id', challenge.id)
+        .single<Challenge>()
+      if (refreshed) {
+        Object.assign(challenge, refreshed)
+      }
+    }
+  }
+
+  // If challenge is already marked completed, redirect immediately
+  if (challenge.status === 'completed') redirect('/completion')
+
+  // Compute effective day (pause-adjusted) and check for natural completion
+  const effectiveDay = getEffectiveChallengeDay(challenge)
+  if (effectiveDay > challenge.duration_days && !challenge.is_paused) {
+    // Mark challenge complete server-side (idempotent POST)
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/api/challenges/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+      })
+    } catch {
+      // Non-fatal — page will redirect regardless
+    }
+    // Direct DB write as fallback (more reliable in server component)
+    const supabaseComplete = createServerSupabaseClient()
+    await supabaseComplete
+      .from('challenges')
+      .update({ status: 'completed', completed_at: new Date().toISOString() })
+      .eq('id', challenge.id)
+      .eq('status', 'active')
+    redirect('/completion')
+  }
+
+  const daysRemaining = challenge.duration_days - effectiveDay
 
   // Resolve viewingDate from search param — must be a valid date within the challenge window
   const today = todayStr()
@@ -126,8 +185,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       destinationGoals={destinationGoals}
       windowEntries={windowEntries}
       currentDay={currentDay}
+      effectiveDay={effectiveDay}
+      daysRemaining={daysRemaining}
       viewingDate={viewingDate}
       userId={userId}
+      isPaused={challenge.is_paused}
+      pulseState={challenge.pulse_state}
     />
   )
 }

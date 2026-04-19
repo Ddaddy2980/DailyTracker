@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { PILLAR_CONFIG, LEVEL_NAMES } from '@/lib/constants'
-import type { PillarLevel, DurationGoal, DestinationGoal, PillarDailyEntry, GoalCompletions, LevelNumber } from '@/lib/types'
+import { PILLAR_CONFIG, LEVEL_NAMES, selectGroovingVideo } from '@/lib/constants'
+import type { PillarLevel, DurationGoal, DestinationGoal, PillarDailyEntry, GoalCompletions, LevelNumber, PulseState } from '@/lib/types'
+import VideoModal from '@/components/shared/VideoModal'
 
 interface CheckinApiResponse {
   success: boolean
@@ -21,6 +22,7 @@ interface GroovingPillarCardProps {
   challengeId: string
   userId: string
   entryDate: string
+  pulseState: PulseState
 }
 
 const CIRCUMFERENCE = 2 * Math.PI * 15  // r=15 → ≈ 94.25
@@ -85,6 +87,7 @@ export default function GroovingPillarCard({
   todayEntry,
   challengeId,
   entryDate,
+  pulseState,
 }: GroovingPillarCardProps) {
   const { pillar, level } = pillarLevel
   const config = PILLAR_CONFIG[pillar]
@@ -97,6 +100,10 @@ export default function GroovingPillarCard({
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [advancedToLevel, setAdvancedToLevel] = useState<LevelNumber | null>(null)
+  const [showVideo, setShowVideo] = useState(false)
+  const [videoWatched, setVideoWatched] = useState(false)
+
+  const video = selectGroovingVideo(pulseState)
 
   const checkedDurationCount = goals.filter((g) => completions[g.id] === true).length
   const pct = goals.length === 0 ? 0 : checkedDurationCount / goals.length
@@ -133,6 +140,14 @@ export default function GroovingPillarCard({
   const saveLabel = saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'
 
   return (
+    <>
+    {showVideo && (
+      <VideoModal
+        video={video}
+        onClose={() => setShowVideo(false)}
+        onWatched={() => setVideoWatched(true)}
+      />
+    )}
     <div className="rounded-xl overflow-hidden shadow-sm">
       {/* Collapsed header row — always visible */}
       <button
@@ -160,6 +175,22 @@ export default function GroovingPillarCard({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Video button */}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowVideo(true) }}
+            className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors"
+            style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+            aria-label="Watch coaching video"
+          >
+            {videoWatched ? (
+              <span className="text-emerald-300 text-sm leading-none">✓</span>
+            ) : (
+              <svg className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            )}
+          </button>
           <ProgressRing
             pct={pct}
             titleColor={config.title}
@@ -275,5 +306,6 @@ export default function GroovingPillarCard({
         </div>
       )}
     </div>
+    </>
   )
 }

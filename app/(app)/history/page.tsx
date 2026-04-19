@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { getWeekStart, todayStr } from '@/lib/constants'
 import type { UserProfile, Challenge, PillarLevel, DurationGoal, PillarDailyEntry } from '@/lib/types'
-import HistoryWeekGrid from '@/components/history/HistoryWeekGrid'
+import HistoryTabs from '@/components/history/HistoryTabs'
 
 export const dynamic = 'force-dynamic'
 
@@ -83,7 +83,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
     <div className="min-h-screen bg-[#EBEBEC]">
       <div className="px-4 pt-6 pb-4">
         <h1 className="text-lg font-semibold text-slate-700 mb-4">History</h1>
-        <HistoryWeekGrid
+        <HistoryTabs
           weekStart={weekStart}
           challengeStartDate={challenge.start_date}
           allEntries={allEntries ?? []}

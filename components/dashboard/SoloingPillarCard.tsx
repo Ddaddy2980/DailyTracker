@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { PILLAR_CONFIG, LEVEL_NAMES } from '@/lib/constants'
-import type { PillarLevel, DurationGoal, DestinationGoal, PillarDailyEntry, GoalCompletions } from '@/lib/types'
+import type { PillarLevel, DurationGoal, DestinationGoal, PillarDailyEntry, GoalCompletions, PulseState } from '@/lib/types'
 
 interface SoloingPillarCardProps {
   pillarLevel: PillarLevel
@@ -13,6 +13,7 @@ interface SoloingPillarCardProps {
   challengeId: string
   userId: string
   entryDate: string
+  pulseState: PulseState
 }
 
 const CIRCUMFERENCE = 2 * Math.PI * 15
@@ -75,6 +76,9 @@ export default function SoloingPillarCard({
   todayEntry,
   challengeId,
   entryDate,
+  // pulseState: Soloing has no video button — received but intentionally unused
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  pulseState: _pulseState,
 }: SoloingPillarCardProps) {
   const { pillar, level } = pillarLevel
   const config = PILLAR_CONFIG[pillar]

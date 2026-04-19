@@ -3,7 +3,8 @@ import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { PILLAR_ORDER, todayStr, rollingWindowDates } from '@/lib/constants'
 import { evaluateRollingWindow } from '@/lib/rolling-window'
-import type { DurationGoal, GoalCompletions, PillarDailyEntry, PillarLevel, LevelNumber } from '@/lib/types'
+import type { DurationGoal, GoalCompletions, PillarDailyEntry, PillarLevel, LevelNumber, PulseState } from '@/lib/types'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 interface CheckinRequestBody {
   pillar: unknown
@@ -64,6 +65,22 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServerSupabaseClient()
 
+  // Guard: reject saves when the challenge is paused
+  const { data: challengeCheck, error: challengeCheckError } = await supabase
+    .from('challenges')
+    .select('is_paused')
+    .eq('id', challengeId as string)
+    .single<{ is_paused: boolean }>()
+
+  if (challengeCheckError) {
+    console.error('checkin: failed to verify challenge pause state:', challengeCheckError)
+    return NextResponse.json({ error: 'Failed to verify challenge state' }, { status: 500 })
+  }
+
+  if (challengeCheck?.is_paused) {
+    return NextResponse.json({ error: 'Challenge is paused' }, { status: 403 })
+  }
+
   // Fetch active duration goals for this user+pillar to determine `completed`
   const { data: activeGoals, error: goalsError } = await supabase
     .from('duration_goals')
@@ -106,12 +123,17 @@ export async function POST(request: NextRequest) {
 
   // Only evaluate advancement and sync group status for today's completions.
   // Retroactive edits to past days do not trigger level-up or group sync.
-  if (!completed || effectiveDate !== todayStr()) {
+  if (effectiveDate !== todayStr()) {
     return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
   }
 
-  // Sync group daily status — non-blocking, non-fatal
+  // Non-blocking side-effects for today saves
   void syncGroupDailyStatus(userId, effectiveDate)
+  void updatePulseState(userId, challengeId as string, supabase)
+
+  if (!completed) {
+    return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
+  }
 
   // Fetch current pillar level and last 60 days of entries in parallel.
   // 60 days covers the largest rolling window (Grooving → Soloing).
@@ -226,5 +248,55 @@ async function syncGroupDailyStatus(userId: string, today: string): Promise<void
 
   if (upsertError) {
     console.error('checkin: group status sync — failed to upsert group_daily_status:', upsertError)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// updatePulseState
+// Called after every today save (completed or not).
+// Looks at last 7 days of entries across all pillars and sets pulse_state:
+//   ≥5 completed days → 'smooth_sailing'
+//   ≥3 completed days → 'rough_waters'
+//   else              → 'taking_on_water'
+// Non-fatal — errors are logged only.
+// ---------------------------------------------------------------------------
+async function updatePulseState(
+  userId: string,
+  challengeId: string,
+  supabase: SupabaseClient,
+): Promise<void> {
+  const sevenDaysAgo = rollingWindowDates(7)[0]
+
+  const { data: recentEntries, error: entriesError } = await supabase
+    .from('pillar_daily_entries')
+    .select('entry_date, completed')
+    .eq('user_id', userId)
+    .eq('challenge_id', challengeId)
+    .gte('entry_date', sevenDaysAgo)
+    .lte('entry_date', todayStr())
+    .returns<{ entry_date: string; completed: boolean }[]>()
+
+  if (entriesError) {
+    console.error('checkin: updatePulseState — failed to fetch recent entries:', entriesError)
+    return
+  }
+
+  // Count distinct days that had at least one completed pillar
+  const completedDays = new Set(
+    (recentEntries ?? []).filter((e) => e.completed).map((e) => e.entry_date)
+  ).size
+
+  let newPulse: PulseState
+  if (completedDays >= 5) newPulse = 'smooth_sailing'
+  else if (completedDays >= 3) newPulse = 'rough_waters'
+  else newPulse = 'taking_on_water'
+
+  const { error: updateError } = await supabase
+    .from('challenges')
+    .update({ pulse_state: newPulse, pulse_updated_at: new Date().toISOString() })
+    .eq('id', challengeId)
+
+  if (updateError) {
+    console.error('checkin: updatePulseState — failed to update pulse_state:', updateError)
   }
 }

@@ -20,7 +20,11 @@ function initAnswers(): PillarAnswers {
   }
 }
 
-export default function ProfileFlow() {
+interface ProfileFlowProps {
+  isRetake?: boolean
+}
+
+export default function ProfileFlow({ isRetake = false }: ProfileFlowProps) {
   const router = useRouter()
   const [currentPillar, setCurrentPillar] = useState(0)
   const [answers, setAnswers] = useState<PillarAnswers>(initAnswers)
@@ -75,7 +79,8 @@ export default function ProfileFlow() {
       return
     }
 
-    router.push('/onboarding/goals')
+    // Retake: go back to dashboard. Normal onboarding: continue to goals.
+    router.push(isRetake ? '/dashboard' : '/onboarding/goals')
   }
 
   return (

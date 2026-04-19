@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { PILLAR_CONFIG, LEVEL_NAMES, rollingWindowDates } from '@/lib/constants'
-import type { PillarLevel, DurationGoal, PillarDailyEntry, GoalCompletions, DayMark, LevelNumber } from '@/lib/types'
+import { PILLAR_CONFIG, LEVEL_NAMES, rollingWindowDates, selectTuningVideo } from '@/lib/constants'
+import type { PillarLevel, DurationGoal, PillarDailyEntry, GoalCompletions, DayMark, LevelNumber, PulseState } from '@/lib/types'
+import VideoModal from '@/components/shared/VideoModal'
 
 interface CheckinApiResponse {
   success: boolean
@@ -22,6 +23,8 @@ interface TuningPillarCardProps {
   challengeStartDate: string
   userId: string
   entryDate: string
+  dayNumber: number
+  pulseState: PulseState
 }
 
 function buildDots(
@@ -53,6 +56,8 @@ export default function TuningPillarCard({
   challengeId,
   challengeStartDate,
   entryDate,
+  dayNumber,
+  pulseState,
 }: TuningPillarCardProps) {
   const { pillar, level } = pillarLevel
   const config = PILLAR_CONFIG[pillar]
@@ -65,6 +70,17 @@ export default function TuningPillarCard({
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [advancedToLevel, setAdvancedToLevel] = useState<LevelNumber | null>(null)
+  const [showVideo, setShowVideo] = useState(false)
+  const [videoWatched, setVideoWatched] = useState(false)
+
+  // Compute stalled days for video selection (days missed in last 3)
+  const recentDates = rollingWindowDates(3, entryDate)
+  const stalledDays = recentDates.filter((date) => {
+    const entry = windowEntries.find((e) => e.entry_date === date)
+    return !entry?.completed
+  }).length
+
+  const video = selectTuningVideo(pillar, dayNumber, stalledDays)
 
   const isCompletedToday =
     goals.length > 0 && goals.every((g) => completions[g.id] === true)
@@ -105,6 +121,14 @@ export default function TuningPillarCard({
   const saveLabel = saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'
 
   return (
+    <>
+    {showVideo && (
+      <VideoModal
+        video={video}
+        onClose={() => setShowVideo(false)}
+        onWatched={() => setVideoWatched(true)}
+      />
+    )}
     <div className="rounded-xl overflow-hidden shadow-sm">
       {/* Collapsed header row — always visible */}
       <button
@@ -132,6 +156,22 @@ export default function TuningPillarCard({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Video button */}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowVideo(true) }}
+            className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors"
+            style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+            aria-label="Watch coaching video"
+          >
+            {videoWatched ? (
+              <span className="text-emerald-300 text-sm leading-none">✓</span>
+            ) : (
+              <svg className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            )}
+          </button>
           {isCompletedToday && (
             <span className="text-emerald-400 text-lg leading-none">✓</span>
           )}
@@ -246,5 +286,6 @@ export default function TuningPillarCard({
         </div>
       )}
     </div>
+    </>
   )
 }
