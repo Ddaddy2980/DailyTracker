@@ -2,24 +2,30 @@
 
 import { useState, useCallback } from 'react'
 import type { GroupWithDetails } from '@/lib/types'
+import type { NotificationItem } from '@/app/api/groups/notifications/route'
 import GroupCard from './GroupCard'
 import CreateGroupModal from './CreateGroupModal'
-import JoinGroupModal from './JoinGroupModal'
+import GroupDiscoverModal from './GroupDiscoverModal'
+import GroupNotificationsCard from './GroupNotificationsCard'
 
 interface GroupViewProps {
   initialGroups: GroupWithDetails[]
   currentUserId: string
   joinError?: string | null
+  initialNotifications?: NotificationItem[]
 }
 
 export default function GroupView({
   initialGroups,
   currentUserId,
   joinError,
+  initialNotifications = [],
 }: GroupViewProps) {
   const [groups, setGroups] = useState<GroupWithDetails[]>(initialGroups)
   const [showCreate, setShowCreate] = useState(false)
-  const [showJoin, setShowJoin] = useState(false)
+  const [showDiscover, setShowDiscover] = useState(false)
+  const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications)
+  const [showNotifications, setShowNotifications] = useState(initialNotifications.length > 0)
 
   // Re-fetch a single group and update local state
   const handleRefresh = useCallback(async (groupId: string) => {
@@ -42,14 +48,17 @@ export default function GroupView({
     setShowCreate(false)
   }
 
-  // After joining a group, fetch its full details and add to list
-  async function handleJoined(groupId: string) {
-    setShowJoin(false)
+  // After a join request is sent (from discover modal), nothing to do yet until accepted
+  function handleRequest(_groupId: string) {
+    setShowDiscover(false)
+  }
+
+  // After accepting a notification invitation, fetch the new group and add to list
+  async function handleAccepted(groupId: string) {
     const res = await fetch(`/api/groups/${groupId}`)
     if (!res.ok) return
     const data = (await res.json()) as { group: GroupWithDetails }
     setGroups((prev) => {
-      // Avoid duplicate if already in list
       if (prev.some((g) => g.id === groupId)) {
         return prev.map((g) => (g.id === groupId ? data.group : g))
       }
@@ -68,6 +77,15 @@ export default function GroupView({
         </div>
       )}
 
+      {/* Pending notifications (invitations + join requests) */}
+      {showNotifications && notifications.length > 0 && (
+        <GroupNotificationsCard
+          notifications={notifications}
+          onAccepted={handleAccepted}
+          onAllDismissed={() => setShowNotifications(false)}
+        />
+      )}
+
       {hasGroups ? (
         <>
           {groups.map((group) => (
@@ -80,12 +98,20 @@ export default function GroupView({
             />
           ))}
 
-          <button
-            onClick={() => setShowJoin(true)}
-            className="w-full text-slate-400 text-sm py-3 text-center hover:text-white transition-colors"
-          >
-            + Join another group
-          </button>
+          <div className="flex gap-3 pt-1">
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex-1 text-slate-400 text-sm py-3 text-center hover:text-white transition-colors"
+            >
+              + Create a group
+            </button>
+            <button
+              onClick={() => setShowDiscover(true)}
+              className="flex-1 text-slate-400 text-sm py-3 text-center hover:text-white transition-colors"
+            >
+              + Find a group
+            </button>
+          </div>
         </>
       ) : (
         /* Empty state */
@@ -94,21 +120,21 @@ export default function GroupView({
             You&apos;re not in a Consistency Group yet.
           </p>
           <p className="text-slate-500 text-sm leading-relaxed max-w-xs">
-            Groups are small — up to 10 people — and private. Everyone sees a
-            simple circle each day. Nothing more.
+            Groups are small — up to 10 people. Everyone sees a simple circle
+            each day. Nothing more.
           </p>
-          <div className="flex flex-col gap-3 w-full max-w-xs pt-2">
+          <div className="flex gap-3 w-full max-w-xs pt-2">
             <button
               onClick={() => setShowCreate(true)}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3.5 rounded-xl text-sm"
+              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3.5 rounded-xl text-sm"
             >
-              Create a group
+              + Create a group
             </button>
             <button
-              onClick={() => setShowJoin(true)}
-              className="w-full bg-[#1C2333] text-white font-medium py-3.5 rounded-xl text-sm"
+              onClick={() => setShowDiscover(true)}
+              className="flex-1 bg-[#1C2333] text-white font-medium py-3.5 rounded-xl text-sm"
             >
-              Join a group with a code
+              + Find a group
             </button>
           </div>
         </div>
@@ -121,10 +147,10 @@ export default function GroupView({
           onCreated={handleCreated}
         />
       )}
-      {showJoin && (
-        <JoinGroupModal
-          onClose={() => setShowJoin(false)}
-          onJoined={handleJoined}
+      {showDiscover && (
+        <GroupDiscoverModal
+          onClose={() => setShowDiscover(false)}
+          onRequest={handleRequest}
         />
       )}
     </div>

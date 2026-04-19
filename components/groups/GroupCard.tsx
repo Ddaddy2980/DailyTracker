@@ -18,19 +18,8 @@ export default function GroupCard({
   onDeleted,
 }: GroupCardProps) {
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [copyLabel, setCopyLabel] = useState('Copy')
 
   const isCreator = group.user_id === currentUserId
-
-  async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(group.invite_code)
-      setCopyLabel('Copied!')
-      setTimeout(() => setCopyLabel('Copy'), 2000)
-    } catch {
-      // Fallback: do nothing silently
-    }
-  }
 
   // Sort: current user first, rest alphabetical
   const sorted = [...group.members].sort((a, b) => {
@@ -48,21 +37,13 @@ export default function GroupCard({
             <p className="text-white font-bold text-base leading-tight">{group.name}</p>
             <p className="text-slate-400 text-xs mt-0.5">
               {group.member_count} {group.member_count === 1 ? 'member' : 'members'}
+              {group.is_public === false && (
+                <span className="ml-1 text-slate-500">· Private</span>
+              )}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Invite code pill */}
-            <button
-              onClick={handleCopy}
-              className="flex items-center gap-1.5 bg-[#2A3347] px-3 py-1.5 rounded-lg"
-            >
-              <span className="text-white font-mono font-bold text-sm tracking-widest">
-                {group.invite_code}
-              </span>
-              <span className="text-slate-400 text-xs">{copyLabel}</span>
-            </button>
-
             {/* Manage button */}
             <button
               onClick={() => setSheetOpen(true)}
@@ -96,7 +77,7 @@ export default function GroupCard({
                       isMe ? 'text-white font-medium' : 'text-slate-300'
                     }`}
                   >
-                    {member.display_name}
+                    @{member.display_name}
                     {isMe && (
                       <span className="ml-2 text-xs text-slate-500 font-normal">You</span>
                     )}
@@ -120,7 +101,9 @@ export default function GroupCard({
         {group.member_count === 1 && (
           <div className="px-4 pb-4 pt-1">
             <p className="text-slate-500 text-xs">
-              Share your code to invite others.
+              {group.is_public === false
+                ? 'Invite others by username from the manage menu.'
+                : 'Others can find and request to join your group.'}
             </p>
           </div>
         )}

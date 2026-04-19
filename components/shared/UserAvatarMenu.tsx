@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useUser, useClerk } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function UserAvatarMenu() {
   const { user } = useUser()
@@ -57,12 +58,21 @@ export default function UserAvatarMenu() {
               <p className="text-sm font-medium text-slate-800 truncate">{displayName}</p>
             </div>
           )}
-          <button
-            onClick={handleSignOut}
-            className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-slate-50 font-medium"
+          <Link
+            href="/settings"
+            onClick={() => setOpen(false)}
+            className="block px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 font-medium"
           >
-            Sign out
-          </button>
+            Settings
+          </Link>
+          <div className="border-t border-slate-100 mt-1 pt-1">
+            <button
+              onClick={handleSignOut}
+              className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-slate-50 font-medium"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       )}
     </div>

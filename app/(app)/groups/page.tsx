@@ -8,7 +8,10 @@ import type {
   GroupMember,
   GroupDailyStatus,
   GroupWithDetails,
+  GroupInvitation,
+  UserProfile,
 } from '@/lib/types'
+import type { NotificationItem } from '@/app/api/groups/notifications/route'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,6 +36,54 @@ export default async function GroupsPage({ searchParams }: PageProps) {
     .returns<{ group_id: string }[]>()
 
   const groupIds = (memberships ?? []).map((m) => m.group_id)
+
+  // Fetch pending notifications (both invitations and join requests) for this user
+  const now = new Date().toISOString()
+  const { data: rawInvitations } = await supabase
+    .from('group_invitations')
+    .select('*')
+    .eq('to_user_id', userId)
+    .eq('status', 'pending')
+    .gt('expires_at', now)
+    .order('created_at', { ascending: true })
+    .returns<GroupInvitation[]>()
+
+  let initialNotifications: NotificationItem[] = []
+
+  if (rawInvitations && rawInvitations.length > 0) {
+    // Fetch group names for all notification group_ids
+    const notifGroupIds = [...new Set(rawInvitations.map((i) => i.group_id))]
+    const { data: notifGroups } = await supabase
+      .from('consistency_groups')
+      .select('id, name')
+      .in('id', notifGroupIds)
+      .returns<Pick<ConsistencyGroup, 'id' | 'name'>[]>()
+
+    const groupNameMap = new Map((notifGroups ?? []).map((g) => [g.id, g.name]))
+
+    // Fetch from_user usernames for request-type notifications
+    const requestInvites = rawInvitations.filter((i) => i.type === 'request')
+    const requesterIds = [...new Set(requestInvites.map((i) => i.from_user_id))]
+    const usernameMap = new Map<string, string>()
+
+    if (requesterIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('user_profile')
+        .select('user_id, username')
+        .in('user_id', requesterIds)
+        .returns<Pick<UserProfile, 'user_id' | 'username'>[]>()
+
+      for (const p of profiles ?? []) {
+        if (p.username) usernameMap.set(p.user_id, p.username)
+      }
+    }
+
+    initialNotifications = rawInvitations.map((inv) => ({
+      invitation: inv,
+      group_name: groupNameMap.get(inv.group_id) ?? 'Unknown group',
+      from_username: inv.type === 'request' ? usernameMap.get(inv.from_user_id) : undefined,
+    }))
+  }
 
   let groups: GroupWithDetails[] = []
 
@@ -87,6 +138,7 @@ export default async function GroupsPage({ searchParams }: PageProps) {
       initialGroups={groups}
       currentUserId={userId}
       joinError={joinError ?? null}
+      initialNotifications={initialNotifications}
     />
   )
 }

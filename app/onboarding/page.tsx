@@ -17,12 +17,13 @@ export default async function OnboardingPage() {
   const { data: profile, error } = await supabase
     .from('user_profile')
     .select(
-      'challenge_duration_selected, clarity_videos_seen, consistency_profile_completed, goals_setup_completed, onboarding_completed'
+      'username_set, challenge_duration_selected, clarity_videos_seen, consistency_profile_completed, goals_setup_completed, onboarding_completed'
     )
     .eq('user_id', userId)
     .single<
       Pick<
         UserProfile,
+        | 'username_set'
         | 'challenge_duration_selected'
         | 'clarity_videos_seen'
         | 'consistency_profile_completed'
@@ -32,11 +33,15 @@ export default async function OnboardingPage() {
     >()
 
   if (error || !profile) {
-    redirect('/onboarding/duration')
+    redirect('/onboarding/username')
   }
 
   if (profile.onboarding_completed) {
     redirect('/dashboard')
+  }
+
+  if (!profile.username_set) {
+    redirect('/onboarding/username')
   }
 
   if (!profile.challenge_duration_selected) {

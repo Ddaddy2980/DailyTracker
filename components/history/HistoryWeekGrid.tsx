@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { getWeekStart } from '@/lib/constants'
+import { getWeekStart, PILLAR_CONFIG } from '@/lib/constants'
 import type { PillarLevel, DurationGoal, PillarDailyEntry, PillarName } from '@/lib/types'
 
 interface HistoryWeekGridProps {
@@ -68,11 +68,11 @@ function getAllPct(
 
 function cellStyle(pct: number | null, isFuture: boolean, isBeforeChallenge: boolean): string {
   const base = 'w-full h-10 rounded flex items-center justify-center text-xs font-medium transition-colors'
-  if (isBeforeChallenge || isFuture) return `${base} bg-slate-100 text-slate-300 cursor-default`
-  if (pct === null) return `${base} bg-slate-100 text-slate-400`
-  if (pct >= 80) return `${base} bg-emerald-100 text-emerald-700 cursor-pointer hover:bg-emerald-200`
-  if (pct >= 40) return `${base} bg-amber-100 text-amber-700 cursor-pointer hover:bg-amber-200`
-  return `${base} bg-red-100 text-red-600 cursor-pointer hover:bg-red-200`
+  if (isBeforeChallenge || isFuture) return `${base} bg-slate-800 text-slate-600 cursor-default`
+  if (pct === null) return `${base} bg-slate-600 text-slate-400`
+  if (pct >= 80) return `${base} bg-emerald-600 text-white cursor-pointer hover:bg-emerald-700`
+  if (pct >= 40) return `${base} bg-amber-500 text-white cursor-pointer hover:bg-amber-600`
+  return `${base} bg-red-600 text-white cursor-pointer hover:bg-red-700`
 }
 
 export default function HistoryWeekGrid({
@@ -128,29 +128,29 @@ export default function HistoryWeekGrid({
   const activePillars = activePillarLevels.map((p) => p.pillar as PillarName)
 
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div className="bg-slate-700 rounded-xl shadow-sm overflow-hidden">
       {/* Week navigation header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-600">
         <button
           onClick={() => navigate(prevWeekStart)}
           disabled={!canGoPrev}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-300 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           aria-label="Previous week"
         >
           ‹
         </button>
 
         <div className="text-center">
-          <p className="text-sm font-semibold text-slate-700">{formatWeekRange(weekStart)}</p>
+          <p className="text-sm font-semibold text-white">{formatWeekRange(weekStart)}</p>
           {avgPct !== null && (
-            <p className="text-xs text-slate-400">{loggedDays} days logged · avg {avgPct}%</p>
+            <p className="text-xs text-slate-300">{loggedDays} days logged · avg {avgPct}%</p>
           )}
         </div>
 
         <button
           onClick={() => navigate(nextWeekStart)}
           disabled={!canGoNext}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-300 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           aria-label="Next week"
         >
           ›
@@ -163,8 +163,8 @@ export default function HistoryWeekGrid({
         <div />
         {weekDates.map((date, i) => (
           <div key={date} className="text-center">
-            <p className="text-xs text-slate-400">{DAYS_OF_WEEK[i]}</p>
-            <p className={`text-xs font-medium ${date === today ? 'text-emerald-600' : 'text-slate-500'}`}>
+            <p className="text-xs text-slate-300">{DAYS_OF_WEEK[i]}</p>
+            <p className={`text-xs font-medium ${date === today ? 'text-emerald-400' : 'text-slate-300'}`}>
               {formatShortDate(date)}
             </p>
           </div>
@@ -173,9 +173,16 @@ export default function HistoryWeekGrid({
 
       {/* Pillar rows */}
       <div className="px-3 pb-3 space-y-1">
-        {activePillars.map((pillar) => (
+        {activePillars.map((pillar) => {
+          const config = PILLAR_CONFIG[pillar]
+          return (
           <div key={pillar} className="grid grid-cols-8 gap-1 items-center">
-            <p className="text-xs text-slate-500 capitalize truncate pr-1">{pillar}</p>
+            <div
+              className="rounded-md px-1 py-0.5 text-[10px] font-semibold truncate text-center"
+              style={{ backgroundColor: config.background, color: config.title }}
+            >
+              {config.label}
+            </div>
             {weekDates.map((date) => {
               const isFuture = date > today
               const isBeforeChallenge = date < challengeStartDate
@@ -195,12 +202,13 @@ export default function HistoryWeekGrid({
               )
             })}
           </div>
-        ))}
+        )
+        })}
 
         {/* ALL row */}
         {activePillars.length > 1 && (
-          <div className="grid grid-cols-8 gap-1 items-center border-t border-slate-100 pt-1 mt-1">
-            <p className="text-xs font-semibold text-slate-600">ALL</p>
+          <div className="grid grid-cols-8 gap-1 items-center border-t border-slate-600 pt-1 mt-1">
+            <p className="text-xs font-semibold text-white">ALL</p>
             {weekDates.map((date) => {
               const isFuture = date > today
               const isBeforeChallenge = date < challengeStartDate

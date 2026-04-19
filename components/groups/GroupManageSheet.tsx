@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { GroupWithDetails } from '@/lib/types'
+import GroupInvitePanel from './GroupInvitePanel'
 
 interface GroupManageSheetProps {
   group: GroupWithDetails
@@ -27,8 +28,7 @@ export default function GroupManageSheet({
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const inviteActive = group.status === 'active'
+  const [isPublic, setIsPublic] = useState(group.is_public ?? true)
 
   async function handleRename() {
     const trimmed = nameInput.trim()
@@ -52,20 +52,20 @@ export default function GroupManageSheet({
     onRefresh()
   }
 
-  async function handleToggleInvite() {
+  async function handleTogglePublic() {
     setLoading(true)
     setError(null)
     const res = await fetch(`/api/groups/${group.id}/manage`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'toggle_invite' }),
+      body: JSON.stringify({ action: 'toggle_public' }),
     })
     setLoading(false)
     if (!res.ok) {
-      setError('Could not update invite link. Try again.')
+      setError('Could not update group visibility. Try again.')
       return
     }
-    onRefresh()
+    setIsPublic((prev) => !prev)
   }
 
   async function handleDelete() {
@@ -100,15 +100,6 @@ export default function GroupManageSheet({
     onLeft()
   }
 
-  async function handleShareInvite() {
-    const url = `${window.location.origin}/join/${group.invite_code}`
-    if (navigator.share) {
-      await navigator.share({ title: group.name, url })
-    } else {
-      await navigator.clipboard.writeText(url)
-    }
-  }
-
   return (
     // Backdrop
     <div
@@ -117,7 +108,7 @@ export default function GroupManageSheet({
     >
       {/* Sheet */}
       <div
-        className="w-full max-w-lg bg-[#1C2333] rounded-t-2xl px-4 pt-4 pb-8 space-y-1"
+        className="w-full max-w-lg bg-[#1C2333] rounded-t-2xl px-4 pt-4 pb-24 space-y-1 max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Handle */}
@@ -165,45 +156,36 @@ export default function GroupManageSheet({
               </div>
             )}
 
-            {/* INVITE CODE */}
-            <p className="text-slate-400 text-xs uppercase tracking-widest mb-1 px-1">
-              Invite Code
-            </p>
-            <div className="flex items-center justify-between bg-[#2A3347] rounded-xl px-4 py-3 mb-3">
-              <span className="text-white font-mono font-bold tracking-widest">
-                {group.invite_code}
-              </span>
-            </div>
-
-            {/* SHARE INVITE LINK */}
-            <button
-              onClick={handleShareInvite}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3.5 rounded-xl text-sm mb-3"
-            >
-              ↗ Share invite link
-            </button>
-
-            {/* INVITE LINK TOGGLE */}
+            {/* PUBLIC / PRIVATE TOGGLE */}
             <div className="flex items-center justify-between bg-[#2A3347] rounded-xl px-4 py-3 mb-3">
               <div>
-                <p className="text-white text-sm font-medium">Invite link</p>
+                <p className="text-white text-sm font-medium">
+                  {isPublic ? 'Public' : 'Private'}
+                </p>
                 <p className="text-slate-400 text-xs mt-0.5">
-                  Anyone with the link can join
+                  {isPublic
+                    ? 'Anyone can find and request to join'
+                    : 'Only invited members can join'}
                 </p>
               </div>
               <button
-                onClick={handleToggleInvite}
+                onClick={handleTogglePublic}
                 disabled={loading}
                 className={`relative w-12 h-6 rounded-full transition-colors disabled:opacity-50 ${
-                  inviteActive ? 'bg-purple-600' : 'bg-slate-600'
+                  isPublic ? 'bg-purple-600' : 'bg-slate-600'
                 }`}
               >
                 <span
                   className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                    inviteActive ? 'translate-x-6' : 'translate-x-0.5'
+                    isPublic ? 'translate-x-6' : 'translate-x-0.5'
                   }`}
                 />
               </button>
+            </div>
+
+            {/* INVITE BY USERNAME */}
+            <div className="mb-3">
+              <GroupInvitePanel groupId={group.id} />
             </div>
 
             {/* DELETE */}
