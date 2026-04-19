@@ -115,15 +115,15 @@ export default function GroupView({
         </>
       ) : (
         /* Empty state */
-        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-4 px-2">
-          <p className="text-slate-300 text-base font-medium">
+        <div className="bg-slate-700 rounded-2xl p-6 flex flex-col items-center text-center space-y-4">
+          <p className="text-slate-200 text-base font-medium">
             You&apos;re not in a Consistency Group yet.
           </p>
-          <p className="text-slate-500 text-sm leading-relaxed max-w-xs">
+          <p className="text-slate-400 text-sm leading-relaxed max-w-xs">
             Groups are small — up to 10 people. Everyone sees a simple circle
             each day. Nothing more.
           </p>
-          <div className="flex gap-3 w-full max-w-xs pt-2">
+          <div className="flex gap-3 w-full pt-2">
             <button
               onClick={() => setShowCreate(true)}
               className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3.5 rounded-xl text-sm"
@@ -132,7 +132,7 @@ export default function GroupView({
             </button>
             <button
               onClick={() => setShowDiscover(true)}
-              className="flex-1 bg-[#1C2333] text-white font-medium py-3.5 rounded-xl text-sm"
+              className="flex-1 bg-slate-600 hover:bg-slate-500 text-slate-200 font-medium py-3.5 rounded-xl text-sm"
             >
               + Find a group
             </button>

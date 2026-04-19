@@ -61,7 +61,7 @@ function ProgressRing({ pct, titleColor, subtitleColor }: ProgressRingProps) {
           cy="18"
           r="15"
           fill="none"
-          stroke={titleColor}
+          stroke="#22c55e"
           strokeWidth="3"
           strokeDasharray={CIRCUMFERENCE}
           strokeDashoffset={offset}
