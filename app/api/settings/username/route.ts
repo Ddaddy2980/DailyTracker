@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
 
-const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/
 
 // ---------------------------------------------------------------------------
 // PATCH /api/settings/username
@@ -28,11 +28,11 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'username is required' }, { status: 400 })
   }
 
-  const username = raw.trim().toLowerCase()
+  const username = raw.trim()
 
   if (!USERNAME_REGEX.test(username)) {
     return NextResponse.json(
-      { error: 'Username must be 3–20 characters, lowercase letters, numbers, and underscores only' },
+      { error: 'Username must be 3–20 characters, letters, numbers, and underscores only' },
       { status: 400 }
     )
   }
@@ -43,7 +43,7 @@ export async function PATCH(req: Request) {
   const { data: conflict } = await supabase
     .from('user_profile')
     .select('user_id')
-    .eq('username', username)
+    .ilike('username', username)
     .neq('user_id', userId)
     .maybeSingle<{ user_id: string }>()
 

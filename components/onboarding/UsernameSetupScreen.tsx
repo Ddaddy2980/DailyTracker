@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
-const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/
 
 type AvailabilityState = 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
 
@@ -15,9 +15,8 @@ export default function UsernameSetupScreen() {
   const [error, setError] = useState<string | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Normalize input: strip invalid chars, force lowercase
   function handleChange(raw: string) {
-    const normalized = raw.toLowerCase().replace(/[^a-z0-9_]/g, '')
+    const normalized = raw.replace(/[^a-zA-Z0-9_]/g, '')
     setValue(normalized)
     setError(null)
 
@@ -105,7 +104,6 @@ export default function UsernameSetupScreen() {
             onChange={(e) => handleChange(e.target.value)}
             placeholder="your_username"
             maxLength={20}
-            autoCapitalize="none"
             autoCorrect="off"
             autoComplete="off"
             spellCheck={false}
@@ -140,7 +138,7 @@ export default function UsernameSetupScreen() {
       </div>
 
       <p className="text-xs text-slate-400 mb-8 px-1">
-        3–20 characters · lowercase letters, numbers, and underscores only
+        3–20 characters · letters, numbers, and underscores only
       </p>
 
       {error && (

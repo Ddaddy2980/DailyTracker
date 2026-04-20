@@ -11,6 +11,11 @@ export const metadata: Metadata = {
     apple:            '/Logo.png',
   },
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Daily Consistency Tracker',
+  },
 }
 
 export const viewport: Viewport = {

@@ -77,7 +77,7 @@ export default function GroupCard({
                       isMe ? 'text-white font-medium' : 'text-slate-300'
                     }`}
                   >
-                    @{member.display_name}
+                    {member.display_name}
                     {isMe && (
                       <span className="ml-2 text-xs text-slate-500 font-normal">You</span>
                     )}

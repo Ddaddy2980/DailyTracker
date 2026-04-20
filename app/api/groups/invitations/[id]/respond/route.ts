@@ -120,7 +120,7 @@ export async function POST(req: Request, { params }: RouteContext) {
     .eq('user_id', memberUserId)
     .single<{ username: string | null }>()
 
-  const displayName = profile?.username ?? 'member'
+  const displayName = profile?.username ?? ''
 
   // Check for an existing (inactive) membership row to re-activate
   const { data: existingMember } = await supabase

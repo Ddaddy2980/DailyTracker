@@ -7,7 +7,7 @@ interface AccountSectionProps {
   email: string
 }
 
-const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/
 type AvailabilityState = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'unchanged'
 
 export default function AccountSection({ username, email }: AccountSectionProps) {
@@ -24,7 +24,7 @@ export default function AccountSection({ username, email }: AccountSectionProps)
   }, [])
 
   function handleChange(raw: string) {
-    const normalized = raw.toLowerCase().replace(/[^a-z0-9_]/g, '')
+    const normalized = raw.replace(/[^a-zA-Z0-9_]/g, '')
     setValue(normalized)
     setSaveError(null)
 
@@ -127,7 +127,6 @@ export default function AccountSection({ username, email }: AccountSectionProps)
                   value={value}
                   onChange={(e) => handleChange(e.target.value)}
                   maxLength={20}
-                  autoCapitalize="none"
                   autoCorrect="off"
                   autoComplete="off"
                   spellCheck={false}

@@ -3,8 +3,8 @@ import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import type { UserProfile } from '@/lib/types'
 
-// Validation: lowercase, 3–20 chars, alphanumeric + underscore only
-const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/
+// Validation: 3–20 chars, alphanumeric + underscore only
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/
 
 // ---------------------------------------------------------------------------
 // GET /api/onboarding/username?username=<value>
@@ -17,7 +17,7 @@ export async function GET(req: Request) {
   }
 
   const { searchParams } = new URL(req.url)
-  const username = searchParams.get('username')?.toLowerCase() ?? ''
+  const username = searchParams.get('username') ?? ''
 
   if (!USERNAME_REGEX.test(username)) {
     return NextResponse.json({ available: false })
@@ -28,7 +28,7 @@ export async function GET(req: Request) {
   const { data } = await supabase
     .from('user_profile')
     .select('user_id')
-    .eq('username', username)
+    .ilike('username', username)
     .neq('user_id', userId)
     .maybeSingle<{ user_id: string }>()
 
@@ -58,11 +58,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'username is required' }, { status: 400 })
   }
 
-  const username = raw.trim().toLowerCase()
+  const username = raw.trim()
 
   if (!USERNAME_REGEX.test(username)) {
     return NextResponse.json(
-      { error: 'Username must be 3–20 characters, lowercase letters, numbers, and underscores only' },
+      { error: 'Username must be 3–20 characters, letters, numbers, and underscores only' },
       { status: 400 }
     )
   }
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
   const { data: conflict } = await supabase
     .from('user_profile')
     .select('user_id')
-    .eq('username', username)
+    .ilike('username', username)
     .neq('user_id', userId)
     .maybeSingle<{ user_id: string }>()
 
@@ -90,6 +90,16 @@ export async function POST(req: Request) {
   if (error) {
     console.error('onboarding/username POST: failed to save username:', error)
     return NextResponse.json({ error: 'Database error' }, { status: 500 })
+  }
+
+  // Cascade to group_members in case user is already a member of any groups
+  const { error: cascadeError } = await supabase
+    .from('group_members')
+    .update({ display_name: username })
+    .eq('user_id', userId)
+
+  if (cascadeError) {
+    console.error('onboarding/username POST: failed to cascade group_members:', cascadeError)
   }
 
   return NextResponse.json({ ok: true })
