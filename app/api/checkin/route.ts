@@ -127,8 +127,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
   }
 
-  // Non-blocking side-effects for today saves
-  void syncGroupDailyStatus(userId, effectiveDate)
+  // Side-effects for today saves — group sync is awaited to ensure serverless completion
+  await syncGroupDailyStatus(userId, effectiveDate)
   void updatePulseState(userId, challengeId as string, supabase)
 
   if (!completed) {

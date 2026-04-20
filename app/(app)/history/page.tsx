@@ -81,8 +81,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
 
   return (
     <div className="min-h-screen bg-[#EBEBEC]">
-      <div className="px-4 pt-6 pb-4">
-        <h1 className="text-lg font-semibold text-slate-700 mb-4">History</h1>
+      <div className="px-4 pt-2 pb-4">
         <HistoryTabs
           weekStart={weekStart}
           challengeStartDate={challenge.start_date}

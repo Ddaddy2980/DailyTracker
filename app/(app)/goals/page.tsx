@@ -53,8 +53,7 @@ export default async function GoalsPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-4">
-      <h1 className="text-xl font-bold text-slate-800 mb-1">Your Goals</h1>
-      <p className="text-sm text-slate-500 mb-5">
+      <p className="text-sm font-bold text-slate-800 mb-5 text-center">
         Add, edit, or remove goals for each pillar.
       </p>
 

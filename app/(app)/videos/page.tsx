@@ -27,8 +27,7 @@ export default async function VideosPage() {
   return (
     <div className="min-h-screen bg-[#EBEBEC]">
       <div className="px-4 py-6 max-w-lg mx-auto">
-        <h1 className="text-2xl font-bold text-slate-900 mb-1">Video Library</h1>
-        <p className="text-sm text-slate-500 mb-6">
+        <p className="text-sm font-bold text-slate-900 mb-6 text-center">
           Your full coaching library — from onboarding through every level.
         </p>
         <VideoLibrary initialWatchedIds={watchedIds} />

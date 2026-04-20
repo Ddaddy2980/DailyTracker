@@ -68,7 +68,7 @@ function getAllPct(
 }
 
 function cellStyle(pct: number | null, isFuture: boolean, isBeforeChallenge: boolean): string {
-  const base = 'w-full h-10 rounded flex items-center justify-center text-xs font-medium transition-colors'
+  const base = 'w-full h-10 rounded flex items-center justify-center text-[9px] font-medium transition-colors'
   if (isBeforeChallenge || isFuture) return `${base} bg-slate-800 text-slate-600 cursor-default`
   if (pct === null) return `${base} bg-slate-600 text-slate-400`
   if (pct >= 80) return `${base} bg-emerald-600 text-white cursor-pointer hover:bg-emerald-700`

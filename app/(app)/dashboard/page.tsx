@@ -191,6 +191,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       userId={userId}
       isPaused={challenge.is_paused}
       pulseState={challenge.pulse_state}
+      username={profile.username ?? null}
     />
   )
 }

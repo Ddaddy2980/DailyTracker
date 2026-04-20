@@ -69,7 +69,7 @@ export default function GroupView({
   const hasGroups = groups.length > 0
 
   return (
-    <div className="px-4 py-6 space-y-4 max-w-lg mx-auto">
+    <div className="px-4 pt-8 pb-6 space-y-4 max-w-lg mx-auto">
       {/* Join error from deep-link */}
       {joinError && (
         <div className="bg-red-900/40 border border-red-700 text-red-300 text-sm rounded-xl px-4 py-3">
