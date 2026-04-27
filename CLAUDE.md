@@ -31,14 +31,13 @@ Read this file at the start of every session along with PRODUCT.md and CLAUDE.lo
 ## Branch Rules
 
 - `main` is the live production branch — always deployed to Vercel
-- All new feature development happens on branch: `v3-phase1` (kept as the working branch)
-- Create feature sub-branches off `v3-phase1` for each build step:
-  e.g. `step-22-feature-name`
-- When David says "this is ready", merge the feature branch into `v3-phase1`
-- To deploy: merge `v3-phase1` into `main` then push — Vercel auto-deploys
+- Post-launch fixes, audits, and small improvements commit directly to `main`
+- For larger new features (new Phase/Step from ARCHITECTURE.md), create a feature branch:
+  e.g. `step-22-feature-name` — merge into `main` when ready to deploy
 - Push to GitHub via HTTPS with embedded token (SSH not configured on this machine):
   `git -c credential.helper= push https://TOKEN@github.com/Ddaddy2980/DailyTracker.git main`
-- All v2 branches are retired — do not use them as a base for new work
+- Never paste the token into the chat — it gets saved in conversation history
+- All v2 branches and `v3-phase1` are retired — do not use them as a base for new work
 
 ---
 
@@ -76,7 +75,7 @@ Read this file at the start of every session along with PRODUCT.md and CLAUDE.lo
   /onboarding             — onboarding step components
   /settings               — AccountSection, ChallengeSection, ProfileSection
   /shared                 — components used across multiple features
-                            (BottomNav, UserAvatarMenu — UserAvatarMenu rendered in (app)/layout.tsx)
+                            (BottomNav, UserAvatarMenu, TzCookieWriter — all rendered in (app)/layout.tsx)
 
 /lib
   /supabase.ts            — Supabase client singleton
@@ -84,7 +83,9 @@ Read this file at the start of every session along with PRODUCT.md and CLAUDE.lo
   /constants.ts           — app-wide constants (PILLAR_CONFIG, level thresholds, goal caps,
                             DURATION_GOAL_SUGGESTIONS per pillar for ACT-compliant goal ideas,
                             MAX_PAUSE_DAYS = 14, addDays(dateStr, n) date utility,
-                            todayStr() current date utility, getWeekStart(dateStr) helper)
+                            todayStr() client-side date utility,
+                            todayInTz(tz?) server-safe date utility (pass 'tz' cookie value),
+                            getWeekStart(dateStr) helper)
   /utils.ts               — shared utility functions
   /rolling-window.ts      — rolling window advancement calculation logic
 

@@ -6,8 +6,8 @@ completed phases. Do not modify completed phase entries.
 
 ---
 
-> **v3 rebuild is active on branch `v3-phase1`.** All v2 phases below are
-> retired. Do not use v2 routes, tables, or logic as a base for new work.
+> **v3 is live on `main`, deployed to `altared-tracker.com`.** All v2 phases and the
+> `v3-phase1` branch are retired. Do not use them as a base for new work.
 > The v3 schema is defined in `supabase/migrations/20260410000000_v3_clean_schema.sql`.
 
 ---
@@ -747,10 +747,29 @@ Full audit (`CODE_REVIEW.md` → `CODE_REVIEW_FINDINGS.md`, 45 findings). Three 
 - **`/api/groups/route.ts`** — Phase 9 regression fixed: `currentUser()` from Clerk was still used for group `display_name` instead of `user_profile.username`. Removed Clerk import. `invite_code` now uses `crypto.randomUUID()` (retired feature; no collision-check loop needed).
 - **`settings/page.tsx`** — Removed unnecessary `as Challenge` cast.
 
-#### Deferred (Tier 4 — not built)
+#### Build Steps (Tier 4 — COMPLETE)
 
-- `loading.tsx` / `error.tsx` for major route segments (`/dashboard`, `/history`, `/goals`, `/groups`, `/videos`, `/settings`)
-- `HistoryMonthGrid` React key: array index `i` → date string (no real bug, best practice only)
+- [x] `loading.tsx` and `error.tsx` added to all 6 route segments: `/dashboard`, `/history`, `/goals`, `/groups`, `/videos`, `/settings`
+- [x] `HistoryMonthGrid` React key: empty cells `pad-${i}`, day cells `date` string
+
+---
+
+### Post-Code-Review — Timezone Fix (COMPLETE)
+
+**Root cause:** `todayStr()` uses the JavaScript runtime's local timezone. On Vercel (UTC), this caused the server to flip to the next calendar day at 7 PM CDT, recording check-ins on the wrong date and silently skipping rolling-window advancement and group sync.
+
+**Architecture:** Browser IANA timezone written to a `tz` cookie by `TzCookieWriter` on every page load. Server components and API routes read the cookie and pass it to `todayInTz(tz)`, a new server-safe helper in `lib/constants.ts`.
+
+**Rule:** `todayStr()` is client-only. Any server component or API route that needs "today's date" must use `todayInTz(cookies().get('tz')?.value)` or `todayInTz(request.cookies.get('tz')?.value)`. `toISOString().split('T')[0]` is banned — it always returns UTC.
+
+#### Files Changed
+
+- `components/shared/TzCookieWriter.tsx` (NEW) — `'use client'`; writes `tz=<IANA>` cookie via `useEffect`
+- `app/(app)/layout.tsx` — renders `<TzCookieWriter />`
+- `lib/constants.ts` — added `todayInTz(tz?)`; fixed `rollingWindowDates` to use `Intl.DateTimeFormat`
+- `lib/rolling-window.ts` — fixed `daysAgo` to use `Intl.DateTimeFormat`
+- `app/(app)/dashboard/page.tsx` — reads `tz` cookie; uses `todayInTz(tz)` for `viewingDate` default and scheduled-pause check
+- `app/api/checkin/route.ts` — reads `tz` cookie; `clientToday` replaces all `todayStr()` call sites including `updatePulseState` parameter
 
 ---
 
@@ -775,4 +794,4 @@ Integration with Apple Health for automatic Physical and Nutritional pillar data
 
 ---
 
-*This file was last updated: April 2026 — Code review & remediation complete (Tiers 1–3). v3 Phase 9 complete (Steps 20–21). Username system + internal groups redesign built and tested. Ten Supabase migrations confirmed run (migrations 6, 7, 8 added in Phase 9). Username lowercase constraint dropped post-Phase 9; replaced with case-insensitive index. All video URLs pending recordings.*
+*This file was last updated: April 2026 — Code review & remediation complete (Tiers 1–4). Timezone fix complete. v3 live on main. Ten Supabase migrations confirmed run. Username lowercase constraint dropped post-Phase 9; replaced with case-insensitive index. All video URLs pending recordings.*
