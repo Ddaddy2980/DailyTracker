@@ -2,11 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { todayStr } from '@/lib/constants'
 import type { DurationGoal, PillarDailyEntry } from '@/lib/types'
-
-function todayStr() {
-  return new Intl.DateTimeFormat('en-CA').format(new Date())
-}
 
 function getAllPct(date: string, entries: PillarDailyEntry[], goals: DurationGoal[]): number | null {
   const dateEntries = entries.filter((e) => e.entry_date === date)
@@ -116,7 +113,7 @@ export default function HistoryMonthGrid({ challengeStartDate, allEntries, activ
       {/* Calendar cells */}
       <div className="grid grid-cols-7 gap-1 px-3 pb-3">
         {cells.map((day, i) => {
-          if (!day) return <div key={i} className="h-12" />
+          if (!day) return <div key={`pad-${i}`} className="h-12" />
           const date = toDateStr(day)
           const isFuture = date > today
           const isBeforeChallenge = date < challengeStartDate
@@ -128,7 +125,7 @@ export default function HistoryMonthGrid({ challengeStartDate, allEntries, activ
 
           return (
             <button
-              key={i}
+              key={date}
               onClick={() => isValid ? navigateToDay(date) : undefined}
               disabled={!isValid}
               className={cellClass(pct, isValid, isToday)}
