@@ -108,6 +108,10 @@ export const PILLAR_ORDER: PillarName[] = [
 
 export const CHALLENGE_DURATIONS: ChallengeDuration[] = [21, 30, 60, 90, 100]
 
+// Maximum total calendar days a challenge may be paused across its lifetime.
+// Enforced in /api/challenges/pause and displayed in PausedDashboard / ChallengePauseTools.
+export const MAX_PAUSE_DAYS = 14
+
 
 // =============================================================================
 // LEVEL_NAMES
@@ -508,6 +512,25 @@ export function todayStr(): string {
   return new Intl.DateTimeFormat('en-CA').format(new Date())
 }
 
+// Returns today's date as YYYY-MM-DD in the given IANA timezone (e.g. 'America/Chicago').
+// Use this in server components and API routes instead of todayStr(), passing the 'tz' cookie value.
+// Falls back to the runtime timezone (UTC on Vercel) if tz is missing or unrecognised.
+export function todayInTz(tz?: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', tz ? { timeZone: tz } : {}).format(new Date())
+  } catch {
+    return new Intl.DateTimeFormat('en-CA').format(new Date())
+  }
+}
+
+// Adds n calendar days to a YYYY-MM-DD date string and returns a new YYYY-MM-DD string.
+// Negative n moves backward. Use this instead of manual date arithmetic in components.
+export function addDays(dateStr: string, n: number): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  d.setDate(d.getDate() + n)
+  return new Intl.DateTimeFormat('en-CA').format(d)
+}
+
 // Returns the 1-based day number within a challenge.
 // Day 1 = start_date. Day 2 = start_date + 1. Etc.
 // targetDate defaults to today if not provided.
@@ -535,7 +558,7 @@ export function rollingWindowDates(windowDays: number, endDate?: string): string
   for (let i = windowDays - 1; i >= 0; i--) {
     const d = new Date(end)
     d.setDate(d.getDate() - i)
-    dates.push(d.toISOString().split('T')[0])
+    dates.push(new Intl.DateTimeFormat('en-CA').format(d))
   }
   return dates
 }

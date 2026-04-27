@@ -5,6 +5,7 @@ import { getEffectiveChallengeDay } from '@/lib/constants'
 import type { Challenge, UserProfile } from '@/lib/types'
 import BottomNav from '@/components/shared/BottomNav'
 import UserAvatarMenu from '@/components/shared/UserAvatarMenu'
+import TzCookieWriter from '@/components/shared/TzCookieWriter'
 
 async function getDayInfo(): Promise<{ current: number; total: number } | null> {
   const { userId } = await auth()
@@ -70,6 +71,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
+      <TzCookieWriter />
       <div style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}>{children}</div>
       <BottomNav />
     </div>

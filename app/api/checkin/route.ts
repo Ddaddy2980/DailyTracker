@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { PILLAR_ORDER, todayStr, rollingWindowDates } from '@/lib/constants'
+import { PILLAR_ORDER, todayInTz, rollingWindowDates } from '@/lib/constants'
 import { evaluateRollingWindow } from '@/lib/rolling-window'
 import type { DurationGoal, GoalCompletions, PillarDailyEntry, PillarLevel, LevelNumber, PulseState } from '@/lib/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -19,6 +19,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const tz = request.cookies.get('tz')?.value
+  const clientToday = todayInTz(tz)
+
   let body: CheckinRequestBody
   try {
     body = (await request.json()) as CheckinRequestBody
@@ -33,7 +36,7 @@ export async function POST(request: NextRequest) {
   if (entry_date !== undefined && (typeof entry_date !== 'string' || !ISO_DATE_RE.test(entry_date))) {
     return NextResponse.json({ error: 'Invalid entry_date' }, { status: 400 })
   }
-  const effectiveDate: string = (typeof entry_date === 'string' ? entry_date : null) ?? todayStr()
+  const effectiveDate: string = (typeof entry_date === 'string' ? entry_date : null) ?? clientToday
 
   // Validate pillar
   if (typeof pillar !== 'string' || !PILLAR_ORDER.includes(pillar as (typeof PILLAR_ORDER)[number])) {
@@ -65,19 +68,25 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServerSupabaseClient()
 
-  // Guard: reject saves when the challenge is paused
+  // Guard: verify challenge belongs to this user AND is not paused.
+  // Filtering on both id and user_id prevents one authenticated user from
+  // writing entries into another user's challenge.
   const { data: challengeCheck, error: challengeCheckError } = await supabase
     .from('challenges')
     .select('is_paused')
     .eq('id', challengeId as string)
+    .eq('user_id', userId)
     .single<{ is_paused: boolean }>()
 
-  if (challengeCheckError) {
-    console.error('checkin: failed to verify challenge pause state:', challengeCheckError)
-    return NextResponse.json({ error: 'Failed to verify challenge state' }, { status: 500 })
+  if (challengeCheckError || !challengeCheck) {
+    // Null result means: challenge doesn't exist OR doesn't belong to this user.
+    if (challengeCheckError) {
+      console.error('checkin: failed to verify challenge state:', challengeCheckError)
+    }
+    return NextResponse.json({ error: 'Challenge not found' }, { status: 403 })
   }
 
-  if (challengeCheck?.is_paused) {
+  if (challengeCheck.is_paused) {
     return NextResponse.json({ error: 'Challenge is paused' }, { status: 403 })
   }
 
@@ -123,13 +132,15 @@ export async function POST(request: NextRequest) {
 
   // Only evaluate advancement and sync group status for today's completions.
   // Retroactive edits to past days do not trigger level-up or group sync.
-  if (effectiveDate !== todayStr()) {
+  if (effectiveDate !== clientToday) {
     return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
   }
 
-  // Side-effects for today saves — group sync is awaited to ensure serverless completion
+  // Side-effects for today saves — both awaited to ensure serverless completion.
+  // updatePulseState is non-fatal internally; awaiting it guarantees the write
+  // actually runs before Vercel freezes the execution context.
   await syncGroupDailyStatus(userId, effectiveDate)
-  void updatePulseState(userId, challengeId as string, supabase)
+  await updatePulseState(userId, challengeId as string, supabase, clientToday)
 
   if (!completed) {
     return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
@@ -154,7 +165,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', userId)
       .eq('pillar', typedPillar)
       .gte('entry_date', windowStart)
-      .lte('entry_date', todayStr())
+      .lte('entry_date', clientToday)
       .returns<PillarDailyEntry[]>(),
   ])
 
@@ -264,6 +275,7 @@ async function updatePulseState(
   userId: string,
   challengeId: string,
   supabase: SupabaseClient,
+  today: string,
 ): Promise<void> {
   const sevenDaysAgo = rollingWindowDates(7)[0]
 
@@ -273,7 +285,7 @@ async function updatePulseState(
     .eq('user_id', userId)
     .eq('challenge_id', challengeId)
     .gte('entry_date', sevenDaysAgo)
-    .lte('entry_date', todayStr())
+    .lte('entry_date', today)
     .returns<{ entry_date: string; completed: boolean }[]>()
 
   if (entriesError) {

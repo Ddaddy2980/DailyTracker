@@ -24,7 +24,7 @@ import { todayStr } from '@/lib/constants'
 function daysAgo(n: number, from?: string): string {
   const d = new Date((from ?? todayStr()) + 'T00:00:00')
   d.setDate(d.getDate() - n)
-  return d.toISOString().split('T')[0]
+  return new Intl.DateTimeFormat('en-CA').format(d)
 }
 
 // Core function: evaluates one pillar's rolling window against its threshold.

@@ -1,7 +1,8 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { getDayNumber, todayStr, getEffectiveChallengeDay } from '@/lib/constants'
+import { getDayNumber, todayInTz, getEffectiveChallengeDay } from '@/lib/constants'
 import type { UserProfile, Challenge, PillarLevel, DurationGoal, DestinationGoal, PillarDailyEntry } from '@/lib/types'
 import DashboardShell from '@/components/dashboard/DashboardShell'
 
@@ -17,6 +18,9 @@ const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
+
+  const tz = cookies().get('tz')?.value
+  const today = todayInTz(tz)
 
   const supabase = createServerSupabaseClient()
 
@@ -81,10 +85,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   if (
     !challenge.is_paused &&
     challenge.scheduled_pause_date &&
-    challenge.scheduled_pause_date <= todayStr()
+    challenge.scheduled_pause_date <= today
   ) {
-    const supabaseForPause = createServerSupabaseClient()
-    const { error: pauseActivateError } = await supabaseForPause
+    const { error: pauseActivateError } = await supabase
       .from('challenges')
       .update({
         is_paused:             true,
@@ -98,7 +101,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       console.error('DashboardPage: failed to auto-activate scheduled pause:', pauseActivateError)
     } else {
       // Re-read challenge with updated pause state before continuing
-      const { data: refreshed } = await supabaseForPause
+      const { data: refreshed } = await supabase
         .from('challenges')
         .select('id, user_id, duration_days, start_date, status, pulse_state, is_paused, paused_at, pause_reason, pause_days_used, scheduled_pause_date, scheduled_pause_reason')
         .eq('id', challenge.id)
@@ -115,29 +118,21 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   // Compute effective day (pause-adjusted) and check for natural completion
   const effectiveDay = getEffectiveChallengeDay(challenge)
   if (effectiveDay > challenge.duration_days && !challenge.is_paused) {
-    // Mark challenge complete server-side (idempotent POST)
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/api/challenges/complete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
-      })
-    } catch {
-      // Non-fatal — page will redirect regardless
-    }
-    // Direct DB write as fallback (more reliable in server component)
-    const supabaseComplete = createServerSupabaseClient()
-    await supabaseComplete
+    // Mark challenge complete directly — no internal HTTP round-trip needed
+    const { error: completeError } = await supabase
       .from('challenges')
       .update({ status: 'completed', completed_at: new Date().toISOString() })
       .eq('id', challenge.id)
       .eq('status', 'active')
+    if (completeError) {
+      console.error('DashboardPage: failed to mark challenge complete:', completeError)
+    }
     redirect('/completion')
   }
 
   const daysRemaining = challenge.duration_days - effectiveDay
 
   // Resolve viewingDate from search param — must be a valid date within the challenge window
-  const today = todayStr()
   const rawDate = searchParams.date
   let viewingDate = today
   if (rawDate && ISO_DATE_RE.test(rawDate) && rawDate >= challenge.start_date && rawDate <= today) {
