@@ -539,10 +539,16 @@ ALTER TABLE user_profile
   ADD COLUMN username text UNIQUE,
   ADD COLUMN username_set boolean NOT NULL DEFAULT false;
 
--- Lowercase constraint
+-- Lowercase constraint (subsequently dropped — see note below)
 ALTER TABLE user_profile
   ADD CONSTRAINT username_lowercase CHECK (username = lower(username));
 ```
+
+> **Post-Phase 9 schema update (applied via direct SQL, no migration file):**
+> The `CHECK (username = lower(username))` constraint and the exact `UNIQUE` index on `username`
+> were dropped. Replaced with `CREATE UNIQUE INDEX user_profile_username_ci ON user_profile (lower(username))`
+> for case-insensitive uniqueness while allowing mixed-case storage.
+> "David1" and "david1" are treated as the same username but the stored value preserves the user's casing.
 
 ##### Onboarding Gate Update
 
@@ -709,6 +715,42 @@ PATCH /api/groups/[id]/manage  — add is_public toggle support; remove invite c
 ##### Build Steps (Phase B)
 
 - [x] Step 21 — Internal groups redesign: DB migration `20260410000007_groups_redesign.sql` (is_public + group_invitations table, confirmed run); DB migration `20260410000008_group_name_unique_per_owner.sql` (per-owner case-insensitive unique index, confirmed run); new API routes: `users/search` (exact username lookup), `groups/discover` (name or @username search, exports `DiscoverResult`), `groups/notifications` (pending invitations for current user), `groups/[id]/invite` (GET pending outgoing, POST create invitation/request, DELETE cancel), `groups/invitations/[id]/respond` (accept/decline, `memberUserId` pattern), `groups/requests` (owner sees pending requests); `GroupDiscoverModal.tsx` (replaces JoinGroupModal; detects `@` prefix; @-search groups by owner; name-search flat list); `GroupInvitePanel.tsx` (inside GroupManageSheet; username search → send invitation; pending list with cancel); `GroupNotificationsCard.tsx` (handles both invitation + request types; optimistic removal); modified: `GroupManageSheet` (public/private toggle + GroupInvitePanel, pb-24 for bottom nav clearance), `GroupView` (GroupDiscoverModal, GroupNotificationsCard, side-by-side create + find buttons), `GroupCard` (@ prefix on display_name, Private badge, no invite_code pill), `groups POST` (5-group cap, username for display_name, 23505 catch), `groups/[id]/manage` (toggle_public replaces toggle_invite, 23505 catch on rename), `groups/page.tsx` (no type filter on notifications — fetches both invitations and requests), `CreateGroupModal` (surfaces API error), `lib/types.ts` (is_public + GroupInvitation interface); retired: `JoinGroupModal.tsx` (deleted), `/join/[inviteCode]/page.tsx` (redirects to /groups), `/api/groups/join` (retired)
+  > **Bug note:** The `toggle_public` action was broken in the initial Step 21 build — `GroupManageSheet` sent `action: 'toggle_public'` but the API's `ManageAction` union only accepted `'rename' | 'toggle_invite' | 'delete'`, causing silent failure. Fixed in the code review & remediation pass (see below).
+
+---
+
+### Code Review & Remediation (COMPLETE)
+
+Full audit (`CODE_REVIEW.md` → `CODE_REVIEW_FINDINGS.md`, 45 findings). Three tiers of fixes applied across one session. No new DB migrations or features — corrections only.
+
+#### Security & Broken Features (Tier 1)
+
+- **`middleware.ts`** — 5 app routes (`/history`, `/videos`, `/settings`, `/groups`, `/completion`) were missing from the `isProtectedRoute` matcher, leaving them unauthenticated. Added.
+- **All 5 pillar cards** — `handleSave` silently swallowed API errors (showed "Saved ✓" on failure). Added `saveError` state + try/catch/finally + `res.ok` guard. Checkboxes stay checked on failure — user retries without re-checking.
+- **`/api/checkin`** — Challenge ownership was not verified: any authenticated user could check in against any `challengeId` they knew. Fixed by adding `.eq('user_id', userId)` to the pause-check query (ownership and pause state now verified in one query). Also changed `void updatePulseState(...)` → `await updatePulseState(...)` — the `void` form was silently dropped by Vercel's serverless execution model.
+- **`/api/groups/[id]/manage`** — `toggle_public` action was completely unhandled (Step 21 bug). Added to `ManageAction` union, validator, and handler branch.
+
+#### Data Integrity & Error Handling (Tier 2)
+
+- **`GroupNotificationsCard`** — Optimistic removal fired before `res.ok` check; errors were invisible. Fixed: removal only fires post-confirmation; `respondError` state surfaces failures.
+- **`/api/groups/invitations/[id]/respond`** — 4 DB writes had no error handling. All now guarded; the member re-activate path is most critical (returns 500 before marking invitation accepted if reactivation fails).
+- **`OnboardingGoalsClient`** — `handleSubmit` had no error handling. Added try/catch/finally + `submitError` state.
+- **`ProfileFlow`** — Same gap as OnboardingGoalsClient. Added error state; on failure: stays on current screen, message shown, retry available.
+- **`/api/videos/watched`** — No `videoId` validation. Added guard against `VIDEO_LIBRARY` keys; unknown IDs return 400.
+- **`dashboard/page.tsx`** — Removed internal `fetch('/api/challenges/complete')` call (server component making an HTTP round-trip to itself, then doing the direct DB write anyway). Consolidated 3 separate Supabase client instantiations to 1.
+
+#### Performance & Duplication (Tier 3)
+
+- **`lib/constants.ts`** — Added `export const MAX_PAUSE_DAYS = 14` (was hardcoded in 2 places) and `export function addDays(dateStr, n)` (was duplicated in 3 components). All consumers now import from constants.
+- **`HistoryProgressReport`** — O(n²) render replaced with pre-indexed Maps (`"pillar|date"` key for entries, `PillarName` key for goals). Two separate day×pillar loops merged into one accumulator pass. Removes ~202,500 redundant operations per render on a 90-day 5-pillar challenge.
+- **`DestinationGoalSection`** — `pillar: string` prop tightened to `pillar: PillarName`.
+- **`/api/groups/route.ts`** — Phase 9 regression fixed: `currentUser()` from Clerk was still used for group `display_name` instead of `user_profile.username`. Removed Clerk import. `invite_code` now uses `crypto.randomUUID()` (retired feature; no collision-check loop needed).
+- **`settings/page.tsx`** — Removed unnecessary `as Challenge` cast.
+
+#### Deferred (Tier 4 — not built)
+
+- `loading.tsx` / `error.tsx` for major route segments (`/dashboard`, `/history`, `/goals`, `/groups`, `/videos`, `/settings`)
+- `HistoryMonthGrid` React key: array index `i` → date string (no real bug, best practice only)
 
 ---
 
@@ -733,4 +775,4 @@ Integration with Apple Health for automatic Physical and Nutritional pillar data
 
 ---
 
-*This file was last updated: April 2026 — v3 Phase 9 complete (Steps 20–21). Username system + internal groups redesign built and tested. Ten Supabase migrations confirmed run (migrations 6, 7, 8 added in Phase 9). All video URLs pending recordings.*
+*This file was last updated: April 2026 — Code review & remediation complete (Tiers 1–3). v3 Phase 9 complete (Steps 20–21). Username system + internal groups redesign built and tested. Ten Supabase migrations confirmed run (migrations 6, 7, 8 added in Phase 9). Username lowercase constraint dropped post-Phase 9; replaced with case-insensitive index. All video URLs pending recordings.*

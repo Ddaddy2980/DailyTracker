@@ -39,7 +39,7 @@ export default async function SettingsPage() {
   const email    = clerkUser?.emailAddresses?.[0]?.emailAddress ?? ''
 
   const effectiveDay = challenge
-    ? getEffectiveChallengeDay(challenge as Challenge)
+    ? getEffectiveChallengeDay(challenge)
     : 1
 
   return (

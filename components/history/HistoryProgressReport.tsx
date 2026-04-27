@@ -1,25 +1,7 @@
 'use client'
 
-import { PILLAR_CONFIG } from '@/lib/constants'
+import { PILLAR_CONFIG, todayStr, addDays } from '@/lib/constants'
 import type { PillarLevel, DurationGoal, PillarDailyEntry, PillarName } from '@/lib/types'
-
-function todayStr() {
-  return new Intl.DateTimeFormat('en-CA').format(new Date())
-}
-
-function addDays(dateStr: string, n: number): string {
-  const d = new Date(dateStr + 'T00:00:00')
-  d.setDate(d.getDate() + n)
-  return new Intl.DateTimeFormat('en-CA').format(d)
-}
-
-function getPillarPct(pillar: PillarName, date: string, entries: PillarDailyEntry[], goals: DurationGoal[]): number {
-  const entry = entries.find((e) => e.pillar === pillar && e.entry_date === date)
-  const pillarGoals = goals.filter((g) => g.pillar === pillar)
-  if (pillarGoals.length === 0 || !entry) return 0
-  const completed = pillarGoals.filter((g) => entry.goal_completions?.[g.id] === true).length
-  return Math.round((completed / pillarGoals.length) * 100)
-}
 
 interface Props {
   challengeStartDate: string
@@ -36,6 +18,30 @@ const DAY_W = 10
 export default function HistoryProgressReport({ challengeStartDate, allEntries, activeGoals, activePillarLevels }: Props) {
   const today = todayStr()
   const activePillars = activePillarLevels.map((p) => p.pillar as PillarName)
+
+  // Pre-index entries by "pillar|date" for O(1) lookup instead of O(n) .find() per cell
+  const entryIndex = new Map<string, PillarDailyEntry>()
+  for (const entry of allEntries) {
+    entryIndex.set(`${entry.pillar}|${entry.entry_date}`, entry)
+  }
+
+  // Pre-index goals by pillar for O(1) lookup instead of O(n) .filter() per cell
+  const goalsByPillar = new Map<PillarName, DurationGoal[]>()
+  for (const goal of activeGoals) {
+    const pillar = goal.pillar as PillarName
+    const existing = goalsByPillar.get(pillar)
+    if (existing) existing.push(goal)
+    else goalsByPillar.set(pillar, [goal])
+  }
+
+  // O(1) completion percentage for a single pillar+date cell
+  function getPillarPct(pillar: PillarName, date: string): number {
+    const entry = entryIndex.get(`${pillar}|${date}`)
+    const pillarGoals = goalsByPillar.get(pillar) ?? []
+    if (pillarGoals.length === 0 || !entry) return 0
+    const completed = pillarGoals.filter((g) => entry.goal_completions?.[g.id] === true).length
+    return Math.round((completed / pillarGoals.length) * 100)
+  }
 
   // Build ordered list of all elapsed challenge days
   const days: string[] = []
@@ -61,27 +67,36 @@ export default function HistoryProgressReport({ challengeStartDate, allEntries, 
   // X-axis label cadence
   const labelEvery = totalDays <= 10 ? 1 : totalDays <= 30 ? 5 : 10
 
-  // Per-pillar polyline points
-  const pillarPoints: Record<string, string> = {}
+  // Single pass over days × pillars: build polyline points and stats simultaneously.
+  // Previously these were two separate loops — each calling getPillarPct with O(n) lookups.
+  // Now each cell is computed once with O(1) map lookups.
+  const pillarPointsAccum = new Map<PillarName, string[]>()
+  const statsAccum = new Map<PillarName, { green: number; yellow: number; red: number; totalPct: number }>()
   for (const pillar of activePillars) {
-    pillarPoints[pillar] = days
-      .map((date, i) => {
-        const pct = getPillarPct(pillar, date, allEntries, activeGoals)
-        return `${xPos(i).toFixed(1)},${yPos(pct).toFixed(1)}`
-      })
-      .join(' ')
+    pillarPointsAccum.set(pillar, [])
+    statsAccum.set(pillar, { green: 0, yellow: 0, red: 0, totalPct: 0 })
   }
 
-  // Per-pillar stats
-  const stats = activePillars.map((pillar) => {
-    let green = 0, yellow = 0, red = 0, totalPct = 0
-    for (const date of days) {
-      const pct = getPillarPct(pillar, date, allEntries, activeGoals)
-      totalPct += pct
-      if (pct >= 80) green++
-      else if (pct >= 40) yellow++
-      else red++
+  for (let i = 0; i < days.length; i++) {
+    const date = days[i]
+    for (const pillar of activePillars) {
+      const pct = getPillarPct(pillar, date)
+      pillarPointsAccum.get(pillar)!.push(`${xPos(i).toFixed(1)},${yPos(pct).toFixed(1)}`)
+      const s = statsAccum.get(pillar)!
+      s.totalPct += pct
+      if (pct >= 80) s.green++
+      else if (pct >= 40) s.yellow++
+      else s.red++
     }
+  }
+
+  const pillarPoints: Record<string, string> = {}
+  for (const pillar of activePillars) {
+    pillarPoints[pillar] = pillarPointsAccum.get(pillar)!.join(' ')
+  }
+
+  const stats = activePillars.map((pillar) => {
+    const { green, yellow, red, totalPct } = statsAccum.get(pillar)!
     const avg = totalDays === 0 ? 0 : Math.round(totalPct / totalDays)
     return { pillar, green, yellow, red, avg, total: totalDays }
   })
@@ -148,7 +163,7 @@ export default function HistoryProgressReport({ challengeStartDate, allEntries, 
 
             {/* Dot when only one day of data */}
             {totalDays === 1 && activePillars.map((pillar) => {
-              const pct = getPillarPct(pillar, days[0], allEntries, activeGoals)
+              const pct = getPillarPct(pillar, days[0])
               return (
                 <circle
                   key={pillar}

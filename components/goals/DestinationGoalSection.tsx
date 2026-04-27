@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { DESTINATION_GOAL_CAP, destinationGoalCapReached } from '@/lib/constants'
-import type { DestinationGoal, LevelNumber } from '@/lib/types'
+import type { DestinationGoal, LevelNumber, PillarName } from '@/lib/types'
 
 interface DestinationGoalSectionProps {
-  pillar: string
+  pillar: PillarName
   level:  LevelNumber
   initialGoals: DestinationGoal[]
 }

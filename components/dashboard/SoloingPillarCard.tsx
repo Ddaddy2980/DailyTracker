@@ -91,6 +91,7 @@ export default function SoloingPillarCard({
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const checkedDurationCount = goals.filter((g) => completions[g.id] === true).length
   const pct = goals.length === 0 ? 0 : checkedDurationCount / goals.length
@@ -101,21 +102,32 @@ export default function SoloingPillarCard({
 
   async function handleSave() {
     setSaving(true)
-    await fetch('/api/checkin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        pillar,
-        challengeId,
-        goalCompletions: completions,
-        entry_date: entryDate,
-      }),
-    })
-    setSaving(false)
-    setSaved(true)
-    setIsOpen(false)
-    router.refresh()
-    setTimeout(() => setSaved(false), 2000)
+    setSaveError(null)
+    try {
+      const res = await fetch('/api/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pillar,
+          challengeId,
+          goalCompletions: completions,
+          entry_date: entryDate,
+        }),
+      })
+      if (!res.ok) {
+        const errData = (await res.json().catch(() => ({}))) as { error?: string }
+        setSaveError(errData.error ?? 'Save failed. Please try again.')
+        return
+      }
+      setSaved(true)
+      setIsOpen(false)
+      router.refresh()
+      setTimeout(() => setSaved(false), 2000)
+    } catch {
+      setSaveError('Could not reach the server. Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const saveLabel = saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'
@@ -250,6 +262,10 @@ export default function SoloingPillarCard({
             >
               {saveLabel}
             </button>
+
+            {saveError && (
+              <p className="text-red-400 text-xs mt-2 text-center">{saveError}</p>
+            )}
           </div>
         </div>
       )}

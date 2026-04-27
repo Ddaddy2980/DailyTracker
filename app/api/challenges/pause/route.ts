@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { todayStr } from '@/lib/constants'
+import { todayStr, MAX_PAUSE_DAYS } from '@/lib/constants'
 import type { Challenge } from '@/lib/types'
-
-// Maximum calendar days a challenge may be paused in total
-const MAX_PAUSE_DAYS = 14
 
 interface PauseRequestBody {
   type:           unknown   // 'immediate' | 'scheduled'

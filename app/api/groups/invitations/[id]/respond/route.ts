@@ -69,10 +69,15 @@ export async function POST(req: Request, { params }: RouteContext) {
   }
 
   if (action === 'decline') {
-    await supabase
+    const { error: declineError } = await supabase
       .from('group_invitations')
       .update({ status: 'declined' })
       .eq('id', invitationId)
+
+    if (declineError) {
+      console.error('invitations/respond: failed to decline invitation:', declineError)
+      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+    }
 
     return NextResponse.json({ ok: true })
   }
@@ -132,18 +137,27 @@ export async function POST(req: Request, { params }: RouteContext) {
 
   if (existingMember?.is_active) {
     // Already a member — just mark invitation accepted and return
-    await supabase
+    const { error: alreadyAcceptError } = await supabase
       .from('group_invitations')
       .update({ status: 'accepted' })
       .eq('id', invitationId)
+    if (alreadyAcceptError) {
+      console.error('invitations/respond: failed to mark already-active invitation accepted:', alreadyAcceptError)
+      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+    }
     return NextResponse.json({ ok: true, groupId: invitation.group_id })
   }
 
   if (existingMember) {
-    await supabase
+    // Re-activating a former member — must succeed before marking invitation accepted
+    const { error: reactivateError } = await supabase
       .from('group_members')
       .update({ is_active: true, display_name: displayName })
       .eq('id', existingMember.id)
+    if (reactivateError) {
+      console.error('invitations/respond: failed to re-activate member:', reactivateError)
+      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+    }
   } else {
     const { error: insertError } = await supabase
       .from('group_members')
@@ -161,10 +175,15 @@ export async function POST(req: Request, { params }: RouteContext) {
   }
 
   // Mark invitation accepted
-  await supabase
+  const { error: acceptUpdateError } = await supabase
     .from('group_invitations')
     .update({ status: 'accepted' })
     .eq('id', invitationId)
+  if (acceptUpdateError) {
+    // Member row already inserted — log but don't fail the request.
+    // The member is in the group; the invitation row is a secondary record.
+    console.error('invitations/respond: failed to mark invitation accepted (member was added):', acceptUpdateError)
+  }
 
   // If the new member has completed a pillar today, mark them green immediately
   const { data: todayEntry } = await supabase

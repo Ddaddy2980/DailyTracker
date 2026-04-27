@@ -29,6 +29,7 @@ export default function ProfileFlow({ isRetake = false }: ProfileFlowProps) {
   const [currentPillar, setCurrentPillar] = useState(0)
   const [answers, setAnswers] = useState<PillarAnswers>(initAnswers)
   const [saving, setSaving] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const pillarQ = CONSISTENCY_PROFILE_QUESTIONS[currentPillar]
   const pillarName = pillarQ.pillar
@@ -58,6 +59,7 @@ export default function ProfileFlow({ isRetake = false }: ProfileFlowProps) {
 
     // Final pillar — calculate scores and submit
     setSaving(true)
+    setSubmitError(null)
 
     const scores = PILLAR_ORDER.reduce<Record<PillarName, number>>(
       (acc, pillar) => {
@@ -68,19 +70,25 @@ export default function ProfileFlow({ isRetake = false }: ProfileFlowProps) {
       {} as Record<PillarName, number>
     )
 
-    const res = await fetch('/api/onboarding/profile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scores }),
-    })
+    try {
+      const res = await fetch('/api/onboarding/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scores }),
+      })
 
-    if (!res.ok) {
+      if (!res.ok) {
+        setSubmitError('Something went wrong saving your profile. Please try again.')
+        return
+      }
+
+      // Retake: go back to dashboard. Normal onboarding: continue to goals.
+      router.push(isRetake ? '/dashboard' : '/onboarding/goals')
+    } catch {
+      setSubmitError('Could not reach the server. Please check your connection and try again.')
+    } finally {
       setSaving(false)
-      return
     }
-
-    // Retake: go back to dashboard. Normal onboarding: continue to goals.
-    router.push(isRetake ? '/dashboard' : '/onboarding/goals')
   }
 
   return (
@@ -153,6 +161,10 @@ export default function ProfileFlow({ isRetake = false }: ProfileFlowProps) {
           )}
         </button>
       </div>
+
+      {submitError && (
+        <p className="text-red-600 text-sm text-center mt-4">{submitError}</p>
+      )}
     </div>
   )
 }

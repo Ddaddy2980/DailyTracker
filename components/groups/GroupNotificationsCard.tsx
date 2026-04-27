@@ -14,33 +14,46 @@ export default function GroupNotificationsCard({
   onAccepted,
   onAllDismissed,
 }: GroupNotificationsCardProps) {
-  const [items, setItems]         = useState(initialNotifications)
+  const [items, setItems]           = useState(initialNotifications)
   const [responding, setResponding] = useState<Record<string, boolean>>({})
+  const [respondError, setRespondError] = useState<string | null>(null)
 
   async function respond(
     invitationId: string,
     groupId: string,
     action: 'accept' | 'decline'
   ) {
+    setRespondError(null)
     setResponding((prev) => ({ ...prev, [invitationId]: true }))
 
-    const res = await fetch(`/api/groups/invitations/${invitationId}/respond`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action }),
-    })
+    try {
+      const res = await fetch(`/api/groups/invitations/${invitationId}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
 
-    if (res.ok && action === 'accept') {
-      onAccepted(groupId)
-    }
+      if (!res.ok) {
+        setRespondError('Something went wrong. Please try again.')
+        setResponding((prev) => ({ ...prev, [invitationId]: false }))
+        return
+      }
 
-    // Remove this item regardless of action or error
-    const remaining = items.filter((n) => n.invitation.id !== invitationId)
-    setItems(remaining)
-    setResponding((prev) => ({ ...prev, [invitationId]: false }))
+      if (action === 'accept') {
+        onAccepted(groupId)
+      }
 
-    if (remaining.length === 0) {
-      onAllDismissed()
+      // Only remove from local state after confirmed API success
+      const remaining = items.filter((n) => n.invitation.id !== invitationId)
+      setItems(remaining)
+
+      if (remaining.length === 0) {
+        onAllDismissed()
+      }
+    } catch {
+      setRespondError('Could not reach the server. Please try again.')
+    } finally {
+      setResponding((prev) => ({ ...prev, [invitationId]: false }))
     }
   }
 
@@ -53,6 +66,10 @@ export default function GroupNotificationsCard({
           Pending
         </p>
       </div>
+
+      {respondError && (
+        <p className="text-red-400 text-xs text-center px-4 pb-2">{respondError}</p>
+      )}
       <div className="divide-y divide-[#2A3347]">
         {items.map((n) => {
           const isResponding = responding[n.invitation.id] ?? false

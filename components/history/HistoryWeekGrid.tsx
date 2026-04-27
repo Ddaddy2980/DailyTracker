@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { getWeekStart, PILLAR_CONFIG } from '@/lib/constants'
+import { getWeekStart, PILLAR_CONFIG, todayStr, addDays } from '@/lib/constants'
 import type { PillarLevel, DurationGoal, PillarDailyEntry, PillarName } from '@/lib/types'
 
 interface HistoryWeekGridProps {
@@ -14,16 +14,6 @@ interface HistoryWeekGridProps {
 }
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
-function addDays(dateStr: string, n: number): string {
-  const d = new Date(dateStr + 'T00:00:00')
-  d.setDate(d.getDate() + n)
-  return new Intl.DateTimeFormat('en-CA').format(d)
-}
-
-function todayStr(): string {
-  return new Intl.DateTimeFormat('en-CA').format(new Date())
-}
 
 function formatWeekRange(weekStart: string): string {
   const end = addDays(weekStart, 6)

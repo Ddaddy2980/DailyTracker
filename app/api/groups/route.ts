@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { todayStr } from '@/lib/constants'
 import type {
@@ -7,18 +7,8 @@ import type {
   GroupMember,
   GroupDailyStatus,
   GroupWithDetails,
+  UserProfile,
 } from '@/lib/types'
-
-// ---------------------------------------------------------------------------
-// Generates a 5-character alphanumeric invite code (no 0/O or 1/I ambiguity)
-// ---------------------------------------------------------------------------
-function generateInviteCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  return Array.from(
-    { length: 5 },
-    () => chars[Math.floor(Math.random() * chars.length)]
-  ).join('')
-}
 
 // ---------------------------------------------------------------------------
 // GET /api/groups
@@ -135,24 +125,20 @@ export async function POST(req: Request) {
 
   const name = ((body as Record<string, unknown>).name as string).trim()
 
-  // Get display name from Clerk
-  const clerkUser = await currentUser()
-  const displayName =
-    [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(' ') ||
-    'Member'
-
   const supabase = createServerSupabaseClient()
 
-  // Generate a unique invite code (retry once on collision — extremely rare)
-  let inviteCode = generateInviteCode()
-  const { data: existing } = await supabase
-    .from('consistency_groups')
-    .select('id')
-    .eq('invite_code', inviteCode)
-    .maybeSingle<{ id: string }>()
-  if (existing) {
-    inviteCode = generateInviteCode()
-  }
+  // Get display name from user_profile.username (source of truth for group identity)
+  const { data: profileRow } = await supabase
+    .from('user_profile')
+    .select('username')
+    .eq('user_id', userId)
+    .single<Pick<UserProfile, 'username'>>()
+
+  const displayName = profileRow?.username ?? ''
+
+  // invite_code is a retired feature but the column is NOT NULL UNIQUE — satisfy it
+  // with a UUID (never exposed to users; real join flow uses invitations).
+  const inviteCode = crypto.randomUUID()
 
   // Insert the group
   const { data: group, error: groupError } = await supabase

@@ -6,6 +6,11 @@ const isProtectedRoute = createRouteMatcher([
   '/onboarding(.*)',
   '/goals(.*)',
   '/join(.*)',
+  '/history(.*)',
+  '/videos(.*)',
+  '/settings(.*)',
+  '/groups(.*)',
+  '/completion(.*)',
 ])
 
 // /dev/* routes are invisible outside development.

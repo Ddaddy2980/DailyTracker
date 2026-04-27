@@ -7,7 +7,7 @@ interface RouteContext {
   params: Promise<{ id: string }>
 }
 
-type ManageAction = 'rename' | 'toggle_invite' | 'delete'
+type ManageAction = 'rename' | 'toggle_invite' | 'toggle_public' | 'delete'
 
 interface ManageBody {
   action: ManageAction
@@ -17,7 +17,7 @@ interface ManageBody {
 function isManageBody(v: unknown): v is ManageBody {
   if (typeof v !== 'object' || v === null) return false
   const b = v as Record<string, unknown>
-  if (!['rename', 'toggle_invite', 'delete'].includes(b.action as string)) return false
+  if (!['rename', 'toggle_invite', 'toggle_public', 'delete'].includes(b.action as string)) return false
   if (b.action === 'rename' && typeof b.name !== 'string') return false
   return true
 }
@@ -58,9 +58,9 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   // Fetch group and verify caller is the creator
   const { data: group, error: groupError } = await supabase
     .from('consistency_groups')
-    .select('user_id, status')
+    .select('user_id, status, is_public')
     .eq('id', groupId)
-    .single<Pick<ConsistencyGroup, 'user_id' | 'status'>>()
+    .single<Pick<ConsistencyGroup, 'user_id' | 'status' | 'is_public'>>()
 
   if (groupError || !group) {
     return NextResponse.json({ error: 'Group not found' }, { status: 404 })
@@ -118,6 +118,22 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     }
 
     return NextResponse.json({ success: true, status: newStatus })
+  }
+
+  if (body.action === 'toggle_public') {
+    const newIsPublic = !group.is_public
+
+    const { error: toggleError } = await supabase
+      .from('consistency_groups')
+      .update({ is_public: newIsPublic })
+      .eq('id', groupId)
+
+    if (toggleError) {
+      console.error('groups/manage toggle_public: failed:', toggleError)
+      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, is_public: newIsPublic })
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 })

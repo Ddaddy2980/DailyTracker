@@ -38,6 +38,7 @@ export default function OnboardingGoalsClient({
   const [state, setState]   = useState<PillarStateMap>(initState)
   const [saving, setSaving] = useState(false)
   const [warnSolo, setWarnSolo] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const levelMap = Object.fromEntries(
     pillarLevels.map((pl) => [pl.pillar, pl.level as LevelNumber])
@@ -71,6 +72,7 @@ export default function OnboardingGoalsClient({
   async function handleSubmit() {
     if (!hasAtLeastOneValidGoal || saving) return
     setSaving(true)
+    setSubmitError(null)
 
     const goalsPayload = PILLAR_ORDER.flatMap((pillar) =>
       state[pillar].isActive
@@ -82,18 +84,24 @@ export default function OnboardingGoalsClient({
         : [{ pillar, goal_text: '', activate: false }]
     )
 
-    const res = await fetch('/api/onboarding/goals', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ goals: goalsPayload }),
-    })
+    try {
+      const res = await fetch('/api/onboarding/goals', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ goals: goalsPayload }),
+      })
 
-    if (!res.ok) {
+      if (!res.ok) {
+        setSubmitError('Something went wrong saving your goals. Please try again.')
+        return
+      }
+
+      router.push('/dashboard')
+    } catch {
+      setSubmitError('Could not reach the server. Please check your connection and try again.')
+    } finally {
       setSaving(false)
-      return
     }
-
-    router.push('/dashboard')
   }
 
   if (phase === 'portrait') {
@@ -132,6 +140,10 @@ export default function OnboardingGoalsClient({
         <p className="text-amber-600 text-sm text-center mb-4">
           At least one pillar must be active to start your challenge.
         </p>
+      )}
+
+      {submitError && (
+        <p className="text-red-600 text-sm text-center mb-4">{submitError}</p>
       )}
 
       <button

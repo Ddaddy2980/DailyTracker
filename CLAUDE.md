@@ -6,9 +6,10 @@ Read this file at the start of every session along with PRODUCT.md and CLAUDE.lo
 
 1. Read PRODUCT.md — understand the product, philosophy, level system, and onboarding flow
 2. Read CLAUDE.local.md — review deferred items and personal working notes
-3. Read this file — understand how to work in this codebase
-4. Ask David: "What are we building today?" — then confirm which Phase/Step from ARCHITECTURE.md it maps to
-5. Build only that one thing. Do not anticipate or add adjacent features unless asked.
+3. Read CODING_DISCIPLINE.md — working principles for code quality and execution discipline
+4. Read this file — understand how to work in this codebase
+5. Ask David: "What are we building today?" — then confirm which Phase/Step from ARCHITECTURE.md it maps to
+6. Build only that one thing. Do not anticipate or add adjacent features unless asked.
 
 ---
 
@@ -81,7 +82,9 @@ Read this file at the start of every session along with PRODUCT.md and CLAUDE.lo
   /supabase.ts            — Supabase client singleton
   /types.ts               — all TypeScript interfaces and types
   /constants.ts           — app-wide constants (PILLAR_CONFIG, level thresholds, goal caps,
-                            DURATION_GOAL_SUGGESTIONS per pillar for ACT-compliant goal ideas)
+                            DURATION_GOAL_SUGGESTIONS per pillar for ACT-compliant goal ideas,
+                            MAX_PAUSE_DAYS = 14, addDays(dateStr, n) date utility,
+                            todayStr() current date utility, getWeekStart(dateStr) helper)
   /utils.ts               — shared utility functions
   /rolling-window.ts      — rolling window advancement calculation logic
 
@@ -144,6 +147,38 @@ if (error) {
 }
 ```
 
+### Ownership verification (security)
+
+When an API route accepts a resource ID from the request body (e.g., `challengeId`, `groupId`),
+always verify ownership in the same query — never trust the client's ID alone:
+
+```ts
+// Correct — ownership verified in the same query
+const { data, error } = await supabase
+  .from('challenges')
+  .select('is_paused')
+  .eq('id', challengeId)
+  .eq('user_id', userId)   // ← must be present
+  .single()
+
+if (error || !data) return NextResponse.json({ error: 'Not found' }, { status: 403 })
+```
+
+### Async side-effects in serverless route handlers
+
+Always `await` side-effect functions — never use `void`. Vercel serverless functions freeze
+execution context immediately after the response is sent; `void` fire-and-forget calls are
+silently dropped:
+
+```ts
+// Correct
+await updatePulseState(userId, challengeId, supabase)
+await syncGroupDailyStatus(userId, challengeId, supabase)
+
+// Wrong — call is dropped before it completes
+void updatePulseState(userId, challengeId, supabase)
+```
+
 ### Row Level Security
 
 - RLS is enabled on all tables
@@ -169,7 +204,7 @@ All ten migrations have been run in Supabase.
 
 | Table | Key columns |
 |-------|-------------|
-| `user_profile` | user_id, onboarding step flags (incl. username_set), active_challenge_id, selected_duration_days, username (unique, lowercase), username_set |
+| `user_profile` | user_id, onboarding step flags (incl. username_set), active_challenge_id, selected_duration_days, username (unique, case-insensitive via lower() index — mixed case allowed), username_set |
 | `challenges` | user_id, duration_days (any integer), start_date, status, pulse_state, pause fields |
 | `pillar_levels` | user_id, pillar, level (1–4), is_active, profile_score |
 | `duration_goals` | user_id, pillar, goal_text, is_active |

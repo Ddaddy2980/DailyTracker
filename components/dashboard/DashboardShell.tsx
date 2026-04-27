@@ -1,6 +1,6 @@
 'use client'
 
-import { PILLAR_ORDER, calcDailyCompletionPct, todayStr } from '@/lib/constants'
+import { PILLAR_ORDER, calcDailyCompletionPct, todayStr, MAX_PAUSE_DAYS } from '@/lib/constants'
 import type { Challenge, PillarLevel, DurationGoal, DestinationGoal, PillarDailyEntry, PulseState } from '@/lib/types'
 import DashboardHeader from './DashboardHeader'
 import PillarCard from './PillarCard'
@@ -71,7 +71,7 @@ export default function DashboardShell({
             pausedAt={challenge.paused_at}
             pauseReason={challenge.pause_reason}
             pauseDaysUsed={challenge.pause_days_used}
-            maxPauseDays={14}
+            maxPauseDays={MAX_PAUSE_DAYS}
           />
         </div>
       </div>

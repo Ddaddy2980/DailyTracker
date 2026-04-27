@@ -99,6 +99,7 @@ export default function GroovingPillarCard({
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [advancedToLevel, setAdvancedToLevel] = useState<LevelNumber | null>(null)
   const [showVideo, setShowVideo] = useState(false)
   const [videoWatched, setVideoWatched] = useState(false)
@@ -114,27 +115,37 @@ export default function GroovingPillarCard({
 
   async function handleSave() {
     setSaving(true)
-    const res = await fetch('/api/checkin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        pillar,
-        challengeId,
-        goalCompletions: completions,
-        entry_date: entryDate,
-      }),
-    })
-    const data = (await res.json()) as CheckinApiResponse
-    setSaving(false)
-
-    if (data.advanced && data.newLevel) {
-      setAdvancedToLevel(data.newLevel)
-      setTimeout(() => router.refresh(), 2500)
-    } else {
-      setSaved(true)
-      setIsOpen(false)
-      router.refresh()
-      setTimeout(() => setSaved(false), 2000)
+    setSaveError(null)
+    try {
+      const res = await fetch('/api/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pillar,
+          challengeId,
+          goalCompletions: completions,
+          entry_date: entryDate,
+        }),
+      })
+      if (!res.ok) {
+        const errData = (await res.json().catch(() => ({}))) as { error?: string }
+        setSaveError(errData.error ?? 'Save failed. Please try again.')
+        return
+      }
+      const data = (await res.json()) as CheckinApiResponse
+      if (data.advanced && data.newLevel) {
+        setAdvancedToLevel(data.newLevel)
+        setTimeout(() => router.refresh(), 2500)
+      } else {
+        setSaved(true)
+        setIsOpen(false)
+        router.refresh()
+        setTimeout(() => setSaved(false), 2000)
+      }
+    } catch {
+      setSaveError('Could not reach the server. Please try again.')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -301,6 +312,10 @@ export default function GroovingPillarCard({
             >
               {saveLabel}
             </button>
+
+            {saveError && (
+              <p className="text-red-400 text-xs mt-2 text-center">{saveError}</p>
+            )}
             </>
             )}
           </div>

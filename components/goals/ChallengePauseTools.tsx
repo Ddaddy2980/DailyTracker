@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { todayStr } from '@/lib/constants'
 
 interface ChallengePauseToolsProps {
   isPaused:              boolean
@@ -12,10 +13,6 @@ interface ChallengePauseToolsProps {
 }
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
-
-function todayStr(): string {
-  return new Intl.DateTimeFormat('en-CA').format(new Date())
-}
 
 export default function ChallengePauseTools({
   isPaused,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
+import { VIDEO_LIBRARY } from '@/lib/constants'
 
 // PUT — mark a coaching video as watched
 // body: { videoId: string }
@@ -22,6 +23,11 @@ export async function PUT(request: Request) {
   }
 
   const { videoId } = body as { videoId: string }
+
+  // Reject unknown video IDs — only allow IDs that exist in VIDEO_LIBRARY
+  if (!(videoId in VIDEO_LIBRARY)) {
+    return NextResponse.json({ error: 'Unknown videoId' }, { status: 400 })
+  }
 
   const supabase = createServerSupabaseClient()
 
