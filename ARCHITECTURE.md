@@ -819,6 +819,72 @@ Code is committed to local `main` and pushed by user. After Vercel deploys:
 
 ---
 
+### Post-Code-Review Round 2 — Tier 2 (security, broken features, TS strictness, a11y)
+
+Tier 2 build complete 2026-05-03 across 8 build steps committed as `b6a1b7b`. Production smoke verification + push pending. Two follow-up housekeeping commits (`ea41ddc` untracking `.next/`, `e60ff2d` untracking `tsconfig.tsbuildinfo`) clear longstanding `git status` noise.
+
+#### Step 2.1 — Username case-sensitivity (broken group invitations)
+`users/search` and `groups/[id]/invite` lowercased the input and compared with `.eq()`, so any mixed-case username (e.g. "David1") was unfindable from the invite panel — the entire group invitation feature was silently broken for those users. Fix: drop `.toLowerCase()`, swap `.eq()` → `.ilike()`. `GroupInvitePanel` regex widened to allow A–Z.
+
+#### Step 2.2 — Delete retired routes and dead files
+Five dead files removed: `app/api/groups/join/route.ts`, `app/join/[inviteCode]/page.tsx`, `components/groups/JoinGroupModal.tsx` (all retired in Phase 9 when invite codes were replaced by the internal invitation/request system), `components/dashboard/DayNavigator.tsx` (orphaned after the iPhone-polish DashboardHeader merge), and the entire `lib/utils.ts` file (`daysUntil` and `generateInviteCode` had zero consumers).
+
+#### Step 2.3 — SQL/LIKE injection in discover route
+`app/api/groups/discover/route.ts` interpolated user input directly into `.ilike()` patterns. A `%` in the query enumerated all public groups or all usernames matching the prefix; `_` matched any single character. Fix: `query.replace(/[%_\\]/g, '\\$&')` before interpolation. Both name-search and `@username`-search paths escaped.
+
+#### Step 2.4 — Other security fixes
+- 5-group ownership cap: `groups POST` counts `consistency_groups` where `user_id = userId` AND `status = 'active'`, rejects 6th with 400.
+- Onboarding goals idempotency: `app/api/onboarding/goals/route.ts` early-returns `{success:true}` if `goals_setup_completed` already true (prevents duplicate-row issue if user re-submits).
+- 23505 catches on both username routes (`onboarding/username` + `settings/username`) → 409 "Username is already taken" on race.
+- `/api(.*)` added to `middleware.ts` `isProtectedRoute` matcher (defense-in-depth — handlers already had `auth()` guards).
+- `app/(app)/history/page.tsx` challenges fetch gained `.eq('user_id', userId)` (was previously trusting the join through `user_profile`).
+
+#### Step 2.5 — Error handling
+8 components wrapped each fetch handler in `try/catch/finally` with visible error state; loading state always cleared in `finally`. Fixed components: `GroupManageSheet` (4 handlers), `GroupView.handleAccepted` (new `acceptError` state), `GroupInvitePanel.handleCancel` (new `cancelError` state), `GroupDiscoverModal.handleRequest`, `CreateGroupModal.handleCreate` (also surfaces API error message), `ChallengePauseTools` (4 handlers + `cancelError` for scheduled-pause cancel), `DurationPicker` (new error state above Begin), `ClarityVideosScreen` (new error state above Continue, covers handleContinue + handleSkip).
+
+3 API route fixes: `videos/watched` wraps `request.json()` (400 on invalid JSON); `groups/[id]/invite` DELETE adds `.select()` so it can return 404 when no row matched; `groups/[id]/invite` POST tightens `b.type` from cast-then-compare to `typeof !== 'string'` typeguard.
+
+#### Step 2.6 — Next.js + Supabase pattern fixes
+- `settings/page.tsx`: dropped `Promise.resolve(createServerSupabaseClient())` wrapper (split into `await` + sync call).
+- `dashboard/page.tsx`: `const challenge` → `let challenge`; `Object.assign(challenge, refreshed)` → `challenge = refreshed`.
+- `groups/page.tsx`: `searchParams: Promise<...>` → plain object (Next 14 canonical pattern, matches sibling pages like `app/onboarding/profile/page.tsx`).
+- `api/checkin/route.ts`: `syncGroupDailyStatus` now accepts the supabase client from the caller instead of calling `createServerSupabaseClient()` a second time.
+- `history/page.tsx`: 5 `select('*')` calls narrowed to only consumed columns.
+
+#### Step 2.7 — TypeScript strictness sweep (14 files)
+- `ROLLING_WINDOW_THRESHOLDS` narrowed `Record<number, ...>` → `Record<1 | 2 | 3, ...>`. `evaluateRollingWindow` now uses an explicit `if (level === 4) return early` typeguard before the lookup (level 4 has no upward advancement).
+- `GroupStatus` narrowed from `'active' | 'paused' | 'archived'` to just `'active'`. Accompanying deletion: `toggle_invite` action removed from `app/api/groups/[id]/manage/route.ts` `ManageAction` union, validator allow-list, handler block, and doc comment (UI replaced it with `toggle_public` in Phase 9; backend was the last consumer of `'paused'`).
+- 5 redundant `as PillarName` casts removed from `completion/page.tsx`, `HistoryWeekGrid` (×2), `HistoryProgressReport` (×2). The 6th in `lib/rolling-window.ts:93` is real (`Object.entries` widens keys to `string`) and stays.
+- 3 `Object.fromEntries(...) as Record<…>` patterns tightened to `Partial<Record<PillarName, LevelNumber>>` (consumers already use `?? 1`); added `PillarName` import to `PillarPortrait` + `goals/page`.
+- Dropped unused `userId` prop from `PillarCard` / `GroovingPillarCard` / `SoloingPillarCard` interfaces and from `DashboardShell`'s JSX passes for those three.
+- Dropped unused `dayNumber` from `JammingPillarCard` interface — required splitting `DashboardShell`'s shared `CardComponent = level === 1 ? Tuning : Jamming` pattern into separate Tuning/Jamming/Grooving/Soloing branches (TS treats union-component props as intersection, so removing dayNumber from one half broke the shared call).
+- Dropped unused `ChallengeDuration` import from `ChallengeDurationEditor`.
+- `USERNAME_REGEX` exported from `lib/constants.ts` and imported in both `api/onboarding/username` and `api/settings/username` (replaces 2 local copies).
+- `console.error` added for discarded `.error` fields on 6 parallel-fetch results in `goals/page.tsx` and `groups/page.tsx`.
+
+#### Step 2.8 — Accessibility
+- `GroupManageSheet` public/private toggle: `role="switch"` + `aria-checked={isPublic}` + `aria-label` ("Make group public/private").
+- `GroupCard` check-in circles: `role="img"` + descriptive `aria-label` per member ("@user checked in today" / "@user has not checked in today").
+- 5 `BottomNav` icon SVGs: `aria-hidden="true"` (label text already names the tab).
+- `BottomNav` `<Link>` inline `style={{ color: isActive ? '#1e40af' : '#94a3b8' }}` swapped for conditional Tailwind (`text-blue-800` / `text-slate-400`); preserves `#1e40af` blue exactly. Line 74 `paddingBottom: max(env(safe-area-inset-bottom), 8px)` left inline as legitimate `env()` use.
+- Tuning + Jamming dots: `role="img"` + `aria-label`. Jamming `DotRow` gained a `startIndex: number` prop (passed `0` for top row, `topRow.length` for bottom row) so the two rows announce Days 1–7 and Days 8–14 instead of both repeating Days 1–7.
+
+#### Architectural rules established or reinforced by Tier 2
+- **Username comparisons are case-insensitive but case-preserving.** `.ilike()` everywhere, never `.toLowerCase() + .eq()`. The DB uniqueness index is on `lower(username)` (post-Phase 9) — code paths must match.
+- **`.ilike()` on user input must escape `% _ \`.** Otherwise the user controls the LIKE pattern. Use `.replace(/[%_\\]/g, '\\$&')`.
+- **Resource ownership verified in the same query as the resource ID.** History challenges fetch was a hold-out; now matches the rule from Round 1 Tier 1.
+- **Server components/API routes use `console.error` on discarded `.error` fields from parallel fetches.** Silent failures of secondary fetches (member counts, owner usernames) make `groups/page.tsx` look broken with no diagnostic trail.
+- **Decorative interactive elements get `role="switch" / "img"` + `aria-label`.** A `<div>` styled like a circle is invisible to screen readers without the role + label.
+
+#### Verification (pending user smoke tests in production)
+Code committed locally (`b6a1b7b`); push by user via HTTPS+token. After Vercel deploys:
+- Invite a mixed-case username (e.g. `@David1`) to a group → invitation sends and appears in the recipient's notifications
+- Try to create a 6th group → 400 rejection inline in `CreateGroupModal`
+- Search groups with `%` in the query → no enumeration of all groups; treated as a literal `%` character
+- VoiceOver / TalkBack announces the public/private toggle as a switch with current state, and announces each pillar dot with its day number and status
+
+---
+
 ### Future Additions
 
 #### Destination Goal Types (Unscheduled)
@@ -840,4 +906,4 @@ Integration with Apple Health for automatic Physical and Nutritional pillar data
 
 ---
 
-*This file was last updated: 2026-05-02 — Round 2 code review remediation in progress (CODE_REVIEW_PLAN2.md). Tier 1 timezone hardening shipped (commits 741abff + b4ecb09); production smoke verification pending. Tier 2 (security, broken features, TS strictness, a11y) and Tier 3 (DRY, performance) remain. Pause UI restored to Settings page after orphaned-component regression discovered. Ten Supabase migrations confirmed run. Username lowercase constraint dropped post-Phase 9; replaced with case-insensitive index. All video URLs pending recordings.*
+*This file was last updated: 2026-05-03 — Round 2 code review remediation in progress (CODE_REVIEW_PLAN2.md). Tier 1 timezone hardening shipped (commits 741abff + b4ecb09). Tier 2 (security, broken features, TS strictness, a11y) build complete (commit b6a1b7b); production smoke verification + push pending. Two housekeeping commits (ea41ddc untracking .next/, e60ff2d untracking tsconfig.tsbuildinfo) clear longstanding git status noise. Tier 3 (DRY, performance — purely cosmetic) remains. Pause UI restored to Settings page after orphaned-component regression discovered. Ten Supabase migrations confirmed run. Username lowercase constraint dropped post-Phase 9; replaced with case-insensitive index. All video URLs pending recordings.*
