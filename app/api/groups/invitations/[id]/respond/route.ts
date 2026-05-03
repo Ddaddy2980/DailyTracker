@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { todayStr } from '@/lib/constants'
+import { todayInTz } from '@/lib/constants'
 import type { GroupInvitation, ConsistencyGroup } from '@/lib/types'
 
 interface RouteContext {
@@ -20,11 +20,14 @@ interface RouteContext {
 // On accept: inserts group_members row, syncs today's status if applicable.
 // On decline: sets status = 'declined'.
 // ---------------------------------------------------------------------------
-export async function POST(req: Request, { params }: RouteContext) {
+export async function POST(req: NextRequest, { params }: RouteContext) {
   const { userId } = await auth()
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const tz = req.cookies.get('tz')?.value
+  const today = todayInTz(tz)
 
   const { id: invitationId } = await params
 
@@ -190,7 +193,7 @@ export async function POST(req: Request, { params }: RouteContext) {
     .from('pillar_daily_entries')
     .select('id')
     .eq('user_id', memberUserId)
-    .eq('entry_date', todayStr())
+    .eq('entry_date', today)
     .eq('completed', true)
     .limit(1)
     .maybeSingle<{ id: string }>()
@@ -202,7 +205,7 @@ export async function POST(req: Request, { params }: RouteContext) {
         {
           group_id:    invitation.group_id,
           user_id:     memberUserId,
-          status_date: todayStr(),
+          status_date: today,
           completed:   true,
         },
         { onConflict: 'group_id,user_id,status_date' }

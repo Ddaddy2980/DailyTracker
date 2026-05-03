@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
   // Fetch current pillar level and last 60 days of entries in parallel.
   // 60 days covers the largest rolling window (Grooving → Soloing).
   // evaluateRollingWindow filters internally to the correct window for the level.
-  const windowStart = rollingWindowDates(60)[0]
+  const windowStart = rollingWindowDates(60, clientToday)[0]
 
   const [levelResult, entriesResult] = await Promise.all([
     supabase
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
   const currentLevel = levelResult.data.level as LevelNumber
   const entries = entriesResult.data ?? []
 
-  const result = evaluateRollingWindow(entries, currentLevel, typedPillar)
+  const result = evaluateRollingWindow(entries, currentLevel, typedPillar, clientToday)
 
   if (!result.shouldAdvance || result.nextLevel === null) {
     return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
@@ -277,7 +277,7 @@ async function updatePulseState(
   supabase: SupabaseClient,
   today: string,
 ): Promise<void> {
-  const sevenDaysAgo = rollingWindowDates(7)[0]
+  const sevenDaysAgo = rollingWindowDates(7, today)[0]
 
   const { data: recentEntries, error: entriesError } = await supabase
     .from('pillar_daily_entries')

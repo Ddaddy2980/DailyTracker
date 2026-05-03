@@ -1,6 +1,8 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createServerSupabaseClient } from '@/lib/supabase'
+import { todayInTz } from '@/lib/constants'
 import type { UserProfile, Challenge, PillarLevel, PillarDailyEntry, DurationGoal } from '@/lib/types'
 import type { PillarName, LevelNumber } from '@/lib/types'
 import CompletionScreen from '@/components/completion/CompletionScreen'
@@ -11,6 +13,9 @@ export const dynamic = 'force-dynamic'
 export default async function CompletionPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
+
+  const tz = cookies().get('tz')?.value
+  const today = todayInTz(tz)
 
   const supabase = createServerSupabaseClient()
 
@@ -107,7 +112,7 @@ export default async function CompletionPage() {
   // Derive display date for completion — use completed_at if available, else today
   const completedAt = challenge.completed_at
     ? challenge.completed_at.slice(0, 10)
-    : new Date().toISOString().slice(0, 10)
+    : today
 
   return (
     <CompletionScreen

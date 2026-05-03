@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { todayStr, PILLAR_ORDER } from '@/lib/constants'
+import { todayInTz, PILLAR_ORDER } from '@/lib/constants'
 import type { UserProfile, ChallengeDuration } from '@/lib/types'
 
 interface GoalEntry {
@@ -22,11 +22,14 @@ function isGoalEntry(v: unknown): v is GoalEntry {
 
 const VALID_PILLAR_NAMES = new Set<string>(PILLAR_ORDER)
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const tz = req.cookies.get('tz')?.value
+  const today = todayInTz(tz)
 
   let body: unknown
   try {
@@ -110,7 +113,7 @@ export async function POST(req: Request) {
     .insert({
       user_id:       userId,
       duration_days: durationDays,
-      start_date:    todayStr(),
+      start_date:    today,
       status:        'active',
     })
     .select('id')

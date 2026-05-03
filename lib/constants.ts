@@ -533,10 +533,9 @@ export function addDays(dateStr: string, n: number): string {
 
 // Returns the 1-based day number within a challenge.
 // Day 1 = start_date. Day 2 = start_date + 1. Etc.
-// targetDate defaults to today if not provided.
-export function getDayNumber(startDate: string, targetDate?: string): number {
+export function getDayNumber(startDate: string, targetDate: string): number {
   const s = new Date(startDate + 'T00:00:00')
-  const t = new Date((targetDate ?? todayStr()) + 'T00:00:00')
+  const t = new Date(targetDate + 'T00:00:00')
   return Math.max(1, Math.floor((t.getTime() - s.getTime()) / 86400000) + 1)
 }
 
@@ -551,9 +550,8 @@ export function fmtDate(dateKey: string): string {
 
 // Returns the N calendar dates (inclusive) ending at and including endDate,
 // ordered oldest → newest. Used to build rolling window arrays.
-// endDate defaults to today.
-export function rollingWindowDates(windowDays: number, endDate?: string): string[] {
-  const end = new Date((endDate ?? todayStr()) + 'T00:00:00')
+export function rollingWindowDates(windowDays: number, endDate: string): string[] {
+  const end = new Date(endDate + 'T00:00:00')
   const dates: string[] = []
   for (let i = windowDays - 1; i >= 0; i--) {
     const d = new Date(end)
@@ -587,14 +585,14 @@ export function getEffectiveChallengeDay(challenge: {
   is_paused:       boolean
   paused_at:       string | null
   pause_days_used: number
-}, viewingDate?: string): number {
+}, viewingDate: string): number {
   if (challenge.is_paused && challenge.paused_at) {
     // Freeze the counter at the day the pause began
     const pausedOnDate = challenge.paused_at.slice(0, 10)
     const dayAtPause = getDayNumber(challenge.start_date, pausedOnDate)
     return Math.max(1, dayAtPause - challenge.pause_days_used)
   }
-  const rawDay = getDayNumber(challenge.start_date, viewingDate ?? todayStr())
+  const rawDay = getDayNumber(challenge.start_date, viewingDate)
   return Math.max(1, rawDay - challenge.pause_days_used)
 }
 

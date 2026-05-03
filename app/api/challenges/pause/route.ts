@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { todayStr, MAX_PAUSE_DAYS } from '@/lib/constants'
+import { todayInTz, MAX_PAUSE_DAYS } from '@/lib/constants'
 import type { Challenge } from '@/lib/types'
 
 interface PauseRequestBody {
@@ -26,6 +26,8 @@ export async function POST(request: NextRequest) {
   }
 
   const { type, reason, scheduledDate } = body
+  const tz = request.cookies.get('tz')?.value
+  const today = todayInTz(tz)
 
   if (type !== 'immediate' && type !== 'scheduled') {
     return NextResponse.json({ error: 'type must be "immediate" or "scheduled"' }, { status: 400 })
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest) {
     if (typeof scheduledDate !== 'string' || !ISO_DATE_RE.test(scheduledDate)) {
       return NextResponse.json({ error: 'scheduledDate must be a valid YYYY-MM-DD date' }, { status: 400 })
     }
-    if (scheduledDate <= todayStr()) {
+    if (scheduledDate <= today) {
       return NextResponse.json({ error: 'scheduledDate must be a future date' }, { status: 400 })
     }
   }
@@ -82,7 +84,7 @@ export async function POST(request: NextRequest) {
       .from('challenges')
       .update({
         is_paused:    true,
-        paused_at:    new Date().toISOString(),
+        paused_at:    `${today}T12:00:00.000Z`,
         pause_reason: safeReason,
         // Clear any scheduled pause since user is doing it immediately
         scheduled_pause_date:   null,

@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { getEffectiveChallengeDay } from '@/lib/constants'
+import { getEffectiveChallengeDay, todayInTz } from '@/lib/constants'
 import type { UserProfile, Challenge } from '@/lib/types'
 
 // PATCH /api/challenges/duration
@@ -9,11 +9,14 @@ import type { UserProfile, Challenge } from '@/lib/types'
 // Accepts any positive integer (presets OR "Add a Week" non-preset values).
 // Returns { success, wouldCompleteNow } — wouldCompleteNow is true when the
 // new duration would immediately end the challenge (new days < current effective day).
-export async function PATCH(req: Request) {
+export async function PATCH(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const tz = req.cookies.get('tz')?.value
+  const today = todayInTz(tz)
 
   let body: { durationDays?: number }
   try {
@@ -55,7 +58,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'Challenge is not active' }, { status: 409 })
   }
 
-  const effectiveDay = getEffectiveChallengeDay(challenge)
+  const effectiveDay = getEffectiveChallengeDay(challenge, today)
   const wouldCompleteNow = durationDays < effectiveDay
 
   const { error: updateError } = await supabase

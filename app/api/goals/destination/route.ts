@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { PILLAR_ORDER, DESTINATION_GOAL_CAP, destinationGoalsAvailable, todayStr } from '@/lib/constants'
+import { PILLAR_ORDER, DESTINATION_GOAL_CAP, destinationGoalsAvailable, todayInTz } from '@/lib/constants'
 import type { PillarLevel, DestinationGoal, LevelNumber, DestinationGoalStatus } from '@/lib/types'
 
 const VALID_PILLARS = new Set<string>(PILLAR_ORDER)
@@ -9,9 +9,12 @@ const RELEASABLE_STATUSES = new Set<DestinationGoalStatus>(['completed', 'releas
 
 // ── POST — add a new destination goal ────────────────────────────────────────
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const tz = req.cookies.get('tz')?.value
+  const today = todayInTz(tz)
 
   let body: unknown
   try { body = await req.json() } catch {
@@ -91,7 +94,7 @@ export async function POST(req: Request) {
       pillar,
       goal_text:        trimmedText,
       status:           'active',
-      start_date:       todayStr(),
+      start_date:       today,
       frequency_target: null,
       time_window_days: null,
     })
@@ -109,9 +112,12 @@ export async function POST(req: Request) {
 // ── PATCH — complete or release a destination goal ────────────────────────────
 // Body: { id: string, status: 'completed' | 'released' }
 
-export async function PATCH(req: Request) {
+export async function PATCH(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const tz = req.cookies.get('tz')?.value
+  const today = todayInTz(tz)
 
   let body: unknown
   try { body = await req.json() } catch {
@@ -151,7 +157,7 @@ export async function PATCH(req: Request) {
 
   const updates: Partial<DestinationGoal> = { status }
   if (status === 'completed') {
-    updates.end_date = todayStr()
+    updates.end_date = today
   }
 
   const { error: updateError } = await supabase

@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import { auth, currentUser } from '@clerk/nextjs/server'
+import { cookies } from 'next/headers'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { getEffectiveChallengeDay } from '@/lib/constants'
+import { getEffectiveChallengeDay, todayInTz } from '@/lib/constants'
 import type { UserProfile, Challenge } from '@/lib/types'
 import AccountSection from '@/components/settings/AccountSection'
 import ChallengeSection from '@/components/settings/ChallengeSection'
@@ -38,8 +39,10 @@ export default async function SettingsPage() {
   const username = profile?.username ?? ''
   const email    = clerkUser?.emailAddresses?.[0]?.emailAddress ?? ''
 
+  const tz = cookies().get('tz')?.value
+  const today = todayInTz(tz)
   const effectiveDay = challenge
-    ? getEffectiveChallengeDay(challenge)
+    ? getEffectiveChallengeDay(challenge, today)
     : 1
 
   return (

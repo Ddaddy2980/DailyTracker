@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { todayStr } from '@/lib/constants'
+import { todayInTz } from '@/lib/constants'
 import type { Challenge } from '@/lib/types'
 
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
   const { userId } = await auth()
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const tz = request.cookies.get('tz')?.value
+  const today = todayInTz(tz)
 
   const supabase = createServerSupabaseClient()
 
@@ -40,9 +43,9 @@ export async function POST(_request: NextRequest) {
   // Compute how many calendar days this pause lasted
   const pauseStart = challenge.paused_at
     ? new Date(challenge.paused_at)
-    : new Date(todayStr() + 'T00:00:00')
+    : new Date(today + 'T00:00:00')
 
-  const resumeDate = new Date(todayStr() + 'T00:00:00')
+  const resumeDate = new Date(today + 'T00:00:00')
   const pausedDays = Math.max(
     0,
     Math.floor((resumeDate.getTime() - pauseStart.getTime()) / 86400000)

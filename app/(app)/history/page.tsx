@@ -1,7 +1,8 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { getWeekStart, todayStr } from '@/lib/constants'
+import { getWeekStart, todayInTz } from '@/lib/constants'
 import type { UserProfile, Challenge, PillarLevel, DurationGoal, PillarDailyEntry } from '@/lib/types'
 import HistoryTabs from '@/components/history/HistoryTabs'
 
@@ -16,6 +17,9 @@ const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 export default async function HistoryPage({ searchParams }: HistoryPageProps) {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
+
+  const tz = cookies().get('tz')?.value
+  const today = todayInTz(tz)
 
   const supabase = createServerSupabaseClient()
 
@@ -63,11 +67,10 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
     .eq('user_id', userId)
     .eq('challenge_id', challenge.id)
     .gte('entry_date', challenge.start_date)
-    .lte('entry_date', todayStr())
+    .lte('entry_date', today)
     .returns<PillarDailyEntry[]>()
 
   // Resolve weekStart from search param — must be a valid Sunday on or after challenge start
-  const today = todayStr()
   const rawWeek = searchParams.week
   const currentWeekStart = getWeekStart(today)
   let weekStart = currentWeekStart

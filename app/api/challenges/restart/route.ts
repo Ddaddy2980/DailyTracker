@@ -1,17 +1,21 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
+import { todayInTz } from '@/lib/constants'
 import type { UserProfile, Challenge } from '@/lib/types'
 
 // POST /api/challenges/restart
 // Creates a new challenge row, updates user_profile.active_challenge_id.
 // If retakeProfile=true: resets consistency_profile_completed so the gate reopens.
 // Pillar levels carry forward unchanged in all cases.
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const tz = req.cookies.get('tz')?.value
+  const today = todayInTz(tz)
 
   let body: { retakeProfile?: boolean; durationDays?: number }
   try {
@@ -38,9 +42,6 @@ export async function POST(req: Request) {
   if (profileError || !profile) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
-
-  // todayStr in YYYY-MM-DD format
-  const today = new Intl.DateTimeFormat('en-CA').format(new Date())
 
   // Create a new challenge row
   const { data: newChallenge, error: challengeError } = await supabase

@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { todayStr } from '@/lib/constants'
+import { todayInTz } from '@/lib/constants'
 import type {
   ConsistencyGroup,
   GroupMember,
@@ -15,14 +15,15 @@ import type {
 // Returns all groups the authenticated user is an active member of,
 // with all active members and today's check-in status for each member.
 // ---------------------------------------------------------------------------
-export async function GET() {
+export async function GET(request: NextRequest) {
   const { userId } = await auth()
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const supabase = createServerSupabaseClient()
-  const today = todayStr()
+  const tz = request.cookies.get('tz')?.value
+  const today = todayInTz(tz)
 
   // 1. Get all group_ids this user actively belongs to
   const { data: memberships, error: membershipError } = await supabase

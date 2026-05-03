@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@clerk/nextjs/server'
+import { cookies } from 'next/headers'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { todayStr } from '@/lib/constants'
+import { todayInTz } from '@/lib/constants'
 import GroupView from '@/components/groups/GroupView'
 import type {
   ConsistencyGroup,
@@ -24,8 +25,9 @@ export default async function GroupsPage({ searchParams }: PageProps) {
   if (!userId) redirect('/sign-in')
 
   const { joinError } = await searchParams
+  const tz = cookies().get('tz')?.value
+  const today = todayInTz(tz)
   const supabase = createServerSupabaseClient()
-  const today = todayStr()
 
   // 1. Get all group_ids this user actively belongs to
   const { data: memberships } = await supabase

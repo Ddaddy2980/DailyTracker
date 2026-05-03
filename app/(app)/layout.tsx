@@ -1,7 +1,8 @@
 import Image from 'next/image'
 import { auth } from '@clerk/nextjs/server'
+import { cookies } from 'next/headers'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { getEffectiveChallengeDay } from '@/lib/constants'
+import { getEffectiveChallengeDay, todayInTz } from '@/lib/constants'
 import type { Challenge, UserProfile } from '@/lib/types'
 import BottomNav from '@/components/shared/BottomNav'
 import UserAvatarMenu from '@/components/shared/UserAvatarMenu'
@@ -29,7 +30,9 @@ async function getDayInfo(): Promise<{ current: number; total: number } | null> 
 
   if (!challenge || challenge.status !== 'active') return null
 
-  const current = getEffectiveChallengeDay(challenge)
+  const tz = cookies().get('tz')?.value
+  const today = todayInTz(tz)
+  const current = getEffectiveChallengeDay(challenge, today)
   return { current, total: challenge.duration_days }
 }
 

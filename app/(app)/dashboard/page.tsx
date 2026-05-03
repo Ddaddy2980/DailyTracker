@@ -91,7 +91,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       .from('challenges')
       .update({
         is_paused:             true,
-        paused_at:             new Date().toISOString(),
+        paused_at:             `${today}T12:00:00.000Z`,
         pause_reason:          challenge.scheduled_pause_reason,
         scheduled_pause_date:  null,
         scheduled_pause_reason: null,
@@ -116,12 +116,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   if (challenge.status === 'completed') redirect('/completion')
 
   // Compute effective day (pause-adjusted) and check for natural completion
-  const effectiveDay = getEffectiveChallengeDay(challenge)
+  const effectiveDay = getEffectiveChallengeDay(challenge, today)
   if (effectiveDay > challenge.duration_days && !challenge.is_paused) {
     // Mark challenge complete directly — no internal HTTP round-trip needed
     const { error: completeError } = await supabase
       .from('challenges')
-      .update({ status: 'completed', completed_at: new Date().toISOString() })
+      .update({ status: 'completed', completed_at: `${today}T12:00:00.000Z` })
       .eq('id', challenge.id)
       .eq('status', 'active')
     if (completeError) {
@@ -170,7 +170,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     console.error('DashboardPage: failed to load destination_goals:', destinationGoalsResult.error)
   }
 
-  const currentDay = getDayNumber(challenge.start_date)
+  const currentDay = getDayNumber(challenge.start_date, today)
 
   return (
     <DashboardShell

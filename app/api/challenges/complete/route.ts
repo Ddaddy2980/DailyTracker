@@ -1,16 +1,20 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
+import { todayInTz } from '@/lib/constants'
 import type { UserProfile } from '@/lib/types'
 
 // POST /api/challenges/complete
 // Marks the user's active challenge as completed.
 // Idempotent — safe to call on an already-completed challenge.
-export async function POST() {
+export async function POST(request: NextRequest) {
   const { userId } = await auth()
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const tz = request.cookies.get('tz')?.value
+  const today = todayInTz(tz)
 
   const supabase = createServerSupabaseClient()
 
@@ -29,7 +33,7 @@ export async function POST() {
     .from('challenges')
     .update({
       status:       'completed',
-      completed_at: new Date().toISOString(),
+      completed_at: `${today}T12:00:00.000Z`,
     })
     .eq('id', profile.active_challenge_id)
     .eq('user_id', userId)

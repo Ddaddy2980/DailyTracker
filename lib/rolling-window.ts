@@ -32,14 +32,14 @@ function daysAgo(n: number, from?: string): string {
 // entries: all PillarDailyEntry rows for this pillar (any date range — function filters)
 // level:   the pillar's current level
 // pillar:  the pillar name (for the result object)
-// today:   optional override for "today" (used in tests)
+// today:   the reference date (YYYY-MM-DD) — use todayInTz(tz) in server contexts
 //
 // Returns a RollingWindowResult describing whether advancement should fire.
 export function evaluateRollingWindow(
   entries:  PillarDailyEntry[],
   level:    LevelNumber,
   pillar:   PillarName,
-  today?:   string,
+  today:    string,
 ): RollingWindowResult {
   const threshold = ROLLING_WINDOW_THRESHOLDS[level]
 
@@ -57,7 +57,7 @@ export function evaluateRollingWindow(
   }
 
   const { windowDays, required, nextLevel } = threshold
-  const reference = today ?? todayStr()
+  const reference = today
   const windowStart = daysAgo(windowDays - 1, reference)
 
   // Count completed entries within the rolling window
@@ -85,7 +85,7 @@ export function evaluateRollingWindow(
 export function evaluateAllPillars(
   entriesByPillar: Partial<Record<PillarName, PillarDailyEntry[]>>,
   levelByPillar:   Partial<Record<PillarName, LevelNumber>>,
-  today?:          string,
+  today:           string,
 ): RollingWindowResult[] {
   const results: RollingWindowResult[] = []
 
@@ -104,9 +104,9 @@ export function evaluateAllPillars(
 export function getWindowEntries(
   entries:    PillarDailyEntry[],
   windowDays: number,
-  today?:     string,
+  today:      string,
 ): PillarDailyEntry[] {
-  const reference = today ?? todayStr()
+  const reference = today
   const windowStart = daysAgo(windowDays - 1, reference)
 
   return entries

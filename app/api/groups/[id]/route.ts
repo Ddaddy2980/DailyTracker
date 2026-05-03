@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { todayStr } from '@/lib/constants'
+import { todayInTz } from '@/lib/constants'
 import type {
   ConsistencyGroup,
   GroupMember,
@@ -18,7 +18,7 @@ interface RouteContext {
 // Returns a single GroupWithDetails — used to refresh one card after changes.
 // Validates that the requesting user is an active member.
 // ---------------------------------------------------------------------------
-export async function GET(_req: Request, { params }: RouteContext) {
+export async function GET(req: NextRequest, { params }: RouteContext) {
   const { userId } = await auth()
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -26,7 +26,8 @@ export async function GET(_req: Request, { params }: RouteContext) {
 
   const { id } = await params
   const supabase = createServerSupabaseClient()
-  const today = todayStr()
+  const tz = req.cookies.get('tz')?.value
+  const today = todayInTz(tz)
 
   // Verify caller is an active member
   const { data: membership } = await supabase
