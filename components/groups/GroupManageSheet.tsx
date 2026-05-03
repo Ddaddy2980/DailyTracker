@@ -38,66 +38,86 @@ export default function GroupManageSheet({
     }
     setLoading(true)
     setError(null)
-    const res = await fetch(`/api/groups/${group.id}/manage`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'rename', name: trimmed }),
-    })
-    setLoading(false)
-    if (!res.ok) {
-      setError('Could not rename group. Try again.')
-      return
+    try {
+      const res = await fetch(`/api/groups/${group.id}/manage`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'rename', name: trimmed }),
+      })
+      if (!res.ok) {
+        setError('Could not rename group. Try again.')
+        return
+      }
+      setRenaming(false)
+      onRefresh()
+    } catch {
+      setError('Connection error. Try again.')
+    } finally {
+      setLoading(false)
     }
-    setRenaming(false)
-    onRefresh()
   }
 
   async function handleTogglePublic() {
     setLoading(true)
     setError(null)
-    const res = await fetch(`/api/groups/${group.id}/manage`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'toggle_public' }),
-    })
-    setLoading(false)
-    if (!res.ok) {
-      setError('Could not update group visibility. Try again.')
-      return
+    try {
+      const res = await fetch(`/api/groups/${group.id}/manage`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'toggle_public' }),
+      })
+      if (!res.ok) {
+        setError('Could not update group visibility. Try again.')
+        return
+      }
+      setIsPublic((prev) => !prev)
+    } catch {
+      setError('Connection error. Try again.')
+    } finally {
+      setLoading(false)
     }
-    setIsPublic((prev) => !prev)
   }
 
   async function handleDelete() {
     setLoading(true)
     setError(null)
-    const res = await fetch(`/api/groups/${group.id}/manage`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'delete' }),
-    })
-    setLoading(false)
-    if (!res.ok) {
-      setError('Could not delete group. Try again.')
-      return
+    try {
+      const res = await fetch(`/api/groups/${group.id}/manage`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete' }),
+      })
+      if (!res.ok) {
+        setError('Could not delete group. Try again.')
+        return
+      }
+      onDeleted()
+    } catch {
+      setError('Connection error. Try again.')
+    } finally {
+      setLoading(false)
     }
-    onDeleted()
   }
 
   async function handleLeave() {
     setLoading(true)
     setError(null)
-    const res = await fetch(`/api/groups/${group.id}/members`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ targetUserId: currentUserId }),
-    })
-    setLoading(false)
-    if (!res.ok) {
-      setError('Could not leave group. Try again.')
-      return
+    try {
+      const res = await fetch(`/api/groups/${group.id}/members`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: currentUserId }),
+      })
+      if (!res.ok) {
+        setError('Could not leave group. Try again.')
+        return
+      }
+      onLeft()
+    } catch {
+      setError('Connection error. Try again.')
+    } finally {
+      setLoading(false)
     }
-    onLeft()
   }
 
   return (
@@ -171,6 +191,9 @@ export default function GroupManageSheet({
               <button
                 onClick={handleTogglePublic}
                 disabled={loading}
+                role="switch"
+                aria-checked={isPublic}
+                aria-label={isPublic ? 'Make group private' : 'Make group public'}
                 className={`relative w-12 h-6 rounded-full transition-colors disabled:opacity-50 ${
                   isPublic ? 'bg-purple-600' : 'bg-slate-600'
                 }`}

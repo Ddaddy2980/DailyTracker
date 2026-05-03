@@ -49,6 +49,9 @@ export async function GET(req: Request) {
     return NextResponse.json({ groups: [] })
   }
 
+  // Escape LIKE meta-characters (% _ \) so user input cannot use wildcards
+  const escaped = query.replace(/[%_\\]/g, '\\$&')
+
   const supabase = createServerSupabaseClient()
 
   // Get groups this user already belongs to (exclude from results)
@@ -69,7 +72,7 @@ export async function GET(req: Request) {
     const { data: profiles } = await supabase
       .from('user_profile')
       .select('user_id')
-      .ilike('username', `%${query}%`)
+      .ilike('username', `%${escaped}%`)
       .neq('user_id', userId)
       .returns<{ user_id: string }[]>()
 
@@ -109,7 +112,7 @@ export async function GET(req: Request) {
       .select('id, name, max_members, user_id')
       .eq('is_public', true)
       .eq('status', 'active')
-      .ilike('name', `%${query}%`)
+      .ilike('name', `%${escaped}%`)
 
     if (excludeIds.length > 0) {
       groupQuery = groupQuery.not('id', 'in', `(${excludeIds.join(',')})`)

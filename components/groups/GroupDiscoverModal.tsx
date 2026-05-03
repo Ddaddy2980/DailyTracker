@@ -61,21 +61,26 @@ export default function GroupDiscoverModal({ onClose, onRequest }: GroupDiscover
     setRequestStates((prev) => ({ ...prev, [groupId]: 'sending' }))
     setError(null)
 
-    const res = await fetch(`/api/groups/${groupId}/invite`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'request' }),
-    })
+    try {
+      const res = await fetch(`/api/groups/${groupId}/invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'request' }),
+      })
 
-    if (!res.ok) {
-      const data = await res.json() as { error?: string }
-      setError(data.error ?? 'Could not send request. Try again.')
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string }
+        setError(data.error ?? 'Could not send request. Try again.')
+        setRequestStates((prev) => ({ ...prev, [groupId]: 'idle' }))
+        return
+      }
+
+      setRequestStates((prev) => ({ ...prev, [groupId]: 'sent' }))
+      onRequest(groupId)
+    } catch {
+      setError('Connection error. Try again.')
       setRequestStates((prev) => ({ ...prev, [groupId]: 'idle' }))
-      return
     }
-
-    setRequestStates((prev) => ({ ...prev, [groupId]: 'sent' }))
-    onRequest(groupId)
   }
 
   // For @username search, group results by owner

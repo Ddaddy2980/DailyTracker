@@ -17,14 +17,14 @@ import type { NotificationItem } from '@/app/api/groups/notifications/route'
 export const dynamic = 'force-dynamic'
 
 interface PageProps {
-  searchParams: Promise<{ joinError?: string }>
+  searchParams: { joinError?: string }
 }
 
 export default async function GroupsPage({ searchParams }: PageProps) {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
-  const { joinError } = await searchParams
+  const { joinError } = searchParams
   const tz = cookies().get('tz')?.value
   const today = todayInTz(tz)
   const supabase = createServerSupabaseClient()
@@ -112,6 +112,10 @@ export default async function GroupsPage({ searchParams }: PageProps) {
         .eq('status_date', today)
         .returns<GroupDailyStatus[]>(),
     ])
+
+    if (groupsResult.error)   console.error('groups page: consistency_groups:', groupsResult.error)
+    if (membersResult.error)  console.error('groups page: group_members:',      membersResult.error)
+    if (statusesResult.error) console.error('groups page: group_daily_status:', statusesResult.error)
 
     const groupRows = groupsResult.data ?? []
     const memberRows = membersResult.data ?? []

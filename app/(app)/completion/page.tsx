@@ -92,7 +92,7 @@ export default async function CompletionPage() {
     ).length
     const completionPct = Math.round((completedEntries / durationDays) * 100)
     return {
-      pillar:        pl.pillar as PillarName,
+      pillar:        pl.pillar,
       level:         pl.level as LevelNumber,
       completionPct: Math.min(completionPct, 100),
     }

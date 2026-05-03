@@ -78,7 +78,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     redirect('/onboarding')
   }
 
-  const challenge = challengeResult.data
+  let challenge = challengeResult.data
   if (!challenge) redirect('/onboarding')
 
   // Auto-activate a scheduled pause if the date has arrived
@@ -107,7 +107,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         .eq('id', challenge.id)
         .single<Challenge>()
       if (refreshed) {
-        Object.assign(challenge, refreshed)
+        challenge = refreshed
       }
     }
   }

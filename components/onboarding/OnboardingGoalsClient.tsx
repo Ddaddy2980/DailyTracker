@@ -42,7 +42,7 @@ export default function OnboardingGoalsClient({
 
   const levelMap = Object.fromEntries(
     pillarLevels.map((pl) => [pl.pillar, pl.level as LevelNumber])
-  ) as Record<PillarName, LevelNumber>
+  ) as Partial<Record<PillarName, LevelNumber>>
 
   function handleGoalsChange(pillar: PillarName, goals: string[]) {
     setWarnSolo(false)

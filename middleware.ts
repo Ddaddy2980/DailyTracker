@@ -11,6 +11,7 @@ const isProtectedRoute = createRouteMatcher([
   '/settings(.*)',
   '/groups(.*)',
   '/completion(.*)',
+  '/api(.*)',
 ])
 
 // /dev/* routes are invisible outside development.

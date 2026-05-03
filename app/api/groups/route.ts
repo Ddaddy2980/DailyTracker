@@ -128,6 +128,25 @@ export async function POST(req: Request) {
 
   const supabase = createServerSupabaseClient()
 
+  // Cap: a user may own at most 5 active groups
+  const { count: activeOwnedCount, error: countError } = await supabase
+    .from('consistency_groups')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'active')
+
+  if (countError) {
+    console.error('groups POST: failed to count owned groups:', countError)
+    return NextResponse.json({ error: 'Database error' }, { status: 500 })
+  }
+
+  if ((activeOwnedCount ?? 0) >= 5) {
+    return NextResponse.json(
+      { error: 'You can only own up to 5 active groups.' },
+      { status: 400 }
+    )
+  }
+
   // Get display name from user_profile.username (source of truth for group identity)
   const { data: profileRow } = await supabase
     .from('user_profile')

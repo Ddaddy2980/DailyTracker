@@ -25,7 +25,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
 
   const { data: profile, error: profileError } = await supabase
     .from('user_profile')
-    .select('*')
+    .select('onboarding_completed, active_challenge_id')
     .eq('user_id', userId)
     .single<UserProfile>()
 
@@ -36,19 +36,20 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
   const [challengeResult, pillarLevelsResult, durationGoalsResult] = await Promise.all([
     supabase
       .from('challenges')
-      .select('*')
+      .select('id, start_date')
       .eq('id', profile.active_challenge_id)
+      .eq('user_id', userId)
       .single<Challenge>(),
 
     supabase
       .from('pillar_levels')
-      .select('*')
+      .select('pillar, is_active')
       .eq('user_id', userId)
       .returns<PillarLevel[]>(),
 
     supabase
       .from('duration_goals')
-      .select('*')
+      .select('id, pillar')
       .eq('user_id', userId)
       .eq('is_active', true)
       .returns<DurationGoal[]>(),
@@ -63,7 +64,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
   // Fetch all entries for this challenge (full history)
   const { data: allEntries } = await supabase
     .from('pillar_daily_entries')
-    .select('*')
+    .select('pillar, entry_date, goal_completions')
     .eq('user_id', userId)
     .eq('challenge_id', challenge.id)
     .gte('entry_date', challenge.start_date)

@@ -167,7 +167,7 @@ export const SCORE_BANDS: Array<{ min: number; max: number; level: LevelNumber }
 // =============================================================================
 
 export const ROLLING_WINDOW_THRESHOLDS: Record<
-  number,
+  1 | 2 | 3,
   { windowDays: number; required: number; nextLevel: LevelNumber }
 > = {
   1: { windowDays: 7,  required: 4,  nextLevel: 2 },   // Tuning  → Jamming
@@ -595,6 +595,10 @@ export function getEffectiveChallengeDay(challenge: {
   const rawDay = getDayNumber(challenge.start_date, viewingDate)
   return Math.max(1, rawDay - challenge.pause_days_used)
 }
+
+// Username validation — letters, digits, underscore; 3–20 chars.
+// Used by /api/onboarding/username and /api/settings/username.
+export const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/
 
 // Returns the Sunday of the week containing dateStr, as YYYY-MM-DD.
 // Used to anchor week grid navigation.

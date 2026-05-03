@@ -263,6 +263,8 @@ export default function TuningPillarCard({
                 {dots.map((mark, i) => (
                   <span
                     key={i}
+                    role="img"
+                    aria-label={`Day ${i + 1}: ${mark}`}
                     className="w-5 h-5 rounded-full flex-shrink-0"
                     style={
                       mark === 'completed'

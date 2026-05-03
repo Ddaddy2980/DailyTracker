@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { PILLAR_ORDER } from '@/lib/constants'
-import type { UserProfile, PillarLevel, DurationGoal, DestinationGoal, LevelNumber } from '@/lib/types'
+import type { UserProfile, PillarLevel, DurationGoal, DestinationGoal, LevelNumber, PillarName } from '@/lib/types'
 import GoalEditorCard from '@/components/goals/GoalEditorCard'
 
 export const dynamic = 'force-dynamic'
@@ -43,13 +43,17 @@ export default async function GoalsPage() {
       .returns<DestinationGoal[]>(),
   ])
 
+  if (pillarLevelsResult.error)     console.error('goals page: pillar_levels:',     pillarLevelsResult.error)
+  if (durationGoalsResult.error)    console.error('goals page: duration_goals:',    durationGoalsResult.error)
+  if (destinationGoalsResult.error) console.error('goals page: destination_goals:', destinationGoalsResult.error)
+
   const pillarLevels      = pillarLevelsResult.data      ?? []
   const durationGoals     = durationGoalsResult.data     ?? []
   const destinationGoals  = destinationGoalsResult.data  ?? []
 
   const levelMap = Object.fromEntries(
     pillarLevels.map((pl) => [pl.pillar, pl.level as LevelNumber])
-  ) as Record<string, LevelNumber>
+  ) as Partial<Record<PillarName, LevelNumber>>
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-4">

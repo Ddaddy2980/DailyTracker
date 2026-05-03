@@ -80,11 +80,11 @@ Fix at write time using `${todayInTz(tz)}T12:00:00.000Z` anchor (noon UTC → da
 
 ### Step 1.4 — Verify and ship Tier 1
 
-- [ ] `npx tsc --noEmit` zero errors
-- [ ] Manual smoke test: pause a challenge after 7 PM local → confirm `paused_at` shows local date in DB
-- [ ] Manual smoke test: complete a challenge after 7 PM local → confirm `completed_at` shows local date
-- [ ] Manual smoke test: check in after 7 PM → confirm `pillar_daily_entries.entry_date` is local date
-- [ ] Commit + push to `main`
+- [x] `npx tsc --noEmit` zero errors
+- [x] Manual smoke test: pause a challenge after 7 PM local → confirm `paused_at` shows local date in DB
+- [x] Manual smoke test: complete a challenge after 7 PM local → confirm `completed_at` shows local date
+- [x] Manual smoke test: check in after 7 PM → confirm `pillar_daily_entries.entry_date` is local date
+- [x] Commit + push to `main`
 
 ---
 
@@ -92,80 +92,80 @@ Fix at write time using `${todayInTz(tz)}T12:00:00.000Z` anchor (noon UTC → da
 
 ### Step 2.1 — Username case-sensitivity (broken group invitations)
 
-- [ ] `app/api/users/search/route.ts:18`: drop `.toLowerCase()`
-- [ ] `app/api/users/search/route.ts:29`: change `.eq('username', username)` → `.ilike('username', username)`
-- [ ] `app/api/groups/[id]/invite/route.ts:155, 163`: same fix (drop `.toLowerCase()`, change `.eq()` → `.ilike()`)
-- [ ] `components/groups/GroupInvitePanel.tsx:43`: drop `.toLowerCase()` from `handleUsernameChange`; keep character filter `val.replace(/[^a-zA-Z0-9_]/g, '')`
+- [x] `app/api/users/search/route.ts:18`: drop `.toLowerCase()`
+- [x] `app/api/users/search/route.ts:29`: change `.eq('username', username)` → `.ilike('username', username)`
+- [x] `app/api/groups/[id]/invite/route.ts:155, 163`: same fix (drop `.toLowerCase()`, change `.eq()` → `.ilike()`)
+- [x] `components/groups/GroupInvitePanel.tsx:43`: drop `.toLowerCase()` from `handleUsernameChange`; keep character filter `val.replace(/[^a-zA-Z0-9_]/g, '')`
 
 ### Step 2.2 — Delete retired routes and dead files
 
-- [ ] Delete `app/api/groups/join/route.ts`
-- [ ] Delete `app/join/[inviteCode]/page.tsx`
-- [ ] Delete `components/groups/JoinGroupModal.tsx` (verified dead — exists but no imports)
-- [ ] Delete `components/dashboard/DayNavigator.tsx` (orphaned after DashboardHeader merge)
-- [ ] Verify `daysUntil` in `lib/utils.ts` has no consumers (`grep -rn daysUntil app/ components/ lib/`); if unused, delete entire `lib/utils.ts` file
+- [x] Delete `app/api/groups/join/route.ts`
+- [x] Delete `app/join/[inviteCode]/page.tsx`
+- [x] Delete `components/groups/JoinGroupModal.tsx` (verified dead — exists but no imports)
+- [x] Delete `components/dashboard/DayNavigator.tsx` (orphaned after DashboardHeader merge)
+- [x] Verify `daysUntil` in `lib/utils.ts` has no consumers (`grep -rn daysUntil app/ components/ lib/`); if unused, delete entire `lib/utils.ts` file
 
 ### Step 2.3 — SQL injection in discover route
 
-- [ ] `app/api/groups/discover/route.ts:72`: `const escaped = query.replace(/[%_\\]/g, '\\$&')` then `.ilike('username', \`%${escaped}%\`)`
-- [ ] `app/api/groups/discover/route.ts:112`: same fix for `.ilike('name', ...)`
+- [x] `app/api/groups/discover/route.ts:72`: `const escaped = query.replace(/[%_\\]/g, '\\$&')` then `.ilike('username', \`%${escaped}%\`)`
+- [x] `app/api/groups/discover/route.ts:112`: same fix for `.ilike('name', ...)`
 
 ### Step 2.4 — Other security fixes
 
-- [ ] `app/api/groups/route.ts` POST: count `consistency_groups` where `user_id = userId` AND `status = 'active'`; reject with 400 if `≥ 5`
-- [ ] `app/api/onboarding/goals/route.ts`: idempotency guard at handler start — return 200 early if `user_profile.goals_setup_completed === true`
-- [ ] `app/api/onboarding/username/route.ts`: catch Postgres error code `23505` → return 409 "Username is already taken"
-- [ ] `app/api/settings/username/route.ts`: same `23505` catch + 409 response
-- [ ] `middleware.ts`: add `'/api(.*)'` to `isProtectedRoute` matcher (defense-in-depth)
-- [ ] `app/(app)/history/page.tsx:33-36`: add `.eq('user_id', userId)` to challenge fetch
+- [x] `app/api/groups/route.ts` POST: count `consistency_groups` where `user_id = userId` AND `status = 'active'`; reject with 400 if `≥ 5`
+- [x] `app/api/onboarding/goals/route.ts`: idempotency guard at handler start — return 200 early if `user_profile.goals_setup_completed === true`
+- [x] `app/api/onboarding/username/route.ts`: catch Postgres error code `23505` → return 409 "Username is already taken"
+- [x] `app/api/settings/username/route.ts`: same `23505` catch + 409 response
+- [x] `middleware.ts`: add `'/api(.*)'` to `isProtectedRoute` matcher (defense-in-depth)
+- [x] `app/(app)/history/page.tsx:33-36`: add `.eq('user_id', userId)` to challenge fetch
 
 ### Step 2.5 — Error handling (8 components + 3 API routes)
 
 Add `try/catch/finally` + visible error state to all of these. Error message stays in component state; loading state always cleared in `finally`:
 
-- [ ] `components/groups/GroupManageSheet.tsx` (lines 33–101)
-- [ ] `components/groups/GroupView.tsx` (line 57–67)
-- [ ] `components/groups/GroupInvitePanel.tsx` (line 101–109)
-- [ ] `components/groups/GroupDiscoverModal.tsx` (line 60–78)
-- [ ] `components/groups/CreateGroupModal.tsx` (line 16–37)
-- [ ] `components/goals/ChallengePauseTools.tsx` (lines 47–118)
-- [ ] `components/onboarding/DurationPicker.tsx` (line 21–37) — add visible error state on `res.ok === false`
-- [ ] `components/onboarding/ClarityVideosScreen.tsx` (line 26–56) — same
+- [x] `components/groups/GroupManageSheet.tsx` (lines 33–101)
+- [x] `components/groups/GroupView.tsx` (line 57–67)
+- [x] `components/groups/GroupInvitePanel.tsx` (line 101–109)
+- [x] `components/groups/GroupDiscoverModal.tsx` (line 60–78)
+- [x] `components/groups/CreateGroupModal.tsx` (line 16–37)
+- [x] `components/goals/ChallengePauseTools.tsx` (lines 47–118)
+- [x] `components/onboarding/DurationPicker.tsx` (line 21–37) — add visible error state on `res.ok === false`
+- [x] `components/onboarding/ClarityVideosScreen.tsx` (line 26–56) — same
 
 API route fixes:
-- [ ] `app/api/videos/watched/route.ts:15`: wrap `request.json()` in try/catch → return 400 "Invalid JSON" on failure
-- [ ] `app/api/groups/[id]/invite/route.ts` DELETE handler (lines 271–284): use `.select()` after update to verify a row matched; return 404 if no row
-- [ ] `app/api/groups/[id]/invite/route.ts:105-106`: add `typeof type !== 'string'` guard on `b.type as string`
+- [x] `app/api/videos/watched/route.ts:15`: wrap `request.json()` in try/catch → return 400 "Invalid JSON" on failure
+- [x] `app/api/groups/[id]/invite/route.ts` DELETE handler (lines 271–284): use `.select()` after update to verify a row matched; return 404 if no row
+- [x] `app/api/groups/[id]/invite/route.ts:105-106`: add `typeof type !== 'string'` guard on `b.type as string`
 
 ### Step 2.6 — Next.js + Supabase pattern fixes
 
-- [ ] `app/(app)/settings/page.tsx:16-18`: drop `Promise.resolve(createServerSupabaseClient())` wrapper
-- [ ] `app/(app)/dashboard/page.tsx:110`: replace `Object.assign(challenge, refreshed)` with `let challenge = ...` declaration (line ~50) and `if (refreshed) challenge = refreshed`
-- [ ] `app/(app)/groups/page.tsx`: change `searchParams: Promise<{ joinError?: string }>` → `searchParams: { joinError?: string }`; remove `await searchParams` (Next.js 14 canonical pattern, matches sibling pages like `app/onboarding/profile/page.tsx`)
-- [ ] `app/api/checkin/route.ts:69, 216`: pass existing `supabase` client into `syncGroupDailyStatus(...)` instead of calling `createServerSupabaseClient()` again
-- [ ] `app/(app)/history/page.tsx`: narrow `select('*')` calls (5 instances on lines 23, 35, 44, 49, 62) to only required columns
+- [x] `app/(app)/settings/page.tsx:16-18`: drop `Promise.resolve(createServerSupabaseClient())` wrapper
+- [x] `app/(app)/dashboard/page.tsx:110`: replace `Object.assign(challenge, refreshed)` with `let challenge = ...` declaration (line ~50) and `if (refreshed) challenge = refreshed`
+- [x] `app/(app)/groups/page.tsx`: change `searchParams: Promise<{ joinError?: string }>` → `searchParams: { joinError?: string }`; remove `await searchParams` (Next.js 14 canonical pattern, matches sibling pages like `app/onboarding/profile/page.tsx`)
+- [x] `app/api/checkin/route.ts:69, 216`: pass existing `supabase` client into `syncGroupDailyStatus(...)` instead of calling `createServerSupabaseClient()` again
+- [x] `app/(app)/history/page.tsx`: narrow `select('*')` calls (5 instances on lines 23, 35, 44, 49, 62) to only required columns
 
 ### Step 2.7 — TypeScript strictness
 
-- [ ] `lib/constants.ts`: narrow `ROLLING_WINDOW_THRESHOLDS` key type from `Record<number, ...>` to `Record<1 | 2 | 3, ...>`
-- [ ] `lib/rolling-window.ts`: add level-4 typeguard before `ROLLING_WINDOW_THRESHOLDS[level]` access (e.g. `if (level === 4) return early`); replaces existing `if (!threshold)` check
-- [ ] `lib/types.ts`: change `pillar: string` → `pillar: PillarName` on `PillarLevel` and `DurationGoal` interfaces (removes 6 `as PillarName` casts in `app/(app)/completion/page.tsx`, `components/history/HistoryWeekGrid.tsx`, `components/history/HistoryProgressReport.tsx`, `lib/rolling-window.ts`)
-- [ ] `lib/types.ts`: narrow `GroupStatus` to `'active'`
-- [ ] `lib/types.ts:276`: update `GroupMember.display_name` comment to "username from user_profile, cascaded on username change"
-- [ ] `components/onboarding/OnboardingGoalsClient.tsx:43`, `components/onboarding/PillarPortrait.tsx:13`, `app/(app)/goals/page.tsx:50`: `Object.fromEntries(...) as Record<...>` → `Partial<Record<PillarName, LevelNumber>>` with `?? 1` fallback at every consumer
-- [ ] `components/dashboard/PillarCard.tsx`, `GroovingPillarCard.tsx`, `SoloingPillarCard.tsx`: drop unused `userId` prop from interface; stop passing from `DashboardShell`
-- [ ] `components/goals/ChallengeDurationEditor.tsx:6`: drop unused `ChallengeDuration` import
-- [ ] `components/dashboard/JammingPillarCard.tsx:26`: drop unused `dayNumber` prop from interface
-- [ ] `lib/constants.ts`: export `USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/`; import in `app/api/onboarding/username/route.ts:7` and `app/api/settings/username/route.ts:5`
-- [ ] `app/(app)/goals/page.tsx` (lines 24–44), `app/(app)/groups/page.tsx` (lines 92–112): add `console.error` for discarded `.error` fields in parallel fetches
+- [x] `lib/constants.ts`: narrow `ROLLING_WINDOW_THRESHOLDS` key type from `Record<number, ...>` to `Record<1 | 2 | 3, ...>`
+- [x] `lib/rolling-window.ts`: add level-4 typeguard before `ROLLING_WINDOW_THRESHOLDS[level]` access (e.g. `if (level === 4) return early`); replaces existing `if (!threshold)` check
+- [x] `lib/types.ts`: change `pillar: string` → `pillar: PillarName` on `PillarLevel` and `DurationGoal` interfaces (removes 6 `as PillarName` casts in `app/(app)/completion/page.tsx`, `components/history/HistoryWeekGrid.tsx`, `components/history/HistoryProgressReport.tsx`, `lib/rolling-window.ts`)
+- [x] `lib/types.ts`: narrow `GroupStatus` to `'active'`
+- [x] `lib/types.ts:276`: update `GroupMember.display_name` comment to "username from user_profile, cascaded on username change"
+- [x] `components/onboarding/OnboardingGoalsClient.tsx:43`, `components/onboarding/PillarPortrait.tsx:13`, `app/(app)/goals/page.tsx:50`: `Object.fromEntries(...) as Record<...>` → `Partial<Record<PillarName, LevelNumber>>` with `?? 1` fallback at every consumer
+- [x] `components/dashboard/PillarCard.tsx`, `GroovingPillarCard.tsx`, `SoloingPillarCard.tsx`: drop unused `userId` prop from interface; stop passing from `DashboardShell`
+- [x] `components/goals/ChallengeDurationEditor.tsx:6`: drop unused `ChallengeDuration` import
+- [x] `components/dashboard/JammingPillarCard.tsx:26`: drop unused `dayNumber` prop from interface
+- [x] `lib/constants.ts`: export `USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/`; import in `app/api/onboarding/username/route.ts:7` and `app/api/settings/username/route.ts:5`
+- [x] `app/(app)/goals/page.tsx` (lines 24–44), `app/(app)/groups/page.tsx` (lines 92–112): add `console.error` for discarded `.error` fields in parallel fetches
 
 ### Step 2.8 — Accessibility
 
-- [ ] `components/groups/GroupManageSheet.tsx:171-183`: add `role="switch" aria-checked={isPublic}` to public/private toggle
-- [ ] `components/groups/GroupCard.tsx:87-93`: add descriptive `aria-label` to check-in status circles
-- [ ] `components/shared/BottomNav.tsx:11-65`: add `aria-hidden="true"` to icon SVGs
-- [ ] `components/shared/BottomNav.tsx:85`: replace inline `style={{ color: isActive ? '#1e40af' : '#94a3b8' }}` with conditional Tailwind classes (`text-blue-800` / `text-slate-400`); leave the line 74 `paddingBottom` inline style alone (legitimate `env()` use)
-- [ ] `components/dashboard/TuningPillarCard.tsx:264`, `JammingPillarCard.tsx:56`: add `aria-label={\`Day ${i+1}: ${mark}\`}` to rolling window dots
+- [x] `components/groups/GroupManageSheet.tsx:171-183`: add `role="switch" aria-checked={isPublic}` to public/private toggle
+- [x] `components/groups/GroupCard.tsx:87-93`: add descriptive `aria-label` to check-in status circles
+- [x] `components/shared/BottomNav.tsx:11-65`: add `aria-hidden="true"` to icon SVGs
+- [x] `components/shared/BottomNav.tsx:85`: replace inline `style={{ color: isActive ? '#1e40af' : '#94a3b8' }}` with conditional Tailwind classes (`text-blue-800` / `text-slate-400`); leave the line 74 `paddingBottom` inline style alone (legitimate `env()` use)
+- [x] `components/dashboard/TuningPillarCard.tsx:264`, `JammingPillarCard.tsx:56`: add `aria-label={\`Day ${i+1}: ${mark}\`}` to rolling window dots
 
 ### Step 2.9 — Verify and ship Tier 2
 

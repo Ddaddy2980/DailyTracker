@@ -19,21 +19,26 @@ export default function CreateGroupModal({ onClose, onCreated }: CreateGroupModa
     setLoading(true)
     setError(null)
 
-    const res = await fetch('/api/groups', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: trimmed }),
-    })
+    try {
+      const res = await fetch('/api/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed }),
+      })
 
-    setLoading(false)
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string }
+        setError(data.error ?? 'Could not create group. Try again.')
+        return
+      }
 
-    if (!res.ok) {
-      setError('Could not create group. Try again.')
-      return
+      const data = (await res.json()) as { group: GroupWithDetails }
+      onCreated(data.group)
+    } catch {
+      setError('Connection error. Try again.')
+    } finally {
+      setLoading(false)
     }
-
-    const data = (await res.json()) as { group: GroupWithDetails }
-    onCreated(data.group)
   }
 
   return (

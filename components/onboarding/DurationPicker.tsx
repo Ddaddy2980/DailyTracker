@@ -17,23 +17,31 @@ export default function DurationPicker() {
   const router = useRouter()
   const [selected, setSelected] = useState<ChallengeDuration | null>(null)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleBegin() {
     if (!selected || saving) return
     setSaving(true)
+    setError(null)
 
-    const res = await fetch('/api/onboarding/duration', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ duration_days: selected }),
-    })
+    try {
+      const res = await fetch('/api/onboarding/duration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ duration_days: selected }),
+      })
 
-    if (!res.ok) {
+      if (!res.ok) {
+        setError('Could not save. Try again.')
+        setSaving(false)
+        return
+      }
+
+      router.push('/onboarding/videos')
+    } catch {
+      setError('Connection error. Try again.')
       setSaving(false)
-      return
     }
-
-    router.push('/onboarding/videos')
   }
 
   return (
@@ -80,6 +88,10 @@ export default function DurationPicker() {
           )
         })}
       </div>
+
+      {error && (
+        <p className="text-red-500 text-xs text-center mb-2">{error}</p>
+      )}
 
       <button
         onClick={handleBegin}

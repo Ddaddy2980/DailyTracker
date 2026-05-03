@@ -40,6 +40,7 @@ export default function ChallengePauseTools({
   const [schedMsg, setSchedMsg]           = useState<string | null>(null)
   const [schedError, setSchedError]       = useState<string | null>(null)
   const [cancellingScheduled, setCancellingScheduled] = useState(false)
+  const [cancelError, setCancelError]     = useState<string | null>(null)
 
   const daysRemaining = Math.max(0, maxPauseDays - pauseDaysUsed)
 
@@ -47,18 +48,23 @@ export default function ChallengePauseTools({
   async function handleImmediatePause() {
     setPausing(true)
     setPauseError(null)
-    const res  = await fetch('/api/challenges/pause', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ type: 'immediate', reason: pauseReason || undefined }),
-    })
-    const data = (await res.json()) as { success?: boolean; error?: string }
-    if (!res.ok || !data.success) {
-      setPauseError(data.error ?? 'Failed to pause. Please try again.')
+    try {
+      const res  = await fetch('/api/challenges/pause', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ type: 'immediate', reason: pauseReason || undefined }),
+      })
+      const data = (await res.json().catch(() => ({}))) as { success?: boolean; error?: string }
+      if (!res.ok || !data.success) {
+        setPauseError(data.error ?? 'Failed to pause. Please try again.')
+        return
+      }
+      router.refresh()
+    } catch {
+      setPauseError('Connection error. Please try again.')
+    } finally {
       setPausing(false)
-      return
     }
-    router.refresh()
   }
 
   // ——— Resume ———
@@ -66,15 +72,20 @@ export default function ChallengePauseTools({
     setResuming(true)
     setResumeError(null)
     setResumeMsg(null)
-    const res  = await fetch('/api/challenges/resume', { method: 'POST' })
-    const data = (await res.json()) as { success?: boolean; pausedDays?: number; error?: string }
-    if (!res.ok || !data.success) {
-      setResumeError(data.error ?? 'Failed to resume. Please try again.')
+    try {
+      const res  = await fetch('/api/challenges/resume', { method: 'POST' })
+      const data = (await res.json().catch(() => ({}))) as { success?: boolean; pausedDays?: number; error?: string }
+      if (!res.ok || !data.success) {
+        setResumeError(data.error ?? 'Failed to resume. Please try again.')
+        return
+      }
+      setResumeMsg(`Welcome back! You paused for ${data.pausedDays} ${data.pausedDays === 1 ? 'day' : 'days'}.`)
+      setTimeout(() => router.refresh(), 1800)
+    } catch {
+      setResumeError('Connection error. Please try again.')
+    } finally {
       setResuming(false)
-      return
     }
-    setResumeMsg(`Welcome back! You paused for ${data.pausedDays} ${data.pausedDays === 1 ? 'day' : 'days'}.`)
-    setTimeout(() => router.refresh(), 1800)
   }
 
   // ——— Schedule pause ———
@@ -87,34 +98,46 @@ export default function ChallengePauseTools({
       setScheduling(false)
       return
     }
-    const res  = await fetch('/api/challenges/pause', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ type: 'scheduled', scheduledDate: schedDate, reason: schedReason || undefined }),
-    })
-    const data = (await res.json()) as { success?: boolean; error?: string }
-    if (!res.ok || !data.success) {
-      setSchedError(data.error ?? 'Failed to schedule. Please try again.')
+    try {
+      const res  = await fetch('/api/challenges/pause', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ type: 'scheduled', scheduledDate: schedDate, reason: schedReason || undefined }),
+      })
+      const data = (await res.json().catch(() => ({}))) as { success?: boolean; error?: string }
+      if (!res.ok || !data.success) {
+        setSchedError(data.error ?? 'Failed to schedule. Please try again.')
+        return
+      }
+      setSchedMsg(`Pause scheduled for ${schedDate}.`)
+      router.refresh()
+    } catch {
+      setSchedError('Connection error. Please try again.')
+    } finally {
       setScheduling(false)
-      return
     }
-    setSchedMsg(`Pause scheduled for ${schedDate}.`)
-    setScheduling(false)
-    router.refresh()
   }
 
   // ——— Cancel scheduled pause ———
   async function handleCancelScheduled() {
     setCancellingScheduled(true)
-    const res  = await fetch('/api/challenges/pause', { method: 'DELETE' })
-    const data = (await res.json()) as { success?: boolean }
-    if (res.ok && data.success) {
+    setCancelError(null)
+    try {
+      const res  = await fetch('/api/challenges/pause', { method: 'DELETE' })
+      const data = (await res.json().catch(() => ({}))) as { success?: boolean; error?: string }
+      if (!res.ok || !data.success) {
+        setCancelError(data.error ?? 'Could not cancel. Please try again.')
+        return
+      }
       setSchedDate('')
       setSchedReason('')
       setSchedMsg(null)
+      router.refresh()
+    } catch {
+      setCancelError('Connection error. Please try again.')
+    } finally {
+      setCancellingScheduled(false)
     }
-    setCancellingScheduled(false)
-    router.refresh()
   }
 
   return (
@@ -203,6 +226,9 @@ export default function ChallengePauseTools({
                 >
                   {cancellingScheduled ? 'Cancelling…' : 'Cancel scheduled pause'}
                 </button>
+                {cancelError && (
+                  <p className="text-xs text-red-500 mt-2">{cancelError}</p>
+                )}
               </div>
             ) : (
               <>

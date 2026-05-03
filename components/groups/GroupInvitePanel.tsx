@@ -17,6 +17,7 @@ export default function GroupInvitePanel({ groupId }: GroupInvitePanelProps) {
   const [sendError, setSendError]             = useState<string | null>(null)
   const [pending, setPending]                 = useState<PendingInvitationItem[]>([])
   const [loadingPending, setLoadingPending]   = useState(true)
+  const [cancelError, setCancelError]         = useState<string | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export default function GroupInvitePanel({ groupId }: GroupInvitePanelProps) {
   }
 
   function handleUsernameChange(val: string) {
-    const normalized = val.toLowerCase().replace(/[^a-z0-9_]/g, '')
+    const normalized = val.replace(/[^a-zA-Z0-9_]/g, '')
     setUsernameInput(normalized)
     setSendError(null)
     setFoundUserId(null)
@@ -99,13 +100,21 @@ export default function GroupInvitePanel({ groupId }: GroupInvitePanelProps) {
   }
 
   async function handleCancel(invitationId: string) {
-    const res = await fetch(`/api/groups/${groupId}/invite`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ invitationId }),
-    })
-    if (res.ok) {
+    setCancelError(null)
+    try {
+      const res = await fetch(`/api/groups/${groupId}/invite`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invitationId }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string }
+        setCancelError(data.error ?? 'Could not cancel. Try again.')
+        return
+      }
       setPending((prev) => prev.filter((p) => p.invitation.id !== invitationId))
+    } catch {
+      setCancelError('Connection error. Try again.')
     }
   }
 
@@ -174,6 +183,9 @@ export default function GroupInvitePanel({ groupId }: GroupInvitePanelProps) {
       {!loadingPending && pending.length > 0 && (
         <div className="pt-1 space-y-1">
           <p className="text-slate-500 text-xs px-1 mb-1.5">Pending</p>
+          {cancelError && (
+            <p className="text-red-400 text-xs px-1 mb-1">{cancelError}</p>
+          )}
           {pending.map((p) => (
             <div
               key={p.invitation.id}

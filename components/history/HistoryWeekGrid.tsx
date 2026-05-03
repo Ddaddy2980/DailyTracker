@@ -51,7 +51,7 @@ function getAllPct(
   goals: DurationGoal[],
 ): number | null {
   const pillarPcts = activePillars
-    .map((p) => getPillarPct(p.pillar as PillarName, date, entries, goals))
+    .map((p) => getPillarPct(p.pillar, date, entries, goals))
     .filter((pct): pct is number => pct !== null)
   if (pillarPcts.length === 0) return null
   return Math.round(pillarPcts.reduce((a, b) => a + b, 0) / pillarPcts.length)
@@ -116,7 +116,7 @@ export default function HistoryWeekGrid({
     .filter((pct): pct is number => pct !== null)
   const avgPct = weekPcts.length === 0 ? null : Math.round(weekPcts.reduce((a, b) => a + b, 0) / weekPcts.length)
 
-  const activePillars = activePillarLevels.map((p) => p.pillar as PillarName)
+  const activePillars = activePillarLevels.map((p) => p.pillar)
 
   return (
     <div className="bg-slate-700 rounded-xl shadow-sm overflow-hidden">

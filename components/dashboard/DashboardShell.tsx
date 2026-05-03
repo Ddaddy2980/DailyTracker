@@ -103,11 +103,10 @@ export default function DashboardShell({
           const goals = durationGoals.filter((g) => g.pillar === pillar)
           const todayEntry = viewingDateEntries.find((e) => e.pillar === pillar) ?? null
 
-          if (pillarLevel.level === 1 || pillarLevel.level === 2) {
+          if (pillarLevel.level === 1) {
             const pillarWindowEntries = windowEntries.filter((e) => e.pillar === pillar)
-            const CardComponent = pillarLevel.level === 1 ? TuningPillarCard : JammingPillarCard
             return (
-              <CardComponent
+              <TuningPillarCard
                 key={`${pillar}-${viewingDate}`}
                 pillarLevel={pillarLevel}
                 goals={goals}
@@ -123,18 +122,50 @@ export default function DashboardShell({
             )
           }
 
-          if (pillarLevel.level === 3 || pillarLevel.level === 4) {
-            const pillarDestinationGoals = destinationGoals.filter((g) => g.pillar === pillar)
-            const CardComponent = pillarLevel.level === 3 ? GroovingPillarCard : SoloingPillarCard
+          if (pillarLevel.level === 2) {
+            const pillarWindowEntries = windowEntries.filter((e) => e.pillar === pillar)
             return (
-              <CardComponent
+              <JammingPillarCard
+                key={`${pillar}-${viewingDate}`}
+                pillarLevel={pillarLevel}
+                goals={goals}
+                todayEntry={todayEntry}
+                windowEntries={pillarWindowEntries}
+                challengeId={challenge.id}
+                challengeStartDate={challenge.start_date}
+                userId={userId}
+                entryDate={viewingDate}
+                pulseState={pulseState}
+              />
+            )
+          }
+
+          if (pillarLevel.level === 3) {
+            const pillarDestinationGoals = destinationGoals.filter((g) => g.pillar === pillar)
+            return (
+              <GroovingPillarCard
                 key={`${pillar}-${viewingDate}`}
                 pillarLevel={pillarLevel}
                 goals={goals}
                 destinationGoals={pillarDestinationGoals}
                 todayEntry={todayEntry}
                 challengeId={challenge.id}
-                userId={userId}
+                entryDate={viewingDate}
+                pulseState={pulseState}
+              />
+            )
+          }
+
+          if (pillarLevel.level === 4) {
+            const pillarDestinationGoals = destinationGoals.filter((g) => g.pillar === pillar)
+            return (
+              <SoloingPillarCard
+                key={`${pillar}-${viewingDate}`}
+                pillarLevel={pillarLevel}
+                goals={goals}
+                destinationGoals={pillarDestinationGoals}
+                todayEntry={todayEntry}
+                challengeId={challenge.id}
                 entryDate={viewingDate}
                 pulseState={pulseState}
               />
@@ -148,7 +179,6 @@ export default function DashboardShell({
               goals={goals}
               todayEntry={todayEntry}
               challengeId={challenge.id}
-              userId={userId}
               entryDate={viewingDate}
             />
           )

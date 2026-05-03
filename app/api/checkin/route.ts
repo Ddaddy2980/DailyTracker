@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
   // Side-effects for today saves — both awaited to ensure serverless completion.
   // updatePulseState is non-fatal internally; awaiting it guarantees the write
   // actually runs before Vercel freezes the execution context.
-  await syncGroupDailyStatus(userId, effectiveDate)
+  await syncGroupDailyStatus(userId, effectiveDate, supabase)
   await updatePulseState(userId, challengeId as string, supabase, clientToday)
 
   if (!completed) {
@@ -211,9 +211,11 @@ export async function POST(request: NextRequest) {
 // Finds all active groups this user belongs to and upserts a completed = true
 // row in group_daily_status for each. Non-fatal — errors are logged only.
 // ---------------------------------------------------------------------------
-async function syncGroupDailyStatus(userId: string, today: string): Promise<void> {
-  const supabase = createServerSupabaseClient()
-
+async function syncGroupDailyStatus(
+  userId: string,
+  today: string,
+  supabase: SupabaseClient,
+): Promise<void> {
   // Get all active group memberships for this user where the group is active
   const { data: memberships, error: membershipError } = await supabase
     .from('group_members')

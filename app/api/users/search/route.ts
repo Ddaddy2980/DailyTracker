@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   }
 
   const { searchParams } = new URL(req.url)
-  const username = searchParams.get('username')?.toLowerCase().trim() ?? ''
+  const username = searchParams.get('username')?.trim() ?? ''
 
   if (username.length === 0) {
     return NextResponse.json({ error: 'username is required' }, { status: 400 })
@@ -26,7 +26,7 @@ export async function GET(req: Request) {
   const { data, error } = await supabase
     .from('user_profile')
     .select('user_id, username')
-    .eq('username', username)
+    .ilike('username', username)
     .maybeSingle<{ user_id: string; username: string }>()
 
   if (error) {

@@ -55,13 +55,18 @@ export async function POST(req: NextRequest) {
   // Fetch selected_duration_days from user_profile
   const { data: profile, error: profileReadError } = await supabase
     .from('user_profile')
-    .select('selected_duration_days')
+    .select('selected_duration_days, goals_setup_completed')
     .eq('user_id', userId)
-    .single<Pick<UserProfile, 'selected_duration_days'>>()
+    .single<Pick<UserProfile, 'selected_duration_days' | 'goals_setup_completed'>>()
 
   if (profileReadError) {
     console.error('Failed to read user_profile:', profileReadError)
     return NextResponse.json({ error: 'Database error' }, { status: 500 })
+  }
+
+  // Idempotency: if onboarding goals are already saved, succeed without re-inserting
+  if (profile?.goals_setup_completed) {
+    return NextResponse.json({ success: true })
   }
 
   const durationDays: ChallengeDuration =

@@ -17,7 +17,7 @@ const DAY_W = 10
 
 export default function HistoryProgressReport({ challengeStartDate, allEntries, activeGoals, activePillarLevels }: Props) {
   const today = todayStr()
-  const activePillars = activePillarLevels.map((p) => p.pillar as PillarName)
+  const activePillars = activePillarLevels.map((p) => p.pillar)
 
   // Pre-index entries by "pillar|date" for O(1) lookup instead of O(n) .find() per cell
   const entryIndex = new Map<string, PillarDailyEntry>()
@@ -28,7 +28,7 @@ export default function HistoryProgressReport({ challengeStartDate, allEntries, 
   // Pre-index goals by pillar for O(1) lookup instead of O(n) .filter() per cell
   const goalsByPillar = new Map<PillarName, DurationGoal[]>()
   for (const goal of activeGoals) {
-    const pillar = goal.pillar as PillarName
+    const pillar = goal.pillar
     const existing = goalsByPillar.get(pillar)
     if (existing) existing.push(goal)
     else goalsByPillar.set(pillar, [goal])

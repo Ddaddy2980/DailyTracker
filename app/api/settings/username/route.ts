@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
-
-const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/
+import { USERNAME_REGEX } from '@/lib/constants'
 
 // ---------------------------------------------------------------------------
 // PATCH /api/settings/username
@@ -58,6 +57,9 @@ export async function PATCH(req: Request) {
     .eq('user_id', userId)
 
   if (profileError) {
+    if ((profileError as { code?: string }).code === '23505') {
+      return NextResponse.json({ error: 'Username is already taken' }, { status: 409 })
+    }
     console.error('settings/username PATCH: failed to update profile:', profileError)
     return NextResponse.json({ error: 'Database error' }, { status: 500 })
   }

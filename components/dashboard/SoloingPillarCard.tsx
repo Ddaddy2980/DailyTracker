@@ -12,7 +12,6 @@ interface SoloingPillarCardProps {
   destinationGoals: DestinationGoal[]
   todayEntry: PillarDailyEntry | null
   challengeId: string
-  userId: string
   entryDate: string
   pulseState: PulseState
 }

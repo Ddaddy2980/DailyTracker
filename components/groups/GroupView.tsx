@@ -26,6 +26,7 @@ export default function GroupView({
   const [showDiscover, setShowDiscover] = useState(false)
   const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications)
   const [showNotifications, setShowNotifications] = useState(initialNotifications.length > 0)
+  const [acceptError, setAcceptError] = useState<string | null>(null)
 
   // Re-fetch a single group and update local state
   const handleRefresh = useCallback(async (groupId: string) => {
@@ -55,15 +56,23 @@ export default function GroupView({
 
   // After accepting a notification invitation, fetch the new group and add to list
   async function handleAccepted(groupId: string) {
-    const res = await fetch(`/api/groups/${groupId}`)
-    if (!res.ok) return
-    const data = (await res.json()) as { group: GroupWithDetails }
-    setGroups((prev) => {
-      if (prev.some((g) => g.id === groupId)) {
-        return prev.map((g) => (g.id === groupId ? data.group : g))
+    setAcceptError(null)
+    try {
+      const res = await fetch(`/api/groups/${groupId}`)
+      if (!res.ok) {
+        setAcceptError('Joined the group, but failed to load it. Refresh the page.')
+        return
       }
-      return [...prev, data.group]
-    })
+      const data = (await res.json()) as { group: GroupWithDetails }
+      setGroups((prev) => {
+        if (prev.some((g) => g.id === groupId)) {
+          return prev.map((g) => (g.id === groupId ? data.group : g))
+        }
+        return [...prev, data.group]
+      })
+    } catch {
+      setAcceptError('Connection error. Refresh the page to see your new group.')
+    }
   }
 
   const hasGroups = groups.length > 0
@@ -74,6 +83,13 @@ export default function GroupView({
       {joinError && (
         <div className="bg-red-900/40 border border-red-700 text-red-300 text-sm rounded-xl px-4 py-3">
           {joinError}
+        </div>
+      )}
+
+      {/* Notification accept error */}
+      {acceptError && (
+        <div className="bg-red-900/40 border border-red-700 text-red-300 text-sm rounded-xl px-4 py-3">
+          {acceptError}
         </div>
       )}
 

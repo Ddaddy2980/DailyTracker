@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CHALLENGE_DURATIONS } from '@/lib/constants'
-import type { ChallengeDuration } from '@/lib/types'
 
 interface ChallengeDurationEditorProps {
   currentDuration: number   // challenge.duration_days (may be non-preset after Add a Week)

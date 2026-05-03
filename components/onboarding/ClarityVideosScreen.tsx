@@ -14,6 +14,7 @@ export default function ClarityVideosScreen({ initialWatchedIds = [] }: ClarityV
   const router = useRouter()
   const [watchedIds, setWatchedIds] = useState<Set<string>>(new Set(initialWatchedIds))
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const totalCount = CLARITY_VIDEOS.length
   const watchedCount = watchedIds.size
@@ -26,33 +27,47 @@ export default function ClarityVideosScreen({ initialWatchedIds = [] }: ClarityV
   async function handleContinue() {
     if (saving || !allWatched) return
     setSaving(true)
+    setError(null)
 
-    const res = await fetch('/api/onboarding/videos', {
-      method: 'POST',
-    })
+    try {
+      const res = await fetch('/api/onboarding/videos', {
+        method: 'POST',
+      })
 
-    if (!res.ok) {
+      if (!res.ok) {
+        setError('Could not save. Try again.')
+        setSaving(false)
+        return
+      }
+
+      router.push('/onboarding/profile')
+    } catch {
+      setError('Connection error. Try again.')
       setSaving(false)
-      return
     }
-
-    router.push('/onboarding/profile')
   }
 
   async function handleSkip() {
     if (saving) return
     setSaving(true)
+    setError(null)
 
-    const res = await fetch('/api/onboarding/videos', {
-      method: 'POST',
-    })
+    try {
+      const res = await fetch('/api/onboarding/videos', {
+        method: 'POST',
+      })
 
-    if (!res.ok) {
+      if (!res.ok) {
+        setError('Could not save. Try again.')
+        setSaving(false)
+        return
+      }
+
+      router.push('/onboarding/profile')
+    } catch {
+      setError('Connection error. Try again.')
       setSaving(false)
-      return
     }
-
-    router.push('/onboarding/profile')
   }
 
   return (
@@ -79,6 +94,10 @@ export default function ClarityVideosScreen({ initialWatchedIds = [] }: ClarityV
           />
         ))}
       </div>
+
+      {error && (
+        <p className="text-red-500 text-xs text-center mb-2">{error}</p>
+      )}
 
       <button
         onClick={handleContinue}

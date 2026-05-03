@@ -11,7 +11,6 @@ interface PillarCardProps {
   goals: DurationGoal[]
   todayEntry: PillarDailyEntry | null
   challengeId: string
-  userId: string
   entryDate: string
 }
 

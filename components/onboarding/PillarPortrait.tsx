@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { PILLAR_CONFIG, PILLAR_ORDER, LEVEL_NAMES, LEVEL_STATUS_PHRASES } from '@/lib/constants'
-import type { PillarLevel, LevelNumber } from '@/lib/types'
+import type { PillarLevel, LevelNumber, PillarName } from '@/lib/types'
 
 interface PillarPortraitProps {
   pillarLevels: PillarLevel[]
@@ -12,7 +12,7 @@ interface PillarPortraitProps {
 export default function PillarPortrait({ pillarLevels, onContinue }: PillarPortraitProps) {
   const levelMap = Object.fromEntries(
     pillarLevels.map((pl) => [pl.pillar, pl.level as LevelNumber])
-  ) as Record<string, LevelNumber>
+  ) as Partial<Record<PillarName, LevelNumber>>
 
   return (
     <div className="w-full max-w-lg mt-6">

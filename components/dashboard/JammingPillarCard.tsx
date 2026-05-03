@@ -23,7 +23,6 @@ interface JammingPillarCardProps {
   challengeStartDate: string
   userId: string
   entryDate: string
-  dayNumber: number
   pulseState: PulseState
 }
 
@@ -48,14 +47,17 @@ interface DotRowProps {
   dots: DayMark[]
   titleColor: string
   subtitleColor: string
+  startIndex: number
 }
 
-function DotRow({ dots, titleColor, subtitleColor }: DotRowProps) {
+function DotRow({ dots, titleColor, subtitleColor, startIndex }: DotRowProps) {
   return (
     <div className="flex gap-2">
       {dots.map((mark, i) => (
         <span
           key={i}
+          role="img"
+          aria-label={`Day ${startIndex + i + 1}: ${mark}`}
           className="w-5 h-5 rounded-full flex-shrink-0"
           style={
             mark === 'completed'
@@ -276,8 +278,8 @@ export default function JammingPillarCard({
                 </span>
               </div>
               <div className="space-y-1.5">
-                <DotRow dots={topRow} titleColor={config.title} subtitleColor={config.subtitle} />
-                <DotRow dots={bottomRow} titleColor={config.title} subtitleColor={config.subtitle} />
+                <DotRow dots={topRow} titleColor={config.title} subtitleColor={config.subtitle} startIndex={0} />
+                <DotRow dots={bottomRow} titleColor={config.title} subtitleColor={config.subtitle} startIndex={topRow.length} />
               </div>
             </div>
 

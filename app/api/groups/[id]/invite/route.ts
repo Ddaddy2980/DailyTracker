@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import type { ConsistencyGroup, GroupInvitation, InvitationType } from '@/lib/types'
+import type { ConsistencyGroup, GroupInvitation } from '@/lib/types'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -103,9 +103,8 @@ export async function POST(req: Request, { params }: RouteContext) {
   }
 
   const b = body as Record<string, unknown>
-  const type = b.type as string
-
-  if (type !== 'invitation' && type !== 'request') {
+  const type = b.type
+  if (typeof type !== 'string' || (type !== 'invitation' && type !== 'request')) {
     return NextResponse.json(
       { error: 'type must be invitation or request' },
       { status: 400 }
@@ -152,7 +151,7 @@ export async function POST(req: Request, { params }: RouteContext) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const toUsername = (b.toUsername as string | undefined)?.trim().toLowerCase()
+    const toUsername = (b.toUsername as string | undefined)?.trim()
     if (!toUsername) {
       return NextResponse.json({ error: 'toUsername is required' }, { status: 400 })
     }
@@ -161,7 +160,7 @@ export async function POST(req: Request, { params }: RouteContext) {
     const { data: targetProfile } = await supabase
       .from('user_profile')
       .select('user_id')
-      .eq('username', toUsername)
+      .ilike('username', toUsername)
       .maybeSingle<{ user_id: string }>()
 
     if (!targetProfile) {
@@ -217,7 +216,7 @@ export async function POST(req: Request, { params }: RouteContext) {
     .from('group_invitations')
     .insert({
       group_id:     groupId,
-      type:         type as InvitationType,
+      type,
       from_user_id: fromUserId,
       to_user_id:   toUserId,
       status:       'pending',
@@ -268,17 +267,22 @@ export async function DELETE(req: Request, { params }: RouteContext) {
   const supabase = createServerSupabaseClient()
 
   // Only the sender can cancel
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('group_invitations')
     .update({ status: 'declined' })
     .eq('id', invitationId)
     .eq('group_id', groupId)
     .eq('from_user_id', userId)
     .eq('status', 'pending')
+    .select('id')
 
   if (error) {
     console.error('groups/invite DELETE: failed to cancel invitation:', error)
     return NextResponse.json({ error: 'Database error' }, { status: 500 })
+  }
+
+  if (!data || data.length === 0) {
+    return NextResponse.json({ error: 'Invitation not found' }, { status: 404 })
   }
 
   return NextResponse.json({ ok: true })

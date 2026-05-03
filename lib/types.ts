@@ -256,7 +256,7 @@ export interface VideoProgress {
 // Tables: consistency_groups, group_members, group_daily_status
 // =============================================================================
 
-export type GroupStatus = 'active' | 'paused' | 'archived'
+export type GroupStatus = 'active'
 
 export interface ConsistencyGroup {
   id:          string
@@ -273,7 +273,7 @@ export interface GroupMember {
   id:           string
   group_id:     string
   user_id:      string      // Clerk user_id
-  display_name: string      // full name from Clerk, captured at join time
+  display_name: string      // username from user_profile, cascaded on username change
   joined_at:    string
   is_active:    boolean     // false = left or removed
 }

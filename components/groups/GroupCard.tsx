@@ -85,6 +85,12 @@ export default function GroupCard({
 
                   {/* Check-in circle */}
                   <div
+                    role="img"
+                    aria-label={
+                      member.completed_today
+                        ? `${member.display_name} checked in today`
+                        : `${member.display_name} has not checked in today`
+                    }
                     className={`w-5 h-5 rounded-full border-2 transition-colors ${
                       member.completed_today
                         ? 'bg-emerald-500 border-emerald-500'

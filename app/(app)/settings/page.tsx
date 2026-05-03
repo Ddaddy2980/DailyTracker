@@ -15,10 +15,8 @@ export default async function SettingsPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
-  const [clerkUser, supabase] = await Promise.all([
-    currentUser(),
-    Promise.resolve(createServerSupabaseClient()),
-  ])
+  const clerkUser = await currentUser()
+  const supabase  = createServerSupabaseClient()
 
   const { data: profile } = await supabase
     .from('user_profile')

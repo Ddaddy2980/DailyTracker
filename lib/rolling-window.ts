@@ -41,10 +41,8 @@ export function evaluateRollingWindow(
   pillar:   PillarName,
   today:    string,
 ): RollingWindowResult {
-  const threshold = ROLLING_WINDOW_THRESHOLDS[level]
-
   // Level 4 (Soloing) has no advancement threshold
-  if (!threshold) {
+  if (level === 4) {
     return {
       pillar,
       currentLevel:  level,
@@ -56,7 +54,7 @@ export function evaluateRollingWindow(
     }
   }
 
-  const { windowDays, required, nextLevel } = threshold
+  const { windowDays, required, nextLevel } = ROLLING_WINDOW_THRESHOLDS[level]
   const reference = today
   const windowStart = daysAgo(windowDays - 1, reference)
 

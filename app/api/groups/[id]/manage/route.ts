@@ -7,7 +7,7 @@ interface RouteContext {
   params: Promise<{ id: string }>
 }
 
-type ManageAction = 'rename' | 'toggle_invite' | 'toggle_public' | 'delete'
+type ManageAction = 'rename' | 'toggle_public' | 'delete'
 
 interface ManageBody {
   action: ManageAction
@@ -17,19 +17,18 @@ interface ManageBody {
 function isManageBody(v: unknown): v is ManageBody {
   if (typeof v !== 'object' || v === null) return false
   const b = v as Record<string, unknown>
-  if (!['rename', 'toggle_invite', 'toggle_public', 'delete'].includes(b.action as string)) return false
+  if (!['rename', 'toggle_public', 'delete'].includes(b.action as string)) return false
   if (b.action === 'rename' && typeof b.name !== 'string') return false
   return true
 }
 
 // ---------------------------------------------------------------------------
 // PATCH /api/groups/[id]/manage
-// Creator-only actions: rename, toggle_invite, delete.
+// Creator-only actions: rename, toggle_public, delete.
 //
-// rename       — updates the group name
-// toggle_invite — flips status between 'active' and 'paused'
-//                 (paused = invite link disabled; existing members unaffected)
-// delete       — hard deletes the group (CASCADE removes members + status rows)
+// rename        — updates the group name
+// toggle_public — flips is_public (discoverable vs invite-only)
+// delete        — hard deletes the group (CASCADE removes members + status rows)
 // ---------------------------------------------------------------------------
 export async function PATCH(req: Request, { params }: RouteContext) {
   const { userId } = await auth()
@@ -48,7 +47,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
 
   if (!isManageBody(body)) {
     return NextResponse.json(
-      { error: 'action must be rename | toggle_invite | delete' },
+      { error: 'action must be rename | toggle_public | delete' },
       { status: 400 }
     )
   }
@@ -101,23 +100,6 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     }
 
     return NextResponse.json({ success: true })
-  }
-
-  if (body.action === 'toggle_invite') {
-    // 'active' → 'paused' (invite disabled), 'paused' → 'active' (invite re-enabled)
-    const newStatus = group.status === 'active' ? 'paused' : 'active'
-
-    const { error: toggleError } = await supabase
-      .from('consistency_groups')
-      .update({ status: newStatus })
-      .eq('id', groupId)
-
-    if (toggleError) {
-      console.error('groups/manage toggle_invite: failed:', toggleError)
-      return NextResponse.json({ error: 'Database error' }, { status: 500 })
-    }
-
-    return NextResponse.json({ success: true, status: newStatus })
   }
 
   if (body.action === 'toggle_public') {

@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
+import { USERNAME_REGEX } from '@/lib/constants'
 import type { UserProfile } from '@/lib/types'
-
-// Validation: 3–20 chars, alphanumeric + underscore only
-const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/
 
 // ---------------------------------------------------------------------------
 // GET /api/onboarding/username?username=<value>
@@ -88,6 +86,9 @@ export async function POST(req: Request) {
     .returns<UserProfile>()
 
   if (error) {
+    if ((error as { code?: string }).code === '23505') {
+      return NextResponse.json({ error: 'Username is already taken' }, { status: 409 })
+    }
     console.error('onboarding/username POST: failed to save username:', error)
     return NextResponse.json({ error: 'Database error' }, { status: 500 })
   }
