@@ -3,3 +3,4 @@ node_modules/
 CLAUDE.local.md
 .next/
 .DS_Store
+tsconfig.tsbuildinfo
