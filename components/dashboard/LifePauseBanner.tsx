@@ -80,7 +80,7 @@ export default function LifePauseBanner() {
           </button>
 
           <Link
-            href="/goals#challenge-tools"
+            href="/settings#challenge-tools"
             className="block w-full py-2 rounded-xl bg-white border border-amber-200 text-amber-700 text-xs font-semibold text-center hover:bg-amber-50 transition-colors"
           >
             Schedule a Future Pause →

@@ -2,10 +2,11 @@ import { redirect } from 'next/navigation'
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { cookies } from 'next/headers'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { getEffectiveChallengeDay, todayInTz } from '@/lib/constants'
+import { getEffectiveChallengeDay, todayInTz, MAX_PAUSE_DAYS } from '@/lib/constants'
 import type { UserProfile, Challenge } from '@/lib/types'
 import AccountSection from '@/components/settings/AccountSection'
 import ChallengeSection from '@/components/settings/ChallengeSection'
+import ChallengePauseTools from '@/components/goals/ChallengePauseTools'
 import ProfileSection from '@/components/settings/ProfileSection'
 
 export const dynamic = 'force-dynamic'
@@ -30,10 +31,10 @@ export default async function SettingsPage() {
   const { data: challenge } = profile.active_challenge_id
     ? await supabase
         .from('challenges')
-        .select('id, duration_days, start_date, is_paused, paused_at, pause_days_used')
+        .select('id, duration_days, start_date, is_paused, paused_at, pause_days_used, scheduled_pause_date, scheduled_pause_reason')
         .eq('id', profile.active_challenge_id)
         .eq('user_id', userId)
-        .single<Pick<Challenge, 'id' | 'duration_days' | 'start_date' | 'is_paused' | 'paused_at' | 'pause_days_used'>>()
+        .single<Pick<Challenge, 'id' | 'duration_days' | 'start_date' | 'is_paused' | 'paused_at' | 'pause_days_used' | 'scheduled_pause_date' | 'scheduled_pause_reason'>>()
     : { data: null }
 
   const username = profile?.username ?? ''
@@ -52,11 +53,20 @@ export default async function SettingsPage() {
       <AccountSection username={username} email={email} />
 
       {challenge && (
-        <ChallengeSection
-          currentDuration={challenge.duration_days}
-          currentDay={effectiveDay}
-          isPaused={challenge.is_paused ?? false}
-        />
+        <>
+          <ChallengeSection
+            currentDuration={challenge.duration_days}
+            currentDay={effectiveDay}
+            isPaused={challenge.is_paused ?? false}
+          />
+          <ChallengePauseTools
+            isPaused={challenge.is_paused ?? false}
+            pauseDaysUsed={challenge.pause_days_used}
+            scheduledPauseDate={challenge.scheduled_pause_date}
+            scheduledPauseReason={challenge.scheduled_pause_reason}
+            maxPauseDays={MAX_PAUSE_DAYS}
+          />
+        </>
       )}
 
       <ProfileSection />
