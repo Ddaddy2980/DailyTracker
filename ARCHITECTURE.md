@@ -305,7 +305,7 @@ On every pillar save in `/api/checkin/`, if user belongs to any groups, upsert `
 
 - [x] Step 15 — Clarity video screen: `video_progress` table migration (Option A — new table, reusable for Step 16); `PUT /api/onboarding/videos` marks individual videos watched; `ClarityVideoCard` redesigned as 3D gray push button with "Press to Play Video" / "Rewatch Video" label and checkmark on completion; `ClarityVideosScreen` gates "Continue" button until all 3 videos clicked; page restores watch state from DB on revisit; populate `url` in `CLARITY_VIDEOS` constant when recordings are ready
 - [x] Step 16 — Per-level coaching video cards: `pulse_state` + `pulse_updated_at` added to `challenges` (migration 20260410000004); `computePulseState()` in `lib/pulse.ts`; `/api/checkin` updates pulse state non-blockingly after every today save; `VIDEO_LIBRARY` (all A/B/C/D/J/G series) + `selectTuningVideo/selectJammingVideo/selectGroovingVideo` helpers in `lib/constants.ts`; `VideoModal` shared component (slides up from bottom, marks watched on open); Video button on `TuningPillarCard`, `JammingPillarCard`, `GroovingPillarCard` (play icon → checkmark after watched, stops header expand propagation); Tuning: pillar intro on Day 1, stall→C4 after 3 missed days, D-series otherwise (shared across all Tuning pillars); Jamming/Grooving: pulse-driven video selection; Soloing: no video button; `/api/videos/watched` PUT route; `VideoLibrary` component with section groupings and watched checkboxes; `/videos` page fully built
-- [x] Step 16b — Life Pause feature: `20260410000005_challenge_pause.sql` (6 new columns on `challenges`); `getEffectiveChallengeDay()` in `lib/constants.ts`; `Challenge` interface updated; `/api/challenges/pause` (POST immediate/scheduled, DELETE cancel); `/api/challenges/resume` (POST, accumulates pause_days_used); `/api/checkin` 403 guard when paused; `dashboard/page.tsx` auto-activates scheduled pauses on load + uses effective day; `PausedDashboard` component (freeze view + Resume button); `LifePauseBanner` (taking_on_water trigger, dismissible, one-tap pause or schedule link); `DashboardHeader` gets isPaused prop (amber badge + bar); `DashboardShell` renders paused/banner states; `ChallengePauseTools` component on Goals page (immediate pause form, scheduled pause form, cancel, resume)
+- [x] Step 16b — Life Pause feature: `20260410000005_challenge_pause.sql` (6 new columns on `challenges`); `getEffectiveChallengeDay()` in `lib/constants.ts`; `Challenge` interface updated; `/api/challenges/pause` (POST immediate/scheduled, DELETE cancel); `/api/challenges/resume` (POST, accumulates pause_days_used); `/api/checkin` 403 guard when paused; `dashboard/page.tsx` auto-activates scheduled pauses on load + uses effective day; `PausedDashboard` component (freeze view + Resume button); `LifePauseBanner` (taking_on_water trigger, dismissible, one-tap pause or schedule link); `DashboardHeader` gets isPaused prop (amber badge + bar); `DashboardShell` renders paused/banner states; `ChallengePauseTools` component originally on Goals page (immediate pause form, scheduled pause form, cancel, resume) — **relocated to Settings page in May 2026** (see "Post-Code-Review Round 2" section below)
 
 #### Life Pause Architecture Notes
 
@@ -773,6 +773,52 @@ Full audit (`CODE_REVIEW.md` → `CODE_REVIEW_FINDINGS.md`, 45 findings). Three 
 
 ---
 
+### Post-Code-Review Round 2 — Tier 1 (timezone hardening + pause UI restoration)
+
+A second code-review pass (`CODE_REVIEW_FINDINGS2.md`, 76 findings) produced `CODE_REVIEW_PLAN2.md`, a three-tier remediation. **Tier 1 (timezone) shipped 2026-05-02** as commits `741abff` (Tier 1 timezone) and `b4ecb09` (pause UI restoration). Tier 2 and Tier 3 remain.
+
+#### Why Tier 1 was needed
+The Round 1 timezone fix added `todayInTz(tz)` and converted some call sites, but several server-side date paths were missed and the `paused_at` / `completed_at` columns were still written via `new Date().toISOString()` (UTC instant). After 7 PM CDT the user's local date and the UTC date disagreed, producing wrong day counters and skipped advancement evaluations.
+
+#### Tier 1.1 — Required date params on 6 functions
+The optional `today?` defaults on these were silently swallowing the bug. Made them required so the compiler enforces an explicit reference date at every call site:
+- `evaluateRollingWindow`, `evaluateAllPillars`, `getWindowEntries` (`lib/rolling-window.ts`)
+- `getDayNumber`, `rollingWindowDates`, `getEffectiveChallengeDay` (`lib/constants.ts`)
+- Internal `daysAgo` helper retains its optional default (always called with explicit reference; default is dead code).
+
+#### Tier 1.2 — All call sites converted
+19 call sites fixed: 8 TypeScript compile errors surfaced by 1.1 plus 11 direct `todayStr()` / banned `Intl.DateTimeFormat` usages. Server components now read the `tz` cookie via `cookies()` from `'next/headers'`; API routes read it via `NextRequest.cookies`. **`todayStr()` is banned in server-side code.** Client components correctly retain `todayStr()` (the browser's timezone IS the user's timezone). Two retired files (`app/api/groups/join/route.ts`, `app/join/[inviteCode]/page.tsx`) intentionally skipped — they get deleted in Tier 2 Step 2.2.
+
+#### Tier 1.3 — `paused_at` / `completed_at` write-time anchor
+Anchored both columns to `` `${today}T12:00:00.000Z` `` at all 4 write sites:
+- `app/api/challenges/pause/route.ts:87` (immediate pause)
+- `app/(app)/dashboard/page.tsx:94` (auto-activate scheduled pause)
+- `app/api/challenges/complete/route.ts` (POST complete) — also gained `NextRequest` + tz cookie plumbing
+- `app/(app)/dashboard/page.tsx:124` (auto-mark complete on natural overrun)
+
+**Why noon UTC works:** `.slice(0, 10)` always extracts the UTC date portion of the stored ISO string. Storing `${user_local_date}T12:00:00.000Z` means the read-back is timezone-independent — `.slice(0, 10)` returns the same date the user was on when they wrote it, regardless of which runtime reads it later. Existing rows written before Tier 1 may carry the wrong date; manual SQL correction acceptable.
+
+#### Pause UI restoration (companion fix, commit `b4ecb09`)
+While reviewing the pause path, discovered `ChallengePauseTools` was **orphaned**: the file existed in `components/goals/` but was no longer imported anywhere after a prior cleanup pass had silently removed it from the Goals page. Most users would never see any pause UI — the only working entry point was the reactive `LifePauseBanner` (only shown when pulse is `taking_on_water`), and even its "Schedule a Future Pause" link pointed to a dead anchor.
+
+Re-wired `ChallengePauseTools` into the Settings page (where users naturally look for it) between the Challenge and Consistency Profile sections. Settings page query expanded to fetch `scheduled_pause_date` and `scheduled_pause_reason`. `LifePauseBanner` deep link updated from `/goals#challenge-tools` to `/settings#challenge-tools`. The `id="challenge-tools"` anchor on the component was already correct. File path of the component stays at `components/goals/ChallengePauseTools.tsx` — same precedent as `ChallengeDurationEditor`.
+
+#### Architectural rules established by Tier 1
+- **`todayStr()` is client-only.** Any server component or API route using it is a bug.
+- **Server components read `tz` via `cookies().get('tz')?.value`** from `'next/headers'`.
+- **API routes read `tz` via `request.cookies.get('tz')?.value`** — and must accept `NextRequest` (not bare `Request`) for this to type-check.
+- **Date-anchored columns (`paused_at`, `completed_at`) must be written as `` `${today}T12:00:00.000Z` ``** — never `new Date().toISOString()`. Pure timestamp columns (`watched_at`, `joined_at`, expiry comparisons) keep `new Date().toISOString()`.
+- **`new Date().toISOString().slice(0, 10)` is banned** — it always returns UTC.
+
+#### Verification (pending user smoke tests in production)
+Code is committed to local `main` and pushed by user. After Vercel deploys:
+- Pause a challenge after 7 PM local → `challenges.paused_at` should show `<your_local_date>T12:00:00.000Z`
+- Hit a natural completion after 7 PM local → `completed_at` should show `<your_local_date>T12:00:00.000Z`
+- Check in a pillar after 7 PM → `pillar_daily_entries.entry_date` is your local date
+- Open Settings → confirm Challenge Tools section appears between Challenge and Consistency Profile
+
+---
+
 ### Future Additions
 
 #### Destination Goal Types (Unscheduled)
@@ -794,4 +840,4 @@ Integration with Apple Health for automatic Physical and Nutritional pillar data
 
 ---
 
-*This file was last updated: April 2026 — Code review & remediation complete (Tiers 1–4). Timezone fix complete. v3 live on main. Ten Supabase migrations confirmed run. Username lowercase constraint dropped post-Phase 9; replaced with case-insensitive index. All video URLs pending recordings.*
+*This file was last updated: 2026-05-02 — Round 2 code review remediation in progress (CODE_REVIEW_PLAN2.md). Tier 1 timezone hardening shipped (commits 741abff + b4ecb09); production smoke verification pending. Tier 2 (security, broken features, TS strictness, a11y) and Tier 3 (DRY, performance) remain. Pause UI restored to Settings page after orphaned-component regression discovered. Ten Supabase migrations confirmed run. Username lowercase constraint dropped post-Phase 9; replaced with case-insensitive index. All video URLs pending recordings.*

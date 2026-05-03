@@ -8,8 +8,23 @@ Read this file at the start of every session along with PRODUCT.md and CLAUDE.lo
 2. Read CLAUDE.local.md — review deferred items and personal working notes
 3. Read CODING_DISCIPLINE.md — working principles for code quality and execution discipline
 4. Read this file — understand how to work in this codebase
-5. Ask David: "What are we building today?" — then confirm which Phase/Step from ARCHITECTURE.md it maps to
-6. Build only that one thing. Do not anticipate or add adjacent features unless asked.
+5. **If active code-review remediation work is in progress** (CLAUDE.local.md will say so), read CODE_REVIEW_PLAN2.md and resume from the first unchecked `[ ]` item in the current tier — do NOT start new feature work until the active tier ships
+6. Otherwise, ask David: "What are we building today?" — then confirm which Phase/Step from ARCHITECTURE.md it maps to
+7. Build only that one thing. Do not anticipate or add adjacent features unless asked.
+
+---
+
+## Active Remediation: CODE_REVIEW_PLAN2.md
+
+A multi-tier code-review remediation plan is in progress. The plan lives in `CODE_REVIEW_PLAN2.md` at the project root. It addresses 76 findings from `CODE_REVIEW_FINDINGS2.md`.
+
+- **Build tiers strictly in order: Tier 1 → Tier 2 → Tier 3.** Do not start Tier 2 work while Tier 1 has open steps.
+- Within a tier, steps may run in any order, but each step must complete (compile, smoke-test, commit) before moving on.
+- Mark each step `[x]` in `CODE_REVIEW_PLAN2.md` as it completes. Update at the end of every session.
+- Each tier ends with: `npx tsc --noEmit` zero errors + manual smoke test of touched flows + commit to `main`.
+- If a finding from `CODE_REVIEW_FINDINGS2.md` is NOT in the plan, do not silently add it — surface it for discussion.
+
+When the remediation is complete, update `CLAUDE.local.md` to mark it done and remove this section's "active" status.
 
 ---
 
