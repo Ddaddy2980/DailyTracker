@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { PILLAR_CONFIG, LEVEL_NAMES } from '@/lib/constants'
 import type { PillarLevel, DurationGoal, PillarDailyEntry, GoalCompletions } from '@/lib/types'
+import { usePillarSave } from '@/hooks/usePillarSave'
+import ChevronIcon from '@/components/ui/ChevronIcon'
 
 interface PillarCardProps {
   pillarLevel: PillarLevel
@@ -28,46 +29,15 @@ export default function PillarCard({
   const [completions, setCompletions] = useState<GoalCompletions>(() => {
     return todayEntry?.goal_completions ?? {}
   })
-  const router = useRouter()
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
+  const { saving, saved, saveError, handleSave } = usePillarSave(
+    pillar, challengeId, entryDate, () => setIsOpen(false),
+  )
 
   const isCompletedToday =
     goals.length > 0 && goals.every((g) => completions[g.id] === true)
 
   function toggleGoal(goalId: string) {
     setCompletions((prev) => ({ ...prev, [goalId]: !prev[goalId] }))
-  }
-
-  async function handleSave() {
-    setSaving(true)
-    setSaveError(null)
-    try {
-      const res = await fetch('/api/checkin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pillar,
-          challengeId,
-          goalCompletions: completions,
-          entry_date: entryDate,
-        }),
-      })
-      if (!res.ok) {
-        const errData = (await res.json().catch(() => ({}))) as { error?: string }
-        setSaveError(errData.error ?? 'Save failed. Please try again.')
-        return
-      }
-      setSaved(true)
-      setIsOpen(false)
-      router.refresh()
-      setTimeout(() => setSaved(false), 2000)
-    } catch {
-      setSaveError('Could not reach the server. Please try again.')
-    } finally {
-      setSaving(false)
-    }
   }
 
   const saveLabel = saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'
@@ -103,18 +73,7 @@ export default function PillarCard({
           {isCompletedToday && (
             <span className="text-emerald-400 text-lg leading-none">✓</span>
           )}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="white"
-            className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-          >
-            <path
-              fillRule="evenodd"
-              d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06z"
-              clipRule="evenodd"
-            />
-          </svg>
+          <ChevronIcon className={`w-5 h-5 text-white transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
         </div>
       </button>
 
@@ -154,7 +113,7 @@ export default function PillarCard({
 
             <button
               type="button"
-              onClick={handleSave}
+              onClick={() => handleSave(completions)}
               disabled={saving}
               className="w-full py-2 rounded-lg text-sm font-semibold text-white transition-opacity disabled:opacity-70"
               style={{ backgroundColor: config.saveButton }}

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CLARITY_VIDEOS } from '@/lib/constants'
 import ClarityVideoCard from '@/components/onboarding/ClarityVideoCard'
+import Spinner from '@/components/ui/Spinner'
 
 interface ClarityVideosScreenProps {
   // Pre-loaded watched video IDs from the DB (restored on revisit)
@@ -111,10 +112,7 @@ export default function ClarityVideosScreen({ initialWatchedIds = [] }: ClarityV
       >
         {saving ? (
           <span className="flex items-center justify-center gap-2">
-            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-            </svg>
+            <Spinner className="h-4 w-4" />
             Continuing…
           </span>
         ) : allWatched ? (

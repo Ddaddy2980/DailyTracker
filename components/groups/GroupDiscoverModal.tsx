@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import type { DiscoverResult } from '@/app/api/groups/discover/route'
-
-type RequestState = 'idle' | 'sending' | 'sent'
+import GroupResultRow, { type RequestState } from './GroupResultRow'
 
 interface GroupDiscoverModalProps {
   onClose:   () => void
@@ -33,12 +32,13 @@ export default function GroupDiscoverModal({ onClose, onRequest }: GroupDiscover
     if (val.trim().length === 0 || (val.trim() === '@')) {
       setResults([])
       setSearched(false)
+      setSearching(false)
       return
     }
 
     // Need at least 1 char after @ or 1 char for name search
     const effective = val.trim().startsWith('@') ? val.trim().slice(1) : val.trim()
-    if (effective.length === 0) { setResults([]); setSearched(false); return }
+    if (effective.length === 0) { setResults([]); setSearched(false); setSearching(false); return }
 
     setSearching(true)
     debounceRef.current = setTimeout(() => search(val.trim()), 400)
@@ -84,14 +84,18 @@ export default function GroupDiscoverModal({ onClose, onRequest }: GroupDiscover
   }
 
   // For @username search, group results by owner
-  const groupedByOwner = isUsernameSearch
-    ? results.reduce<Record<string, DiscoverResult[]>>((acc, r) => {
-        const key = r.owner_username
-        if (!acc[key]) acc[key] = []
-        acc[key].push(r)
-        return acc
-      }, {})
-    : null
+  const groupedByOwner = useMemo(
+    () =>
+      isUsernameSearch
+        ? results.reduce<Record<string, DiscoverResult[]>>((acc, r) => {
+            const key = r.owner_username
+            if (!acc[key]) acc[key] = []
+            acc[key].push(r)
+            return acc
+          }, {})
+        : null,
+    [results, isUsernameSearch],
+  )
 
   const noResults = !searching && searched && results.length === 0
   const queryDisplay = query.trim()
@@ -187,41 +191,3 @@ export default function GroupDiscoverModal({ onClose, onRequest }: GroupDiscover
   )
 }
 
-// ── Shared result row ──────────────────────────────────────────────────────
-
-interface GroupResultRowProps {
-  group:     DiscoverResult
-  showOwner: boolean
-  state:     RequestState
-  onRequest: (groupId: string) => void
-}
-
-function GroupResultRow({ group, showOwner, state, onRequest }: GroupResultRowProps) {
-  return (
-    <div className="flex items-center justify-between bg-[#2A3347] rounded-xl px-4 py-3">
-      <div className="min-w-0 flex-1 mr-3">
-        <p className="text-white text-sm font-medium truncate">{group.name}</p>
-        <p className="text-slate-400 text-xs mt-0.5">
-          {group.member_count} {group.member_count === 1 ? 'member' : 'members'}
-          {showOwner && (
-            <span className="text-slate-500"> · @{group.owner_username}</span>
-          )}
-        </p>
-      </div>
-      <button
-        onClick={() => onRequest(group.id)}
-        disabled={state !== 'idle'}
-        className={[
-          'shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-          state === 'sent'
-            ? 'bg-emerald-700 text-emerald-200 cursor-default'
-            : state === 'sending'
-            ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-            : 'bg-purple-600 hover:bg-purple-700 text-white',
-        ].join(' ')}
-      >
-        {state === 'sent' ? 'Requested' : state === 'sending' ? '…' : 'Request'}
-      </button>
-    </div>
-  )
-}

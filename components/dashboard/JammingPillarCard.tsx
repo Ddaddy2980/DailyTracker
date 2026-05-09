@@ -1,18 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { PILLAR_CONFIG, LEVEL_NAMES, rollingWindowDates, selectJammingVideo } from '@/lib/constants'
-import type { PillarLevel, DurationGoal, PillarDailyEntry, GoalCompletions, DayMark, LevelNumber, PulseState } from '@/lib/types'
+import type { PillarLevel, DurationGoal, PillarDailyEntry, GoalCompletions, DayMark, PulseState } from '@/lib/types'
 import VideoModal from '@/components/shared/VideoModal'
-
-interface CheckinApiResponse {
-  success: boolean
-  completed: boolean
-  advanced: boolean
-  newLevel: LevelNumber | null
-}
+import { usePillarSave } from '@/hooks/usePillarSave'
+import ChevronIcon from '@/components/ui/ChevronIcon'
+import PlayIcon from '@/components/ui/PlayIcon'
 
 interface JammingPillarCardProps {
   pillarLevel: PillarLevel
@@ -27,7 +22,7 @@ interface JammingPillarCardProps {
 }
 
 function buildDots(
-  windowEntries: PillarDailyEntry[],
+  entryByDate: Map<string, PillarDailyEntry>,
   challengeStartDate: string,
   isCompletedToday: boolean,
   entryDate: string,
@@ -38,7 +33,7 @@ function buildDots(
   return dates.map((date) => {
     if (date < challengeStartDate) return 'future'
     if (date === lastDate && isCompletedToday) return 'completed'
-    const entry = windowEntries.find((e) => e.entry_date === date)
+    const entry = entryByDate.get(date)
     return entry?.completed === true ? 'completed' : 'missed'
   })
 }
@@ -84,25 +79,27 @@ export default function JammingPillarCard({
 }: JammingPillarCardProps) {
   const { pillar, level } = pillarLevel
   const config = PILLAR_CONFIG[pillar]
-  const router = useRouter()
 
   const [isOpen, setIsOpen] = useState(false)
   const [completions, setCompletions] = useState<GoalCompletions>(() => {
     return todayEntry?.goal_completions ?? {}
   })
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [advancedToLevel, setAdvancedToLevel] = useState<LevelNumber | null>(null)
+  const { saving, saved, saveError, advancedToLevel, handleSave } = usePillarSave(
+    pillar, challengeId, entryDate, () => setIsOpen(false),
+  )
   const [showVideo, setShowVideo] = useState(false)
   const [videoWatched, setVideoWatched] = useState(false)
+
+  // Pre-index window entries for O(1) date lookups
+  const entryByDate = new Map<string, PillarDailyEntry>()
+  for (const e of windowEntries) entryByDate.set(e.entry_date, e)
 
   const video = selectJammingVideo(pulseState)
 
   const isCompletedToday =
     goals.length > 0 && goals.every((g) => completions[g.id] === true)
 
-  const dots = buildDots(windowEntries, challengeStartDate, isCompletedToday, entryDate)
+  const dots = buildDots(entryByDate, challengeStartDate, isCompletedToday, entryDate)
   const topRow = dots.slice(0, 7)
   const bottomRow = dots.slice(7, 14)
   const completedInWindow = dots.filter((d) => d === 'completed').length
@@ -110,42 +107,6 @@ export default function JammingPillarCard({
 
   function toggleGoal(goalId: string) {
     setCompletions((prev) => ({ ...prev, [goalId]: !prev[goalId] }))
-  }
-
-  async function handleSave() {
-    setSaving(true)
-    setSaveError(null)
-    try {
-      const res = await fetch('/api/checkin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pillar,
-          challengeId,
-          goalCompletions: completions,
-          entry_date: entryDate,
-        }),
-      })
-      if (!res.ok) {
-        const errData = (await res.json().catch(() => ({}))) as { error?: string }
-        setSaveError(errData.error ?? 'Save failed. Please try again.')
-        return
-      }
-      const data = (await res.json()) as CheckinApiResponse
-      if (data.advanced && data.newLevel) {
-        setAdvancedToLevel(data.newLevel)
-        setTimeout(() => router.refresh(), 2500)
-      } else {
-        setSaved(true)
-        setIsOpen(false)
-        router.refresh()
-        setTimeout(() => setSaved(false), 2000)
-      }
-    } catch {
-      setSaveError('Could not reach the server. Please try again.')
-    } finally {
-      setSaving(false)
-    }
   }
 
   const saveLabel = saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'
@@ -197,26 +158,13 @@ export default function JammingPillarCard({
             {videoWatched ? (
               <span className="text-emerald-300 text-sm leading-none">✓</span>
             ) : (
-              <svg className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
+              <PlayIcon className="w-3.5 h-3.5 text-white ml-0.5" />
             )}
           </button>
           {isCompletedToday && (
             <span className="text-emerald-400 text-lg leading-none">✓</span>
           )}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="white"
-            className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-          >
-            <path
-              fillRule="evenodd"
-              d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06z"
-              clipRule="evenodd"
-            />
-          </svg>
+          <ChevronIcon className={`w-5 h-5 text-white transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
         </div>
       </button>
 
@@ -285,7 +233,7 @@ export default function JammingPillarCard({
 
             <button
               type="button"
-              onClick={handleSave}
+              onClick={() => handleSave(completions)}
               disabled={saving}
               className="w-full py-2 rounded-lg text-sm font-semibold text-white transition-opacity disabled:opacity-70"
               style={{ backgroundColor: config.saveButton }}

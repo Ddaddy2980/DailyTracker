@@ -5,17 +5,6 @@ import { useRouter } from 'next/navigation'
 import { todayStr } from '@/lib/constants'
 import type { DurationGoal, PillarDailyEntry } from '@/lib/types'
 
-function getAllPct(date: string, entries: PillarDailyEntry[], goals: DurationGoal[]): number | null {
-  const dateEntries = entries.filter((e) => e.entry_date === date)
-  if (dateEntries.length === 0) return null
-  if (goals.length === 0) return null
-  const completed = goals.filter((g) => {
-    const entry = dateEntries.find((e) => e.pillar === g.pillar)
-    return entry?.goal_completions?.[g.id] === true
-  }).length
-  return Math.round((completed / goals.length) * 100)
-}
-
 interface Props {
   challengeStartDate: string
   allEntries: PillarDailyEntry[]
@@ -36,6 +25,25 @@ export default function HistoryMonthGrid({ challengeStartDate, allEntries, activ
   const [year, setYear] = useState(todayDate.getFullYear())
   const [month, setMonth] = useState(todayDate.getMonth()) // 0-indexed
   const router = useRouter()
+
+  // Pre-index entries for O(1) cell lookups
+  const entryIndex = new Map<string, PillarDailyEntry>()
+  const datesWithEntries = new Set<string>()
+  for (const e of allEntries) {
+    entryIndex.set(`${e.pillar}|${e.entry_date}`, e)
+    datesWithEntries.add(e.entry_date)
+  }
+
+  function getAllPct(date: string): number | null {
+    if (!datesWithEntries.has(date)) return null
+    if (activeGoals.length === 0) return null
+    let completed = 0
+    for (const g of activeGoals) {
+      const entry = entryIndex.get(`${g.pillar}|${date}`)
+      if (entry?.goal_completions?.[g.id] === true) completed++
+    }
+    return Math.round((completed / activeGoals.length) * 100)
+  }
 
   const canGoPrev =
     year > challengeDate.getFullYear() ||
@@ -119,7 +127,7 @@ export default function HistoryMonthGrid({ challengeStartDate, allEntries, activ
           const isBeforeChallenge = date < challengeStartDate
           const isValid = !isFuture && !isBeforeChallenge
           const isToday = date === today
-          const rawPct = isValid ? getAllPct(date, allEntries, activeGoals) : null
+          const rawPct = isValid ? getAllPct(date) : null
           // Past missed days count as 0% (red); today with no entry stays neutral
           const pct = rawPct !== null ? rawPct : (isValid && !isToday ? 0 : null)
 

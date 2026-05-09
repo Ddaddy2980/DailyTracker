@@ -169,11 +169,11 @@ API route fixes:
 
 ### Step 2.9 — Verify and ship Tier 2
 
-- [ ] `npx tsc --noEmit` zero errors
-- [ ] Manual smoke test: invite a mixed-case username to a group → confirm invitation sends
-- [ ] Manual smoke test: try to create a 6th group → confirm 400 rejection
-- [ ] Manual smoke test: search groups with `%` in query → confirm no info disclosure
-- [ ] Commit + push to `main`
+- [x] `npx tsc --noEmit` zero errors
+- [x] Manual smoke test: invite a mixed-case username to a group → confirm invitation sends
+- [x] Manual smoke test: try to create a 6th group → confirm 400 rejection
+- [x] Manual smoke test: search groups with `%` in query → confirm no info disclosure
+- [x] Commit + push to `main`
 
 ---
 
@@ -183,52 +183,52 @@ API route fixes:
 
 ### Step 3.1 — Layer A: `CheckinApiResponse` to `lib/types.ts`
 
-- [ ] Define `CheckinApiResponse` interface in `lib/types.ts`
-- [ ] Remove duplicate definitions from `TuningPillarCard.tsx`, `JammingPillarCard.tsx`, `GroovingPillarCard.tsx`
-- [ ] Import from `@/lib/types` in all consumers
+- [x] Define `CheckinApiResponse` interface in `lib/types.ts`
+- [x] Remove duplicate definitions from `TuningPillarCard.tsx`, `JammingPillarCard.tsx`, `GroovingPillarCard.tsx`
+- [x] Import from `@/lib/types` in all consumers
 
 ### Step 3.2 — Layer B: Extract `ProgressRing` component
 
-- [ ] Create `components/dashboard/ProgressRing.tsx`
-- [ ] Props: `{ percentage: number, subtitleColor: string, strokeColor?: string }`
-- [ ] Replace local `ProgressRing` in `GroovingPillarCard.tsx` and `SoloingPillarCard.tsx` with import + usage
+- [x] Create `components/dashboard/ProgressRing.tsx`
+- [x] Props: `{ percentage: number, subtitleColor: string, strokeColor?: string }` (also kept `titleColor: string` — needed for percentage-label color at both call sites)
+- [x] Replace local `ProgressRing` in `GroovingPillarCard.tsx` and `SoloingPillarCard.tsx` with import + usage
 
 ### Step 3.3 — Layer C: Extract `usePillarSave` hook
 
-- [ ] Create `hooks/usePillarSave.ts`
-- [ ] Signature: `usePillarSave(pillar: PillarName, challengeId: string, entryDate: string)`
-- [ ] Returns: `{ saving, saved, saveError, advancedToLevel, handleSave: (completedGoals: GoalCompletions) => Promise<void> }`
-- [ ] Hook handles: fetch POST `/api/checkin`, `res.ok` guard, error state, advancement detection, `router.refresh()` after 2.5s toast
-- [ ] Replace `handleSave` in: `TuningPillarCard.tsx`, `JammingPillarCard.tsx`, `GroovingPillarCard.tsx`, `SoloingPillarCard.tsx`, `PillarCard.tsx`
+- [x] Create `hooks/usePillarSave.ts`
+- [x] Signature: `usePillarSave(pillar: PillarName, challengeId: string, entryDate: string, onSuccess?: () => void)` (added optional `onSuccess` callback fired on non-advancement success — cards pass `() => setIsOpen(false)`)
+- [x] Returns: `{ saving, saved, saveError, advancedToLevel, handleSave: (completedGoals: GoalCompletions) => Promise<void> }`
+- [x] Hook handles: fetch POST `/api/checkin`, `res.ok` guard, error state, advancement detection, `router.refresh()` after 2.5s toast
+- [x] Replace `handleSave` in: `TuningPillarCard.tsx`, `JammingPillarCard.tsx`, `GroovingPillarCard.tsx`, `SoloingPillarCard.tsx`, `PillarCard.tsx`
 
 ### Step 3.4 — Layer D: Extract reusable UI primitives
 
-- [ ] Create `components/ui/ChevronIcon.tsx` (props: `direction: 'up' | 'down'`)
-- [ ] Create `components/ui/PlayIcon.tsx`
-- [ ] Create `components/ui/Spinner.tsx`
-- [ ] Replace inline SVGs in: all 5 pillar cards, `CompletionScreen.tsx`, `ClarityVideosScreen.tsx`, `DurationPicker.tsx`, `OnboardingGoalsClient.tsx`, `ProfileFlow.tsx`, `UsernameSetupScreen.tsx`, `AccountSection.tsx`, `GroupInvitePanel.tsx`
+- [x] Create `components/ui/ChevronIcon.tsx` (props: `className?` — direction encoded by caller via `rotate-180` toggle, matching existing pattern; the plan's `direction: 'up' | 'down'` was rejected as it would force callers to translate `isOpen` → string)
+- [x] Create `components/ui/PlayIcon.tsx`
+- [x] Create `components/ui/Spinner.tsx`
+- [x] Replace inline SVGs in: all 5 pillar cards, `CompletionScreen.tsx`, `ClarityVideosScreen.tsx`, `DurationPicker.tsx`, `OnboardingGoalsClient.tsx`, `ProfileFlow.tsx`, `UsernameSetupScreen.tsx`, `AccountSection.tsx`, `GroupInvitePanel.tsx`
 
 ### Step 3.5 — Split 7 oversized files
 
-- [ ] `components/completion/CompletionScreen.tsx` (272 lines) → extract `PillarStatRow.tsx`, `RestartFlow.tsx`
-- [ ] `components/goals/ChallengePauseTools.tsx` (252) → extract `ImmediatePauseCard.tsx`, `ScheduledPauseCard.tsx`, `ActivePauseCard.tsx`
-- [ ] `components/history/HistoryProgressReport.tsx` (248) → extract `ProgressChart.tsx`, `PillarSummaryCard.tsx`
-- [ ] `components/goals/GoalEditorCard.tsx` (241) → extract `GoalList.tsx`
-- [ ] `components/groups/GroupManageSheet.tsx` (236) → extract `RenameGroupForm.tsx`, `DeleteGroupConfirm.tsx`
-- [ ] `components/history/HistoryWeekGrid.tsx` (232) → move helper functions to `lib/historyUtils.ts`
-- [ ] `components/groups/GroupDiscoverModal.tsx` (223) → extract `GroupResultRow.tsx`
+- [x] `components/completion/CompletionScreen.tsx` (272 lines) → extract `PillarStatRow.tsx`, `RestartFlow.tsx`
+- [x] `components/goals/ChallengePauseTools.tsx` (252) → extract `ImmediatePauseCard.tsx`, `ScheduledPauseCard.tsx`, `ActivePauseCard.tsx`
+- [x] `components/history/HistoryProgressReport.tsx` (248) → extract `ProgressChart.tsx`, `PillarSummaryCard.tsx`
+- [x] `components/goals/GoalEditorCard.tsx` (241) → extract `GoalList.tsx`
+- [x] `components/groups/GroupManageSheet.tsx` (236) → extract `RenameGroupForm.tsx`, `DeleteGroupConfirm.tsx`
+- [x] `components/history/HistoryWeekGrid.tsx` (232) → move helper functions to `lib/historyUtils.ts`
+- [x] `components/groups/GroupDiscoverModal.tsx` (223) → extract `GroupResultRow.tsx`
 
 ### Step 3.6 — Performance Map indexing
 
-- [ ] `components/history/HistoryWeekGrid.tsx`: pre-index entries by `"pillar|date"` key, goals by `PillarName` → O(1) cell lookups
-- [ ] `components/history/HistoryMonthGrid.tsx`: same pattern
-- [ ] `components/dashboard/TuningPillarCard.tsx`: convert `windowEntries` to `Map<string, PillarDailyEntry>` before dot render loop
-- [ ] `components/dashboard/JammingPillarCard.tsx`: same
-- [ ] `components/dashboard/DashboardShell.tsx:96-155`: wrap per-pillar `windowEntries.filter()`, `durationGoals.filter()`, `destinationGoals.filter()` in `useMemo` Maps keyed by pillar
-- [ ] `components/groups/GroupCard.tsx:25-29`: wrap `[...group.members].sort(...)` in `useMemo([group.members, currentUserId])`
-- [ ] `components/groups/GroupDiscoverModal.tsx:82-89`: wrap `groupedByOwner` reduce in `useMemo([results, isUsernameSearch])`
-- [ ] `components/groups/GroupDiscoverModal.tsx:34-37`: add `setSearching(false)` in early return when query is empty (fixes spinner-stuck bug)
-- [ ] `app/(app)/completion/page.tsx:99-101`: store `completedEntries` count in `pillarStats` during construction; remove the second filter pass
+- [x] `components/history/HistoryWeekGrid.tsx`: pre-index entries by `"pillar|date"` key, goals by `PillarName` → O(1) cell lookups
+- [x] `components/history/HistoryMonthGrid.tsx`: same pattern
+- [x] `components/dashboard/TuningPillarCard.tsx`: convert `windowEntries` to `Map<string, PillarDailyEntry>` before dot render loop
+- [x] `components/dashboard/JammingPillarCard.tsx`: same
+- [x] `components/dashboard/DashboardShell.tsx:96-155`: wrap per-pillar `windowEntries.filter()`, `durationGoals.filter()`, `destinationGoals.filter()` in `useMemo` Maps keyed by pillar
+- [x] `components/groups/GroupCard.tsx:25-29`: wrap `[...group.members].sort(...)` in `useMemo([group.members, currentUserId])`
+- [x] `components/groups/GroupDiscoverModal.tsx:82-89`: wrap `groupedByOwner` reduce in `useMemo([results, isUsernameSearch])`
+- [x] `components/groups/GroupDiscoverModal.tsx:34-37`: add `setSearching(false)` in early return when query is empty (fixes spinner-stuck bug)
+- [x] `app/(app)/completion/page.tsx:99-101`: store `completedEntries` count in `pillarStats` during construction; remove the second filter pass
 
 ### Step 3.7 — Pattern cleanup and shared utilities
 

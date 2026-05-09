@@ -1,7 +1,8 @@
 'use client'
 
+import { useMemo } from 'react'
 import { PILLAR_ORDER, calcDailyCompletionPct, todayStr, MAX_PAUSE_DAYS } from '@/lib/constants'
-import type { Challenge, PillarLevel, DurationGoal, DestinationGoal, PillarDailyEntry, PulseState } from '@/lib/types'
+import type { Challenge, PillarLevel, DurationGoal, DestinationGoal, PillarDailyEntry, PulseState, PillarName } from '@/lib/types'
 import DashboardHeader from './DashboardHeader'
 import PillarCard from './PillarCard'
 import TuningPillarCard from './TuningPillarCard'
@@ -45,11 +46,48 @@ export default function DashboardShell({
   username,
 }: DashboardShellProps) {
   const activePillars = pillarLevels.filter((p) => p.is_active)
-  const viewingDateEntries = windowEntries.filter((e) => e.entry_date === viewingDate)
   const isViewingToday = viewingDate === todayStr()
 
+  const windowEntriesByPillar = useMemo(() => {
+    const map = new Map<PillarName, PillarDailyEntry[]>()
+    for (const e of windowEntries) {
+      const arr = map.get(e.pillar) ?? []
+      arr.push(e)
+      map.set(e.pillar, arr)
+    }
+    return map
+  }, [windowEntries])
+
+  const goalsByPillar = useMemo(() => {
+    const map = new Map<PillarName, DurationGoal[]>()
+    for (const g of durationGoals) {
+      const arr = map.get(g.pillar) ?? []
+      arr.push(g)
+      map.set(g.pillar, arr)
+    }
+    return map
+  }, [durationGoals])
+
+  const destinationGoalsByPillar = useMemo(() => {
+    const map = new Map<PillarName, DestinationGoal[]>()
+    for (const g of destinationGoals) {
+      const arr = map.get(g.pillar) ?? []
+      arr.push(g)
+      map.set(g.pillar, arr)
+    }
+    return map
+  }, [destinationGoals])
+
+  const viewingDateEntryByPillar = useMemo(() => {
+    const map = new Map<PillarName, PillarDailyEntry>()
+    for (const e of windowEntries) {
+      if (e.entry_date === viewingDate) map.set(e.pillar, e)
+    }
+    return map
+  }, [windowEntries, viewingDate])
+
   const completedCount = activePillars.filter((p) =>
-    viewingDateEntries.find((e) => e.pillar === p.pillar)?.completed === true
+    viewingDateEntryByPillar.get(p.pillar)?.completed === true
   ).length
   const completionPct = calcDailyCompletionPct(completedCount, activePillars.length)
 
@@ -100,11 +138,11 @@ export default function DashboardShell({
             return <DormantPillarCard key={`${pillar}-${viewingDate}`} pillar={pillar} />
           }
 
-          const goals = durationGoals.filter((g) => g.pillar === pillar)
-          const todayEntry = viewingDateEntries.find((e) => e.pillar === pillar) ?? null
+          const goals = goalsByPillar.get(pillar) ?? []
+          const todayEntry = viewingDateEntryByPillar.get(pillar) ?? null
 
           if (pillarLevel.level === 1) {
-            const pillarWindowEntries = windowEntries.filter((e) => e.pillar === pillar)
+            const pillarWindowEntries = windowEntriesByPillar.get(pillar) ?? []
             return (
               <TuningPillarCard
                 key={`${pillar}-${viewingDate}`}
@@ -123,7 +161,7 @@ export default function DashboardShell({
           }
 
           if (pillarLevel.level === 2) {
-            const pillarWindowEntries = windowEntries.filter((e) => e.pillar === pillar)
+            const pillarWindowEntries = windowEntriesByPillar.get(pillar) ?? []
             return (
               <JammingPillarCard
                 key={`${pillar}-${viewingDate}`}
@@ -141,7 +179,7 @@ export default function DashboardShell({
           }
 
           if (pillarLevel.level === 3) {
-            const pillarDestinationGoals = destinationGoals.filter((g) => g.pillar === pillar)
+            const pillarDestinationGoals = destinationGoalsByPillar.get(pillar) ?? []
             return (
               <GroovingPillarCard
                 key={`${pillar}-${viewingDate}`}
@@ -157,7 +195,7 @@ export default function DashboardShell({
           }
 
           if (pillarLevel.level === 4) {
-            const pillarDestinationGoals = destinationGoals.filter((g) => g.pillar === pillar)
+            const pillarDestinationGoals = destinationGoalsByPillar.get(pillar) ?? []
             return (
               <SoloingPillarCard
                 key={`${pillar}-${viewingDate}`}

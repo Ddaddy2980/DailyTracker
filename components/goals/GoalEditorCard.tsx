@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
-import { PILLAR_CONFIG, LEVEL_NAMES, DURATION_GOAL_CAP, destinationGoalsAvailable } from '@/lib/constants'
+import { PILLAR_CONFIG, DURATION_GOAL_CAP, destinationGoalsAvailable } from '@/lib/constants'
 import type { PillarName, LevelNumber, DurationGoal, DestinationGoal } from '@/lib/types'
 import GoalInputRow from '@/components/goals/GoalInputRow'
 import DestinationGoalSection from '@/components/goals/DestinationGoalSection'
+import GoalList from '@/components/goals/GoalList'
+import GoalEditorHeader from '@/components/goals/GoalEditorHeader'
 
 // ── Shared props ──────────────────────────────────────────────────────────────
 
@@ -132,69 +133,19 @@ export default function GoalEditorCard(props: GoalEditorCardProps) {
       style={{ backgroundColor: config.background }}
     >
       {/* ── Header ── */}
-      <div className="flex items-center gap-3 px-4 py-3">
-        <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0">
-          <Image
-            src={config.icon}
-            alt={config.label}
-            width={32}
-            height={32}
-            className="object-contain"
-          />
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-white text-sm">{config.label}</p>
-          <p className="text-xs" style={{ color: config.subtitle }}>
-            {LEVEL_NAMES[level]}
-          </p>
-        </div>
-
-        {/* Active/dormant toggle — onboarding only */}
-        {props.context === 'onboarding' && (
-          <button
-            type="button"
-            onClick={props.onToggle}
-            className={[
-              'shrink-0 text-xs font-semibold px-3 py-1 rounded-full border transition-colors',
-              props.isActive
-                ? 'bg-white text-slate-800 border-white'
-                : 'bg-transparent text-white border-white/40 hover:border-white/70',
-            ].join(' ')}
-          >
-            {props.isActive ? 'Active' : 'Leave dormant'}
-          </button>
-        )}
-      </div>
+      <GoalEditorHeader
+        pillar={pillar}
+        level={level}
+        showToggle={props.context === 'onboarding'}
+        isActive={props.context === 'onboarding' ? props.isActive : false}
+        onToggle={props.context === 'onboarding' ? props.onToggle : undefined}
+      />
 
       {/* ── Body — only shown when active ── */}
       {isActive && (
         <div className="px-4 pb-4">
           {/* Goal list */}
-          {displayGoals.length > 0 && (
-            <ul className="space-y-2 mb-2">
-              {displayGoals.map((text, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-2 bg-white/10 rounded-lg px-3 py-2"
-                >
-                  <span className="flex-1 text-sm text-white leading-snug">{text}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemove(i)}
-                    disabled={saving}
-                    className="shrink-0 text-white/40 hover:text-white/80 transition-colors mt-0.5"
-                    aria-label="Remove goal"
-                  >
-                    <svg viewBox="0 0 14 14" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <line x1="1" y1="1" x2="13" y2="13" />
-                      <line x1="13" y1="1" x2="1" y2="13" />
-                    </svg>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+          <GoalList goals={displayGoals} saving={saving} onRemove={handleRemove} />
 
           {/* Add goal button or input row */}
           {!adding && !atCap && (

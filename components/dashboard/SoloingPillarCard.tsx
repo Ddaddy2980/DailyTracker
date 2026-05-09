@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { PILLAR_CONFIG, LEVEL_NAMES } from '@/lib/constants'
 import type { PillarLevel, DurationGoal, DestinationGoal, PillarDailyEntry, GoalCompletions, PulseState } from '@/lib/types'
+import ProgressRing from './ProgressRing'
+import { usePillarSave } from '@/hooks/usePillarSave'
+import ChevronIcon from '@/components/ui/ChevronIcon'
 
 interface SoloingPillarCardProps {
   pillarLevel: PillarLevel
@@ -14,59 +16,6 @@ interface SoloingPillarCardProps {
   challengeId: string
   entryDate: string
   pulseState: PulseState
-}
-
-const CIRCUMFERENCE = 2 * Math.PI * 15
-
-interface ProgressRingProps {
-  pct: number
-  titleColor: string
-  subtitleColor: string
-}
-
-function ProgressRing({ pct, titleColor, subtitleColor }: ProgressRingProps) {
-  const offset = CIRCUMFERENCE * (1 - pct)
-  const label = `${Math.round(pct * 100)}%`
-  return (
-    <div className="relative w-9 h-9 flex-shrink-0">
-      <svg
-        width="36"
-        height="36"
-        viewBox="0 0 36 36"
-        className="-rotate-90 w-full h-full"
-        aria-hidden="true"
-      >
-        <circle
-          cx="18"
-          cy="18"
-          r="15"
-          fill="none"
-          stroke={subtitleColor}
-          strokeOpacity={0.3}
-          strokeWidth="3"
-        />
-        <circle
-          cx="18"
-          cy="18"
-          r="15"
-          fill="none"
-          stroke="#22c55e"
-          strokeWidth="3"
-          strokeDasharray={CIRCUMFERENCE}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 0.3s ease' }}
-        />
-      </svg>
-      {/* percentage label — sits over the SVG, not rotated */}
-      <span
-        className="absolute inset-0 flex items-center justify-center text-[8px] font-bold leading-none"
-        style={{ color: titleColor }}
-      >
-        {label}
-      </span>
-    </div>
-  )
 }
 
 export default function SoloingPillarCard({
@@ -87,46 +36,15 @@ export default function SoloingPillarCard({
   const [completions, setCompletions] = useState<GoalCompletions>(() => {
     return todayEntry?.goal_completions ?? {}
   })
-  const router = useRouter()
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
+  const { saving, saved, saveError, handleSave } = usePillarSave(
+    pillar, challengeId, entryDate, () => setIsOpen(false),
+  )
 
   const checkedDurationCount = goals.filter((g) => completions[g.id] === true).length
   const pct = goals.length === 0 ? 0 : checkedDurationCount / goals.length
 
   function toggleGoal(goalId: string) {
     setCompletions((prev) => ({ ...prev, [goalId]: !prev[goalId] }))
-  }
-
-  async function handleSave() {
-    setSaving(true)
-    setSaveError(null)
-    try {
-      const res = await fetch('/api/checkin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pillar,
-          challengeId,
-          goalCompletions: completions,
-          entry_date: entryDate,
-        }),
-      })
-      if (!res.ok) {
-        const errData = (await res.json().catch(() => ({}))) as { error?: string }
-        setSaveError(errData.error ?? 'Save failed. Please try again.')
-        return
-      }
-      setSaved(true)
-      setIsOpen(false)
-      router.refresh()
-      setTimeout(() => setSaved(false), 2000)
-    } catch {
-      setSaveError('Could not reach the server. Please try again.')
-    } finally {
-      setSaving(false)
-    }
   }
 
   const saveLabel = saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'
@@ -160,22 +78,11 @@ export default function SoloingPillarCard({
 
         <div className="flex items-center gap-2">
           <ProgressRing
-            pct={pct}
+            percentage={pct}
             titleColor={config.title}
             subtitleColor={config.subtitle}
           />
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="white"
-            className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-          >
-            <path
-              fillRule="evenodd"
-              d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06z"
-              clipRule="evenodd"
-            />
-          </svg>
+          <ChevronIcon className={`w-5 h-5 text-white transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
         </div>
       </button>
 
@@ -254,7 +161,7 @@ export default function SoloingPillarCard({
 
             <button
               type="button"
-              onClick={handleSave}
+              onClick={() => handleSave(completions)}
               disabled={saving}
               className="w-full py-2 rounded-lg text-sm font-semibold text-white transition-opacity disabled:opacity-70"
               style={{ backgroundColor: config.saveButton }}

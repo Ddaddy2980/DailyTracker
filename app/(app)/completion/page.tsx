@@ -86,10 +86,12 @@ export default async function CompletionPage() {
   // Per-pillar completion %
   // Numerator:   entries where completed = true for this pillar
   // Denominator: challenge duration_days (the full challenge length)
+  let totalCompleted = 0
   const pillarStats: PillarStat[] = activeLevels.map((pl) => {
     const completedEntries = allEntries.filter(
       (e) => e.pillar === pl.pillar && e.completed
     ).length
+    totalCompleted += completedEntries
     const completionPct = Math.round((completedEntries / durationDays) * 100)
     return {
       pillar:        pl.pillar,
@@ -101,9 +103,6 @@ export default async function CompletionPage() {
   // Overall consistency %
   // Numerator:   all completed entries across every active pillar
   // Denominator: active pillars × duration_days  (every possible check-in slot)
-  const totalCompleted = pillarStats.reduce((sum, s) => {
-    return sum + allEntries.filter((e) => e.pillar === s.pillar && e.completed).length
-  }, 0)
   const maxPossible = activeLevels.length * durationDays
   const overallPct = maxPossible === 0
     ? 0

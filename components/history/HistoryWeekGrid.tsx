@@ -4,6 +4,13 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { getWeekStart, PILLAR_CONFIG, todayStr, addDays } from '@/lib/constants'
 import type { PillarLevel, DurationGoal, PillarDailyEntry, PillarName } from '@/lib/types'
+import {
+  formatWeekRange,
+  formatShortDate,
+  getPillarPct,
+  getAllPct,
+  cellStyle,
+} from '@/lib/historyUtils'
 
 interface HistoryWeekGridProps {
   weekStart: string          // Sunday YYYY-MM-DD anchor for this view
@@ -15,57 +22,6 @@ interface HistoryWeekGridProps {
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-function formatWeekRange(weekStart: string): string {
-  const end = addDays(weekStart, 6)
-  const s = new Date(weekStart + 'T00:00:00')
-  const e = new Date(end + 'T00:00:00')
-  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
-  return `${s.toLocaleDateString('en-US', opts)} – ${e.toLocaleDateString('en-US', opts)}`
-}
-
-function formatShortDate(dateStr: string): string {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
-    month: 'numeric',
-    day: 'numeric',
-  })
-}
-
-function getPillarPct(
-  pillar: PillarName,
-  date: string,
-  entries: PillarDailyEntry[],
-  goals: DurationGoal[],
-): number | null {
-  const entry = entries.find((e) => e.pillar === pillar && e.entry_date === date)
-  if (!entry) return null
-  const pillarGoals = goals.filter((g) => g.pillar === pillar)
-  if (pillarGoals.length === 0) return null
-  const completedCount = pillarGoals.filter((g) => entry.goal_completions?.[g.id] === true).length
-  return Math.round((completedCount / pillarGoals.length) * 100)
-}
-
-function getAllPct(
-  date: string,
-  entries: PillarDailyEntry[],
-  activePillars: PillarLevel[],
-  goals: DurationGoal[],
-): number | null {
-  const pillarPcts = activePillars
-    .map((p) => getPillarPct(p.pillar, date, entries, goals))
-    .filter((pct): pct is number => pct !== null)
-  if (pillarPcts.length === 0) return null
-  return Math.round(pillarPcts.reduce((a, b) => a + b, 0) / pillarPcts.length)
-}
-
-function cellStyle(pct: number | null, isFuture: boolean, isBeforeChallenge: boolean): string {
-  const base = 'w-full h-10 rounded flex items-center justify-center text-[9px] font-medium transition-colors'
-  if (isBeforeChallenge || isFuture) return `${base} bg-slate-800 text-slate-600 cursor-default`
-  if (pct === null) return `${base} bg-slate-600 text-slate-400`
-  if (pct >= 80) return `${base} bg-emerald-600 text-white cursor-pointer hover:bg-emerald-700`
-  if (pct >= 40) return `${base} bg-amber-500 text-white cursor-pointer hover:bg-amber-600`
-  return `${base} bg-red-600 text-white cursor-pointer hover:bg-red-700`
-}
-
 export default function HistoryWeekGrid({
   weekStart,
   challengeStartDate,
@@ -75,6 +31,17 @@ export default function HistoryWeekGrid({
 }: HistoryWeekGridProps) {
   const router = useRouter()
   const today = todayStr()
+
+  // Pre-index entries and goals for O(1) cell lookups
+  const entryIndex = new Map<string, PillarDailyEntry>()
+  for (const e of allEntries) entryIndex.set(`${e.pillar}|${e.entry_date}`, e)
+
+  const goalsByPillar = new Map<PillarName, DurationGoal[]>()
+  for (const g of activeGoals) {
+    const arr = goalsByPillar.get(g.pillar) ?? []
+    arr.push(g)
+    goalsByPillar.set(g.pillar, arr)
+  }
 
   // Build the 7 dates for this week
   const weekDates = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
@@ -105,14 +72,12 @@ export default function HistoryWeekGrid({
   // Week summary stats
   const loggedDays = weekDates.filter((date) => {
     if (date > today || date < challengeStartDate) return false
-    return activePillarLevels.some((p) =>
-      allEntries.some((e) => e.pillar === p.pillar && e.entry_date === date)
-    )
+    return activePillarLevels.some((p) => entryIndex.has(`${p.pillar}|${date}`))
   }).length
 
   const weekPcts = weekDates
     .filter((date) => date <= today && date >= challengeStartDate)
-    .map((date) => getAllPct(date, allEntries, activePillarLevels, activeGoals))
+    .map((date) => getAllPct(date, entryIndex, activePillarLevels, goalsByPillar))
     .filter((pct): pct is number => pct !== null)
   const avgPct = weekPcts.length === 0 ? null : Math.round(weekPcts.reduce((a, b) => a + b, 0) / weekPcts.length)
 
@@ -183,7 +148,7 @@ export default function HistoryWeekGrid({
               const isFuture = date > today
               const isBeforeChallenge = date < challengeStartDate
               const pct = (!isFuture && !isBeforeChallenge)
-                ? getPillarPct(pillar, date, allEntries, activeGoals)
+                ? getPillarPct(pillar, date, entryIndex, goalsByPillar)
                 : null
               return (
                 <button
@@ -209,7 +174,7 @@ export default function HistoryWeekGrid({
               const isFuture = date > today
               const isBeforeChallenge = date < challengeStartDate
               const pct = (!isFuture && !isBeforeChallenge)
-                ? getAllPct(date, allEntries, activePillarLevels, activeGoals)
+                ? getAllPct(date, entryIndex, activePillarLevels, goalsByPillar)
                 : null
               return (
                 <button

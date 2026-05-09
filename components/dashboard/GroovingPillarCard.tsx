@@ -1,18 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { PILLAR_CONFIG, LEVEL_NAMES, selectGroovingVideo } from '@/lib/constants'
-import type { PillarLevel, DurationGoal, DestinationGoal, PillarDailyEntry, GoalCompletions, LevelNumber, PulseState } from '@/lib/types'
+import type { PillarLevel, DurationGoal, DestinationGoal, PillarDailyEntry, GoalCompletions, PulseState } from '@/lib/types'
 import VideoModal from '@/components/shared/VideoModal'
-
-interface CheckinApiResponse {
-  success: boolean
-  completed: boolean
-  advanced: boolean
-  newLevel: LevelNumber | null
-}
+import ProgressRing from './ProgressRing'
+import { usePillarSave } from '@/hooks/usePillarSave'
+import ChevronIcon from '@/components/ui/ChevronIcon'
+import PlayIcon from '@/components/ui/PlayIcon'
 
 interface GroovingPillarCardProps {
   pillarLevel: PillarLevel
@@ -22,61 +18,6 @@ interface GroovingPillarCardProps {
   challengeId: string
   entryDate: string
   pulseState: PulseState
-}
-
-const CIRCUMFERENCE = 2 * Math.PI * 15  // r=15 → ≈ 94.25
-
-interface ProgressRingProps {
-  pct: number
-  titleColor: string
-  subtitleColor: string
-}
-
-function ProgressRing({ pct, titleColor, subtitleColor }: ProgressRingProps) {
-  const offset = CIRCUMFERENCE * (1 - pct)
-  const label = `${Math.round(pct * 100)}%`
-  return (
-    <div className="relative w-9 h-9 flex-shrink-0">
-      <svg
-        width="36"
-        height="36"
-        viewBox="0 0 36 36"
-        className="-rotate-90 w-full h-full"
-        aria-hidden="true"
-      >
-        {/* track */}
-        <circle
-          cx="18"
-          cy="18"
-          r="15"
-          fill="none"
-          stroke={subtitleColor}
-          strokeOpacity={0.3}
-          strokeWidth="3"
-        />
-        {/* progress */}
-        <circle
-          cx="18"
-          cy="18"
-          r="15"
-          fill="none"
-          stroke="#22c55e"
-          strokeWidth="3"
-          strokeDasharray={CIRCUMFERENCE}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 0.3s ease' }}
-        />
-      </svg>
-      {/* percentage label — sits over the SVG, not rotated */}
-      <span
-        className="absolute inset-0 flex items-center justify-center text-[8px] font-bold leading-none"
-        style={{ color: titleColor }}
-      >
-        {label}
-      </span>
-    </div>
-  )
 }
 
 export default function GroovingPillarCard({
@@ -90,16 +31,14 @@ export default function GroovingPillarCard({
 }: GroovingPillarCardProps) {
   const { pillar, level } = pillarLevel
   const config = PILLAR_CONFIG[pillar]
-  const router = useRouter()
 
   const [isOpen, setIsOpen] = useState(false)
   const [completions, setCompletions] = useState<GoalCompletions>(() => {
     return todayEntry?.goal_completions ?? {}
   })
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [advancedToLevel, setAdvancedToLevel] = useState<LevelNumber | null>(null)
+  const { saving, saved, saveError, advancedToLevel, handleSave } = usePillarSave(
+    pillar, challengeId, entryDate, () => setIsOpen(false),
+  )
   const [showVideo, setShowVideo] = useState(false)
   const [videoWatched, setVideoWatched] = useState(false)
 
@@ -110,42 +49,6 @@ export default function GroovingPillarCard({
 
   function toggleGoal(goalId: string) {
     setCompletions((prev) => ({ ...prev, [goalId]: !prev[goalId] }))
-  }
-
-  async function handleSave() {
-    setSaving(true)
-    setSaveError(null)
-    try {
-      const res = await fetch('/api/checkin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pillar,
-          challengeId,
-          goalCompletions: completions,
-          entry_date: entryDate,
-        }),
-      })
-      if (!res.ok) {
-        const errData = (await res.json().catch(() => ({}))) as { error?: string }
-        setSaveError(errData.error ?? 'Save failed. Please try again.')
-        return
-      }
-      const data = (await res.json()) as CheckinApiResponse
-      if (data.advanced && data.newLevel) {
-        setAdvancedToLevel(data.newLevel)
-        setTimeout(() => router.refresh(), 2500)
-      } else {
-        setSaved(true)
-        setIsOpen(false)
-        router.refresh()
-        setTimeout(() => setSaved(false), 2000)
-      }
-    } catch {
-      setSaveError('Could not reach the server. Please try again.')
-    } finally {
-      setSaving(false)
-    }
   }
 
   const saveLabel = saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'
@@ -197,28 +100,15 @@ export default function GroovingPillarCard({
             {videoWatched ? (
               <span className="text-emerald-300 text-sm leading-none">✓</span>
             ) : (
-              <svg className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
+              <PlayIcon className="w-3.5 h-3.5 text-white ml-0.5" />
             )}
           </button>
           <ProgressRing
-            pct={pct}
+            percentage={pct}
             titleColor={config.title}
             subtitleColor={config.subtitle}
           />
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="white"
-            className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-          >
-            <path
-              fillRule="evenodd"
-              d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06z"
-              clipRule="evenodd"
-            />
-          </svg>
+          <ChevronIcon className={`w-5 h-5 text-white transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
         </div>
       </button>
 
@@ -304,7 +194,7 @@ export default function GroovingPillarCard({
 
             <button
               type="button"
-              onClick={handleSave}
+              onClick={() => handleSave(completions)}
               disabled={saving}
               className="w-full py-2 rounded-lg text-sm font-semibold text-white transition-opacity disabled:opacity-70"
               style={{ backgroundColor: config.saveButton }}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import type { PendingInvitationItem } from '@/app/api/groups/[id]/invite/route'
+import Spinner from '@/components/ui/Spinner'
 
 interface GroupInvitePanelProps {
   groupId: string
@@ -145,10 +146,7 @@ export default function GroupInvitePanel({ groupId }: GroupInvitePanelProps) {
           className="flex-1 bg-transparent text-white text-sm outline-none placeholder:text-slate-500"
         />
         {searchState === 'searching' && (
-          <svg className="animate-spin h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-          </svg>
+          <Spinner className="h-4 w-4 text-slate-400" />
         )}
         {searchState === 'found' && (
           <span className="text-emerald-400 text-xs">Found</span>

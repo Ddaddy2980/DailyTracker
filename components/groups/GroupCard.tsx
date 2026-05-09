@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import type { GroupWithDetails } from '@/lib/types'
 import GroupManageSheet from './GroupManageSheet'
 
@@ -22,11 +22,15 @@ export default function GroupCard({
   const isCreator = group.user_id === currentUserId
 
   // Sort: current user first, rest alphabetical
-  const sorted = [...group.members].sort((a, b) => {
-    if (a.user_id === currentUserId) return -1
-    if (b.user_id === currentUserId) return 1
-    return a.display_name.localeCompare(b.display_name)
-  })
+  const sorted = useMemo(
+    () =>
+      [...group.members].sort((a, b) => {
+        if (a.user_id === currentUserId) return -1
+        if (b.user_id === currentUserId) return 1
+        return a.display_name.localeCompare(b.display_name)
+      }),
+    [group.members, currentUserId],
+  )
 
   return (
     <>
