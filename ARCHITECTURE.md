@@ -885,6 +885,57 @@ Code committed locally (`b6a1b7b`); push by user via HTTPS+token. After Vercel d
 
 ---
 
+### Post-Code-Review Round 2 — Tier 3 partial (DRY, performance, file splits)
+
+Tier 3 Steps 3.1–3.6 shipped 2026-05-09 as commit `7c4c942` on `main` (43 files, +1456/−1410, 18 new files). Step 3.7 (pattern cleanup + shared utilities) and Step 3.8 (verify + ship) remain. No behavior changes throughout — pure refactor + perf.
+
+#### Step 3.1 — `CheckinApiResponse` to `lib/types.ts`
+Type interface moved from 3 pillar cards (Tuning, Jamming, Grooving) to `lib/types.ts`; consumers import via existing `import type` statement.
+
+#### Step 3.2 — `ProgressRing` extracted
+`components/dashboard/ProgressRing.tsx` (NEW). Props: `{ percentage, titleColor, subtitleColor, strokeColor? }`. `strokeColor` defaults to `#22c55e`. Replaces local `ProgressRing` + `CIRCUMFERENCE` const in `GroovingPillarCard` + `SoloingPillarCard` (~107 lines deduplicated).
+
+#### Step 3.3 — `usePillarSave` hook extracted
+`hooks/usePillarSave.ts` (NEW). Owns `/api/checkin` POST, `res.ok` guard, error/saving/saved/advancedToLevel state, `router.refresh()` (2.5s on advancement, immediate on normal save), 2s `saved` cleanup. Signature: `usePillarSave(pillar, challengeId, entryDate, onSuccess?)` — `onSuccess` callback fires on non-advancement success path so cards can `setIsOpen(false)`. Replaces `handleSave` + 3–4 useState lines + `useRouter` in all 5 pillar cards. ~170 lines deduplicated.
+
+#### Step 3.4 — UI primitives extracted
+`components/ui/ChevronIcon.tsx`, `PlayIcon.tsx`, `Spinner.tsx` (all NEW). Each accepts a `className` prop (default sizes baked in). The `direction: 'up' | 'down'` prop on ChevronIcon was rejected — callers already encode rotation via `${isOpen ? 'rotate-180' : ''}` on the parent class. Pillar-card chevrons changed from `fill="white"` → `fill="currentColor"` + `text-white` className (visual identical). Replaced 5 chevron SVGs (all 5 pillar cards), 3 play SVGs (Tuning/Jamming/Grooving), 9 spinner SVGs across 8 files (`AccountSection`, `CompletionScreen`, `GroupInvitePanel`, `OnboardingGoalsClient`, `ClarityVideosScreen`, `ProfileFlow`, `UsernameSetupScreen` ×2, `DurationPicker`). ~17 inline SVG blocks deduplicated.
+
+#### Step 3.5 — 7 oversized files split
+Each parent now under 200 lines; pure code-move with no behavior change.
+- `CompletionScreen.tsx` (272 → 76 lines): extracted `PillarStatRow.tsx` (50 lines, owns `PillarStat` interface) + `RestartFlow.tsx` (156 lines, owns 4-step restart state machine + restart POST). Parent dropped `'use client'` (now pure presentational). `PillarStat` re-exported from CompletionScreen via `export type { PillarStat } from './PillarStatRow'` so `app/(app)/completion/page.tsx` import keeps working.
+- `ChallengePauseTools.tsx` (277 → 47 lines): extracted `ActivePauseCard.tsx` (54 lines, Resume flow), `ImmediatePauseCard.tsx` (57 lines, Pause Now flow), `ScheduledPauseCard.tsx` (133 lines, owns BOTH schedule-new + cancel-existing flows since they share the parent prop and JSX branch). Parent dropped `'use client'`. `id="challenge-tools"` anchor preserved on parent so `LifePauseBanner`'s `/settings#challenge-tools` deep link still works.
+- `HistoryProgressReport.tsx` (248 → 84 lines): extracted `ProgressChart.tsx` (118 lines, owns SVG geometry) + `PillarSummaryCard.tsx` (70 lines, owns stats card + `PillarStats` interface). Parent retains `'use client'` and data layer (entryIndex, goalsByPillar, getPillarPct) but emits raw `pillarPcts: Record<string, number[]>` instead of pre-formatted polyline strings — child computes geometry end-to-end.
+- `GoalEditorCard.tsx` (241 → 191 lines): extracted `GoalList.tsx` (34 lines, pure presentational) + `GoalEditorHeader.tsx` (57 lines, avatar + label + level subtitle + active/dormant toggle).
+- `GroupManageSheet.tsx` (259 → 152 lines): extracted `RenameGroupForm.tsx` (83 lines, owns `renaming`/`nameInput`/`loading`/`error` state) + `DeleteGroupConfirm.tsx` (72 lines, owns `confirmDelete`/`loading`/`error` state). Error UX shifted from single shared toast at top to per-control inline messages for rename + delete; toggle/leave failures still show at top.
+- `HistoryWeekGrid.tsx` (232 → 187 lines): moved 5 pure helpers (`formatWeekRange`, `formatShortDate`, `getPillarPct`, `getAllPct`, `cellStyle`) to `lib/historyUtils.ts` (NEW, 53 lines). Component retains `DAYS_OF_WEEK` UI label + `@/lib/constants` imports.
+- `GroupDiscoverModal.tsx` (228 → 188 lines): extracted `GroupResultRow.tsx` (40 lines, stateless presentational; exports `RequestState` type).
+
+#### Step 3.6 — Performance Map indexing (9 sub-bullets)
+- `HistoryWeekGrid.tsx`: `lib/historyUtils.ts` `getPillarPct` and `getAllPct` signatures changed from `entries: PillarDailyEntry[]` to `entryIndex: Map<string, PillarDailyEntry>` (key `${pillar}|${date}`); `goals: DurationGoal[]` to `goalsByPillar: Map<PillarName, DurationGoal[]>`. Component builds both Maps once at top of render. Folded `loggedDays` migration: `activePillarLevels.some(p => allEntries.some(...))` → `entryIndex.has(\`${p.pillar}|${date}\`)`.
+- `HistoryMonthGrid.tsx`: local standalone `getAllPct` deleted; replaced with closure inside component body capturing `entryIndex: Map<string, PillarDailyEntry>` + `datesWithEntries: Set<string>` built once per render. Closure preserves original semantics (returns `null` when no entries OR no active goals).
+- `TuningPillarCard.tsx`: module-level `buildDots` signature changed `windowEntries: PillarDailyEntry[]` → `entryByDate: Map<string, PillarDailyEntry>`. Component body builds `entryByDate` once. `stalledDays` filter loop converted to `entryByDate.get(date)`.
+- `JammingPillarCard.tsx`: same pattern as Tuning. `DotRow` sub-component untouched.
+- `DashboardShell.tsx`: 4 `useMemo` Maps replace `viewingDateEntries` + per-pillar `.filter()` / `.find()` calls in PILLAR_ORDER loop: `windowEntriesByPillar`, `goalsByPillar`, `destinationGoalsByPillar`, `viewingDateEntryByPillar` (single Map subsumes both consumers of the deleted `viewingDateEntries` array).
+- `GroupCard.tsx`: `[...group.members].sort(...)` wrapped in `useMemo([group.members, currentUserId])`.
+- `GroupDiscoverModal.tsx`: `groupedByOwner` reduce wrapped in `useMemo([results, isUsernameSearch])`.
+- `GroupDiscoverModal.tsx`: spinner-stuck early-return fix — added `setSearching(false)` to BOTH early-return branches in `handleQueryChange` (both the `val.trim().length === 0 || === '@'` branch and the `effective.length === 0` branch). Bug repro: type "ab" → debounce armed → clear before 400ms → spinner stuck. `setSearching(false)` on first-ever keystroke is a no-op (React bails on identical state updates).
+- `app/(app)/completion/page.tsx`: single-pass `totalCompleted` accumulator replaces second `pillarStats.reduce(...)` filter pass that re-filtered `allEntries` per active pillar. Math unchanged. Saves ~activePillars × allEntries scans per render (5 × ~450 = 2,250 scans for a 90-day, 5-pillar challenge). Chose accumulator over adding `completedEntries` field to `PillarStat` — keeps prop type passed to `CompletionScreen` / `PillarStatRow` clean.
+
+#### Architectural rules established or reinforced by Tier 3
+
+- **`useMemo` Maps keyed by an aggregation dimension are the canonical pattern for per-row server data**, not repeated `.filter()` / `.find()` calls in render loops. Set deps to the source array(s) only — don't include downstream-only state like `query`.
+- **Side-effect functions in render handlers must reset all state they wrote.** The `setSearching(true)` → debounce → user-clears bug pattern (`searching` left `true` forever) applies to any debounced/optimistic flow.
+- **Hook extraction trumps component-state duplication for non-trivial fetch flows.** `usePillarSave` consolidated 5 copies of `handleSave` + state + router refresh; future pillar-card variations don't re-derive the same shape.
+- **File splits should preserve the parent's import surface.** Pattern: when extracting a sub-component or interface, re-export the type from the original location so consuming server components don't need their imports rewritten (e.g. `export type { PillarStat } from './PillarStatRow'` in `CompletionScreen.tsx`).
+- **`'use client'` is removable when state moves to children.** After 3.5 splits, `CompletionScreen.tsx`, `ChallengePauseTools.tsx`, and `ProgressChart.tsx`'s parent flipped to pure presentational server components — children retain `'use client'`. Reduces JS bundle.
+
+#### Remaining Tier 3 work
+
+Step 3.7 (5 sub-bullets — `PILLAR_ORDER` import dedupe in `completion/page.tsx`, consolidate `lib/rolling-window.ts` constants imports, extract `PULSE_THRESHOLDS` to constants, drop local `addDays` in `DashboardHeader`, create `lib/supabaseUtils.ts:getActiveChallenge` shared helper for 5 routes, create `lib/historyUtils.ts:computePillarCompletion` for Week/Month grid dedupe). Step 3.8 (verify + ship Tier 3 — last step in entire Round 2 remediation).
+
+---
+
 ### Future Additions
 
 #### Destination Goal Types (Unscheduled)
@@ -906,4 +957,4 @@ Integration with Apple Health for automatic Physical and Nutritional pillar data
 
 ---
 
-*This file was last updated: 2026-05-03 — Round 2 code review remediation in progress (CODE_REVIEW_PLAN2.md). Tier 1 timezone hardening shipped (commits 741abff + b4ecb09). Tier 2 (security, broken features, TS strictness, a11y) build complete (commit b6a1b7b); production smoke verification + push pending. Two housekeeping commits (ea41ddc untracking .next/, e60ff2d untracking tsconfig.tsbuildinfo) clear longstanding git status noise. Tier 3 (DRY, performance — purely cosmetic) remains. Pause UI restored to Settings page after orphaned-component regression discovered. Ten Supabase migrations confirmed run. Username lowercase constraint dropped post-Phase 9; replaced with case-insensitive index. All video URLs pending recordings.*
+*This file was last updated: 2026-05-09 — Round 2 code review remediation in progress (CODE_REVIEW_PLAN2.md). Tier 1 timezone hardening shipped (commits 741abff + b4ecb09); Tier 2 shipped (b6a1b7b, smoke-verified in production); Tier 3 partial shipped — Steps 3.1–3.6 (DRY, perf Map indexing, file splits, UI primitives, usePillarSave hook) committed and pushed as 7c4c942. Step 3.7 (pattern cleanup + shared utilities) and Step 3.8 (verify + ship — last step in entire Round 2 remediation) remain. Two housekeeping commits (ea41ddc untracking .next/, e60ff2d untracking tsconfig.tsbuildinfo) cleared longstanding git status noise. Pause UI restored to Settings page after orphaned-component regression discovered. Ten Supabase migrations confirmed run. Username lowercase constraint dropped post-Phase 9; replaced with case-insensitive index. All video URLs pending recordings.*
