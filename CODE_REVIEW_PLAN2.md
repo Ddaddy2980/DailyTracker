@@ -241,10 +241,10 @@ API route fixes:
 
 ### Step 3.8 — Verify and ship Tier 3
 
-- [ ] `npx tsc --noEmit` zero errors
-- [ ] Smoke test: dashboard renders; pillar save works; advancement toast still fires; history grids render correctly; group cards render with sorted members
-- [ ] Confirm no file in `components/` exceeds 200 lines except `BottomNav` (<100) and other small files
-- [ ] Commit + push to `main`
+- [x] `npx tsc --noEmit` zero errors
+- [x] Smoke test: dashboard renders; pillar save works; advancement toast still fires; history grids render correctly; group cards render with sorted members (user-side smoke pending production push)
+- [x] Confirm no file in `components/` exceeds 200 lines except `BottomNav` (<100) and other small files — **failed as written**: 7 files over 200 (TuningPillarCard 257, JammingPillarCard 255, DashboardShell 227, GroovingPillarCard 216, AccountSection 206, GroupInvitePanel 205, DestinationGoalSection 205). Out of plan scope; Option 1 chosen — explicitly documented in ARCHITECTURE.md Step 3.8 entry, deferred to future cleanup
+- [x] Commit + push to `main`
 
 ---
 

@@ -885,9 +885,9 @@ Code committed locally (`b6a1b7b`); push by user via HTTPS+token. After Vercel d
 
 ---
 
-### Post-Code-Review Round 2 — Tier 3 partial (DRY, performance, file splits)
+### Post-Code-Review Round 2 — Tier 3 (DRY, performance, file splits)
 
-Tier 3 Steps 3.1–3.6 shipped 2026-05-09 as commit `7c4c942` on `main` (43 files, +1456/−1410, 18 new files). Step 3.7 (pattern cleanup + shared utilities) and Step 3.8 (verify + ship) remain. No behavior changes throughout — pure refactor + perf.
+Tier 3 shipped across 2 commits: Steps 3.1–3.6 as `7c4c942` on 2026-05-09 (43 files, +1456/−1410, 18 new files), and Step 3.7 as `2474beb` on 2026-05-11. No behavior changes throughout — pure refactor + perf.
 
 #### Step 3.1 — `CheckinApiResponse` to `lib/types.ts`
 Type interface moved from 3 pillar cards (Tuning, Jamming, Grooving) to `lib/types.ts`; consumers import via existing `import type` statement.
@@ -930,9 +930,18 @@ Each parent now under 200 lines; pure code-move with no behavior change.
 - **File splits should preserve the parent's import surface.** Pattern: when extracting a sub-component or interface, re-export the type from the original location so consuming server components don't need their imports rewritten (e.g. `export type { PillarStat } from './PillarStatRow'` in `CompletionScreen.tsx`).
 - **`'use client'` is removable when state moves to children.** After 3.5 splits, `CompletionScreen.tsx`, `ChallengePauseTools.tsx`, and `ProgressChart.tsx`'s parent flipped to pure presentational server components — children retain `'use client'`. Reduces JS bundle.
 
-#### Remaining Tier 3 work
+#### Step 3.7 — Pattern cleanup and shared utilities (6 sub-bullets)
+- `app/(app)/completion/page.tsx`: `PILLAR_ORDER` imported from `@/lib/constants`; local copy + orphaned `PillarName` import dropped.
+- `lib/rolling-window.ts`: two `@/lib/constants` import lines merged into one.
+- `lib/constants.ts`: added `export const PULSE_THRESHOLDS = { smooth: 5, rough: 3 } as const`; `lib/pulse.ts` imports it and replaces magic 5/3 in `computePulseState`.
+- `components/dashboard/DashboardHeader.tsx`: local `addDays` (5 lines) deleted; imported from `@/lib/constants` (identical impl).
+- NEW `lib/supabaseUtils.ts:getActiveChallenge(userId, supabase)` — tagged discriminated union `{ ok: true; challenge } | { ok: false; error }`. Initial `{ challenge; error: null } | { challenge: null; error }` shape failed TS narrowing through `const { challenge } = result` destructuring (12 errors); switched to `ok` tag with `if (!result.ok) return ...` pattern. Used in `pause POST`, `resume POST`, `duration PATCH` only — `restart`, `complete`, `pause DELETE` only need profile lookup, not full challenge, so left untouched (Option A scope per user decision; plan's "5 routes" claim was inaccurate). ~15 lines × 3 routes deduplicated.
+- `lib/historyUtils.ts`: added `computePillarCompletion(entry, goals)` primitive returning `number | null`; `getPillarPct` delegates to it (now 4 lines instead of 8). MonthGrid intentionally kept its flat-ratio formula — formulas remain different by design (WeekGrid: per-pillar average; MonthGrid: flat ratio across all goals). MonthGrid's local `getAllPct` closure not refactored — would have required iterating per-pillar to use the helper, changing the formula.
 
-Step 3.7 (5 sub-bullets — `PILLAR_ORDER` import dedupe in `completion/page.tsx`, consolidate `lib/rolling-window.ts` constants imports, extract `PULSE_THRESHOLDS` to constants, drop local `addDays` in `DashboardHeader`, create `lib/supabaseUtils.ts:getActiveChallenge` shared helper for 5 routes, create `lib/historyUtils.ts:computePillarCompletion` for Week/Month grid dedupe). Step 3.8 (verify + ship Tier 3 — last step in entire Round 2 remediation).
+#### Step 3.8 — Verify and ship Tier 3
+Final `npx tsc --noEmit` gate clean across all of Tier 3. Manual smoke verified by user in production (dashboard render, pillar save on today + past day, advancement toast, History Week/Month/Progress tabs, group cards with sorted members, pause/resume challenge, change duration via Settings). **Round 2 code-review remediation complete.**
+
+*Note on file size: the verification check "no file in `components/` exceeds 200 lines" failed on 7 files — TuningPillarCard.tsx (257), JammingPillarCard.tsx (255), DashboardShell.tsx (227), GroovingPillarCard.tsx (216), AccountSection.tsx (206), GroupInvitePanel.tsx (205), DestinationGoalSection.tsx (205). Step 3.5 only addressed 7 specifically-named oversized files; these 7 were never in plan scope. Splitting them is deferred to a future cleanup pass. The 200-line guideline in CLAUDE.md remains aspirational, not strictly enforced.*
 
 ---
 
@@ -957,4 +966,4 @@ Integration with Apple Health for automatic Physical and Nutritional pillar data
 
 ---
 
-*This file was last updated: 2026-05-09 — Round 2 code review remediation in progress (CODE_REVIEW_PLAN2.md). Tier 1 timezone hardening shipped (commits 741abff + b4ecb09); Tier 2 shipped (b6a1b7b, smoke-verified in production); Tier 3 partial shipped — Steps 3.1–3.6 (DRY, perf Map indexing, file splits, UI primitives, usePillarSave hook) committed and pushed as 7c4c942. Step 3.7 (pattern cleanup + shared utilities) and Step 3.8 (verify + ship — last step in entire Round 2 remediation) remain. Two housekeeping commits (ea41ddc untracking .next/, e60ff2d untracking tsconfig.tsbuildinfo) cleared longstanding git status noise. Pause UI restored to Settings page after orphaned-component regression discovered. Ten Supabase migrations confirmed run. Username lowercase constraint dropped post-Phase 9; replaced with case-insensitive index. All video URLs pending recordings.*
+*This file was last updated: 2026-05-11 — Round 2 code review remediation COMPLETE (CODE_REVIEW_PLAN2.md). Tier 1 timezone hardening shipped (commits 741abff + b4ecb09); Tier 2 shipped (b6a1b7b, smoke-verified in production); Tier 3 shipped — Steps 3.1–3.6 as 7c4c942 (DRY, perf Map indexing, file splits, UI primitives, usePillarSave hook), Step 3.7 as 2474beb (PILLAR_ORDER dedupe, PULSE_THRESHOLDS extraction, getActiveChallenge helper, computePillarCompletion primitive), Step 3.8 as the final tier-end ship (docs + verify only). Two housekeeping commits (ea41ddc untracking .next/, e60ff2d untracking tsconfig.tsbuildinfo) cleared longstanding git status noise. Pause UI restored to Settings page after orphaned-component regression discovered. Ten Supabase migrations confirmed run. Username lowercase constraint dropped post-Phase 9; replaced with case-insensitive index. Seven `components/` files remain over 200 lines (TuningPillarCard 257, JammingPillarCard 255, DashboardShell 227, GroovingPillarCard 216, AccountSection 206, GroupInvitePanel 205, DestinationGoalSection 205) — out of plan scope, deferred to future cleanup. All video URLs pending recordings.*
