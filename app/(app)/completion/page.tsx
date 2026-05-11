@@ -2,9 +2,9 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { todayInTz } from '@/lib/constants'
+import { PILLAR_ORDER, todayInTz } from '@/lib/constants'
 import type { UserProfile, Challenge, PillarLevel, PillarDailyEntry, DurationGoal } from '@/lib/types'
-import type { PillarName, LevelNumber } from '@/lib/types'
+import type { LevelNumber } from '@/lib/types'
 import CompletionScreen from '@/components/completion/CompletionScreen'
 import type { PillarStat } from '@/components/completion/CompletionScreen'
 
@@ -78,7 +78,6 @@ export default async function CompletionPage() {
   const durationDays = challenge.duration_days
 
   // Active pillars only — in canonical display order
-  const PILLAR_ORDER: PillarName[] = ['spiritual', 'physical', 'nutritional', 'personal', 'relational']
   const activeLevels = PILLAR_ORDER
     .map((p) => pillarLevels.find((pl) => pl.pillar === p))
     .filter((pl): pl is PillarLevel => pl !== undefined && pl.is_active)

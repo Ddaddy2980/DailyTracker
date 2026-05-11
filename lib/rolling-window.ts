@@ -17,8 +17,7 @@
 // =============================================================================
 
 import type { PillarDailyEntry, PillarName, LevelNumber, RollingWindowResult } from '@/lib/types'
-import { ROLLING_WINDOW_THRESHOLDS } from '@/lib/constants'
-import { todayStr } from '@/lib/constants'
+import { ROLLING_WINDOW_THRESHOLDS, todayStr } from '@/lib/constants'
 
 // Returns the ISO date string for N days ago from a reference date.
 function daysAgo(n: number, from?: string): string {

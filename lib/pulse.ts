@@ -13,7 +13,7 @@
 // =============================================================================
 
 import type { PillarDailyEntry, PulseState } from '@/lib/types'
-import { rollingWindowDates } from '@/lib/constants'
+import { rollingWindowDates, PULSE_THRESHOLDS } from '@/lib/constants'
 
 export function computePulseState(
   entries: Pick<PillarDailyEntry, 'entry_date' | 'completed'>[],
@@ -28,7 +28,7 @@ export function computePulseState(
       .map((e) => e.entry_date)
   ).size
 
-  if (activeDays >= 5) return 'smooth_sailing'
-  if (activeDays >= 3) return 'rough_waters'
+  if (activeDays >= PULSE_THRESHOLDS.smooth) return 'smooth_sailing'
+  if (activeDays >= PULSE_THRESHOLDS.rough) return 'rough_waters'
   return 'taking_on_water'
 }

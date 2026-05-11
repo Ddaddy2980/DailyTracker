@@ -232,12 +232,12 @@ API route fixes:
 
 ### Step 3.7 — Pattern cleanup and shared utilities
 
-- [ ] `app/(app)/completion/page.tsx:76`: import `PILLAR_ORDER` from `@/lib/constants`; delete local copy
-- [ ] `lib/rolling-window.ts:20-21`: consolidate two `@/lib/constants` imports into one statement
-- [ ] `lib/pulse.ts:29-31`: extract `PULSE_THRESHOLDS = { smooth: 5, rough: 3 }` to `lib/constants.ts`; import
-- [ ] `components/dashboard/DashboardHeader.tsx:24-28`: drop local `addDays`; import from `@/lib/constants`
-- [ ] Create `lib/supabaseUtils.ts` with `getActiveChallenge(userId, supabase)` returning `{ challenge, error }`; use in `app/api/challenges/pause/route.ts`, `resume/route.ts`, `duration/route.ts`, `restart/route.ts`, `complete/route.ts` (replaces ~15 lines × 5 routes of repeated profile→challenge fetch + ownership verify)
-- [ ] Create `lib/historyUtils.ts` with `computePillarCompletion(entry, goals)` shared helper; use in `HistoryWeekGrid.tsx` and `HistoryMonthGrid.tsx`
+- [x] `app/(app)/completion/page.tsx:76`: import `PILLAR_ORDER` from `@/lib/constants`; delete local copy
+- [x] `lib/rolling-window.ts:20-21`: consolidate two `@/lib/constants` imports into one statement
+- [x] `lib/pulse.ts:29-31`: extract `PULSE_THRESHOLDS = { smooth: 5, rough: 3 }` to `lib/constants.ts`; import
+- [x] `components/dashboard/DashboardHeader.tsx:24-28`: drop local `addDays`; import from `@/lib/constants`
+- [x] Create `lib/supabaseUtils.ts` with `getActiveChallenge(userId, supabase)` returning `{ ok, challenge } | { ok: false, error }` (tagged for narrowing); use in `pause POST`, `resume POST`, `duration PATCH` (3 routes — `restart`/`complete`/`pause DELETE` only need profile fetch, not full challenge, so left untouched per Option A)
+- [x] Add `computePillarCompletion(entry, goals)` to `lib/historyUtils.ts`; `getPillarPct` now delegates to it; MonthGrid keeps its flat-ratio formula intentionally (different aggregation than WeekGrid's per-pillar average)
 
 ### Step 3.8 — Verify and ship Tier 3
 

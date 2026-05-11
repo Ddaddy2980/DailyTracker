@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { todayInTz, MAX_PAUSE_DAYS } from '@/lib/constants'
-import type { Challenge } from '@/lib/types'
+import { getActiveChallenge } from '@/lib/supabaseUtils'
 
 interface PauseRequestBody {
   type:           unknown   // 'immediate' | 'scheduled'
@@ -46,27 +46,11 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServerSupabaseClient()
 
-  // Fetch the active challenge
-  const { data: profile } = await supabase
-    .from('user_profile')
-    .select('active_challenge_id')
-    .eq('user_id', userId)
-    .single<{ active_challenge_id: string | null }>()
-
-  if (!profile?.active_challenge_id) {
-    return NextResponse.json({ error: 'No active challenge found' }, { status: 404 })
+  const result = await getActiveChallenge(userId, supabase)
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 404 })
   }
-
-  const { data: challenge, error: challengeError } = await supabase
-    .from('challenges')
-    .select('*')
-    .eq('id', profile.active_challenge_id)
-    .eq('user_id', userId)
-    .single<Challenge>()
-
-  if (challengeError || !challenge) {
-    return NextResponse.json({ error: 'Challenge not found' }, { status: 404 })
-  }
+  const { challenge } = result
 
   if (type === 'immediate') {
     if (challenge.is_paused) {

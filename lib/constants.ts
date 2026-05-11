@@ -112,6 +112,10 @@ export const CHALLENGE_DURATIONS: ChallengeDuration[] = [21, 30, 60, 90, 100]
 // Enforced in /api/challenges/pause and displayed in PausedDashboard / ChallengePauseTools.
 export const MAX_PAUSE_DAYS = 14
 
+// Pulse state thresholds: minimum active days in a 7-day window to qualify for each band.
+// Used by lib/pulse.ts computePulseState.
+export const PULSE_THRESHOLDS = { smooth: 5, rough: 3 } as const
+
 
 // =============================================================================
 // LEVEL_NAMES

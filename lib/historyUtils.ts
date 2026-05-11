@@ -16,6 +16,18 @@ export function formatShortDate(dateStr: string): string {
   })
 }
 
+// Per-pillar completion % from a single entry and that pillar's goals.
+// Returns null when there is no entry or no active goals (caller decides
+// whether to render that as 0% / "missed" or skip).
+export function computePillarCompletion(
+  entry: PillarDailyEntry | undefined,
+  goals: DurationGoal[],
+): number | null {
+  if (!entry || goals.length === 0) return null
+  const completed = goals.filter((g) => entry.goal_completions?.[g.id] === true).length
+  return Math.round((completed / goals.length) * 100)
+}
+
 export function getPillarPct(
   pillar: PillarName,
   date: string,
@@ -23,11 +35,8 @@ export function getPillarPct(
   goalsByPillar: Map<PillarName, DurationGoal[]>,
 ): number | null {
   const entry = entryIndex.get(`${pillar}|${date}`)
-  if (!entry) return null
-  const pillarGoals = goalsByPillar.get(pillar) ?? []
-  if (pillarGoals.length === 0) return null
-  const completedCount = pillarGoals.filter((g) => entry.goal_completions?.[g.id] === true).length
-  return Math.round((completedCount / pillarGoals.length) * 100)
+  const goals = goalsByPillar.get(pillar) ?? []
+  return computePillarCompletion(entry, goals)
 }
 
 export function getAllPct(

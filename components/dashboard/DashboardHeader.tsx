@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { getDayNumber, todayStr } from '@/lib/constants'
+import { getDayNumber, todayStr, addDays } from '@/lib/constants'
 
 interface DashboardHeaderProps {
   username: string | null
@@ -19,12 +19,6 @@ function formatLabel(dateStr: string): string {
     month: 'short',
     day: 'numeric',
   })
-}
-
-function addDays(dateStr: string, n: number): string {
-  const d = new Date(dateStr + 'T00:00:00')
-  d.setDate(d.getDate() + n)
-  return new Intl.DateTimeFormat('en-CA').format(d)
 }
 
 function getGreeting(effectiveDay: number, completionPct: number): string {
