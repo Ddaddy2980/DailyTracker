@@ -945,6 +945,124 @@ Final `npx tsc --noEmit` gate clean across all of Tier 3. Manual smoke verified 
 
 ---
 
+### 2026-05 Modifications (COMPLETE — commit `155fece`)
+
+Four post-launch UX fixes shipped as one bundle from `2026-05_modifications.md`.
+
+#### Item 1 — History weekly view "ALL" row totals fix
+
+`lib/historyUtils.ts:getAllPct` previously averaged only pillars that had an entry that day, so missed pillars never pulled the score down (a day with 1 of 5 active pillars completed showed 100% in the ALL row instead of ~20%). Rewritten:
+
+```ts
+// New behavior — missed pillars count as 0% in the per-pillar average.
+let hasAnyEntry = false
+let sum = 0
+let pillarsWithGoals = 0
+for (const p of activePillars) {
+  const goals = goalsByPillar.get(p.pillar) ?? []
+  if (goals.length === 0) continue          // pillars with no active goals: skip
+  pillarsWithGoals++
+  const entry = entryIndex.get(`${p.pillar}|${date}`)
+  if (entry) {
+    hasAnyEntry = true
+    const completed = goals.filter(g => entry.goal_completions?.[g.id] === true).length
+    sum += (completed / goals.length) * 100
+  }
+  // else: contributes 0 to sum (the fix)
+}
+if (!hasAnyEntry || pillarsWithGoals === 0) return null
+return Math.round(sum / pillarsWithGoals)
+```
+
+Days with zero entries still return `null` (cell renders empty, not as 0%). The week-summary "X days logged · avg Y%" line is unchanged in spec — it averages non-null ALL cells. MonthGrid and Progress view formulas are intentionally different and were not touched.
+
+#### Item 2 — User-initiated end of challenge
+
+The server-side auto-complete write in `app/(app)/dashboard/page.tsx` (when `effectiveDay > duration_days`) is removed. The dashboard now renders `components/completion/EndOfChallengeDecision.tsx` instead — a 4-option decision screen:
+
+- **Continue** — extends the challenge via existing `PATCH /api/challenges/duration` (preset grid of CHALLENGE_DURATIONS > current, plus an "Add a Week" → `duration_days + 7` button). After save, `router.refresh()` returns the user to the normal dashboard.
+- **Review previous days** — `<Link href="/history">`. Past-day editing is the explicit recovery path for "I forgot to enter yesterday."
+- **Edit my goals** — `<Link href="/goals">`.
+- **End and view summary** — POSTs `/api/challenges/complete`, then `router.push('/completion')`.
+
+`dashboard/page.tsx` resolves `?date=<past>` BEFORE the decision branch and adds `const isViewingPastDay = viewingDate < today`. The decision-screen branch is gated on `!isViewingPastDay`, so clicking a past-day cell from `/history` always lands on editable pillar cards — even when the challenge is past duration:
+
+```ts
+const effectiveDay = getEffectiveChallengeDay(challenge, today)
+const isViewingPastDay = viewingDate < today
+if (effectiveDay > challenge.duration_days && !challenge.is_paused && !isViewingPastDay) {
+  return <EndOfChallengeDecision ... />
+}
+```
+
+`app/api/checkin/route.ts` gained a 403 guard: today saves are blocked when `effectiveDay > duration_days`. The challenge ownership query was extended to fetch `start_date`, `duration_days`, `paused_at`, `pause_days_used`, then `getEffectiveChallengeDay(challengeCheck, clientToday)` is computed inline. Retroactive saves (`entry_date < clientToday`) remain allowed — they never trigger advancement either.
+
+#### Item 3 — Pillar card save illumination
+
+`hooks/usePillarSave.ts` `saved` timeout shortened from 2000ms → 1200ms. The 5 pillar-card outer wrappers now apply a transient ring when `saved` is true:
+
+```tsx
+className={`rounded-xl overflow-hidden transition-all duration-300 ${
+  saved && !advancedToLevel
+    ? 'ring-4 ring-emerald-400 shadow-[0_0_32px_rgba(52,211,153,0.85)]'
+    : 'shadow-sm'
+}`}
+```
+
+Soloing and the generic PillarCard fallback use the same class minus the `&& !advancedToLevel` guard (Soloing doesn't advance). Emerald was chosen because white (initial pick) was invisible against the light page background; emerald reads against both white background and the dark pillar card backgrounds.
+
+#### Item 4 — Full-screen advancement celebration
+
+New `components/dashboard/AdvancementCelebrationModal.tsx`:
+
+- Fixed full-screen overlay, semi-opaque dark backdrop, `z-50`.
+- Center card painted from `PILLAR_CONFIG[pillar]` — background color, large pillar icon in a `saveButton`-colored circle, `title`/`subtitle` text colors.
+- Headline: "You've advanced to {LEVEL_NAMES[newLevel]}".
+- Stage-appropriate line from new `ADVANCEMENT_MESSAGES: Record<2|3|4, string>` in `lib/constants.ts`:
+  - 2 (Jamming): "You're finding your rhythm."
+  - 3 (Grooving): "You're in the groove now."
+  - 4 (Soloing): "You've made this part of who you are."
+- Continue button (pillar `saveButton` color) → `onDismiss`.
+- Backdrop fade-in + card zoom-in via new `@keyframes fadeIn` / `zoomIn` in `app/globals.css` (Tailwind doesn't ship animation utilities by default in this project).
+
+`usePillarSave` updated — the prior `setTimeout(() => router.refresh(), 2500)` on advancement is removed because a hard refresh during the modal would unmount it. The hook now exposes `dismissAdvancement()`:
+
+```ts
+function dismissAdvancement() {
+  setAdvancedToLevel(null)
+  router.refresh()
+}
+```
+
+Tuning/Jamming/Grooving cards render the modal at the top of their JSX when `advancedToLevel !== null`, passing `onDismiss={dismissAdvancement}`. The old inline "You've advanced to …" toast (which used to replace the open-card content) was removed. SoloingPillarCard is untouched (level 4 doesn't advance).
+
+#### Architectural rules established or reinforced
+
+- **Server never auto-marks a challenge complete.** The decision screen is the only path; only `POST /api/challenges/complete` (called from the End button) writes `status='completed'`. The old `dashboard/page.tsx` auto-complete block is gone.
+- **`/dashboard?date=<past>` must always render editable pillar cards.** The decision branch is gated on `!isViewingPastDay` for this reason. Any future "post-duration" gating must preserve this — the History → past-day editing flow depends on it.
+- **`/api/checkin` accepts retroactive saves at any time, blocks today saves past duration.** The split is on `effectiveDate === clientToday`. Retroactive entries never advance (existing rule, unchanged).
+- **`saved` ring color is emerald, not white.** White rings on the page background are invisible. Pattern: `ring-4 ring-emerald-400 shadow-[0_0_32px_rgba(52,211,153,0.85)] transition-all duration-300`. Reuse for any future transient-success visual.
+- **`router.refresh()` is never fired on a `setTimeout` while a modal is mounted.** `usePillarSave` defers refresh to the user-driven dismiss callback. Same rule for any future modal-on-success flow.
+- **Pillar cards that handle advancement must wire `dismissAdvancement` to the modal's `onDismiss`.** Forgetting this leaves the modal mounted indefinitely (and never refreshes to show the next-level card variant). Soloing skips this because it never advances.
+
+#### Files changed
+
+| File | Change |
+|------|--------|
+| `lib/historyUtils.ts` | `getAllPct` rewritten |
+| `app/(app)/dashboard/page.tsx` | Decision-screen branch; `isViewingPastDay` fallthrough |
+| `app/api/checkin/route.ts` | 403 guard for today saves past duration |
+| `hooks/usePillarSave.ts` | 1200ms `saved` timeout; `dismissAdvancement()` exposed; auto-refresh on advancement removed |
+| `lib/constants.ts` | `ADVANCEMENT_MESSAGES` added |
+| `app/globals.css` | `fadeIn`/`zoomIn` keyframes + `.animate-fadeIn` / `.animate-zoomIn` utilities |
+| `components/completion/EndOfChallengeDecision.tsx` | NEW |
+| `components/dashboard/AdvancementCelebrationModal.tsx` | NEW |
+| `components/dashboard/{Tuning,Jamming,Grooving}PillarCard.tsx` | Emerald ring class; in-card advancement toast removed; modal mounted at top of JSX; `dismissAdvancement` destructured |
+| `components/dashboard/{Soloing,}PillarCard.tsx` | Emerald ring class only |
+| `.gitignore` | Added `/.clerk/` to prevent Clerk dev keyless-mode artifacts from being committed |
+
+---
+
 ### Future Additions
 
 #### Destination Goal Types (Unscheduled)
@@ -966,4 +1084,4 @@ Integration with Apple Health for automatic Physical and Nutritional pillar data
 
 ---
 
-*This file was last updated: 2026-05-11 — Round 2 code review remediation COMPLETE (CODE_REVIEW_PLAN2.md). Tier 1 timezone hardening shipped (commits 741abff + b4ecb09); Tier 2 shipped (b6a1b7b, smoke-verified in production); Tier 3 shipped — Steps 3.1–3.6 as 7c4c942 (DRY, perf Map indexing, file splits, UI primitives, usePillarSave hook), Step 3.7 as 2474beb (PILLAR_ORDER dedupe, PULSE_THRESHOLDS extraction, getActiveChallenge helper, computePillarCompletion primitive), Step 3.8 as the final tier-end ship (docs + verify only). Two housekeeping commits (ea41ddc untracking .next/, e60ff2d untracking tsconfig.tsbuildinfo) cleared longstanding git status noise. Pause UI restored to Settings page after orphaned-component regression discovered. Ten Supabase migrations confirmed run. Username lowercase constraint dropped post-Phase 9; replaced with case-insensitive index. Seven `components/` files remain over 200 lines (TuningPillarCard 257, JammingPillarCard 255, DashboardShell 227, GroovingPillarCard 216, AccountSection 206, GroupInvitePanel 205, DestinationGoalSection 205) — out of plan scope, deferred to future cleanup. All video URLs pending recordings.*
+*This file was last updated: 2026-05-16 — 2026-05 modifications shipped (commit `155fece`): history weekly ALL row formula corrected (missed pillars now count as 0%); end-of-challenge replaced server auto-complete with user-driven `EndOfChallengeDecision` screen (Continue / Review past days / Edit goals / End) + `/dashboard?date=<past>` fallthrough so retroactive editing remains available; pillar save illumination now emerald-400 ring + glow (white was invisible against light background); advancement celebration replaced 2.5s in-card toast with full-screen pillar-themed `AdvancementCelebrationModal`, `router.refresh()` deferred until user-driven dismiss. Earlier (2026-05-11): Round 2 code review remediation COMPLETE (CODE_REVIEW_PLAN2.md) — Tier 1 timezone hardening (741abff + b4ecb09), Tier 2 (b6a1b7b), Tier 3 (7c4c942 + 2474beb + 208f4bc docs). Two housekeeping commits (ea41ddc untracking .next/, e60ff2d untracking tsconfig.tsbuildinfo) cleared git status noise. Pause UI restored to Settings page after orphaned-component regression discovered. Ten Supabase migrations confirmed run. Username lowercase constraint dropped post-Phase 9; replaced with case-insensitive index. Seven `components/` files remain over 200 lines (TuningPillarCard, JammingPillarCard, DashboardShell, GroovingPillarCard, AccountSection, GroupInvitePanel, DestinationGoalSection) — out of plan scope, deferred. All video URLs pending recordings.*
