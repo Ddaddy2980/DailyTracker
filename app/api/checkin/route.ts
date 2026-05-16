@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { PILLAR_ORDER, todayInTz, rollingWindowDates } from '@/lib/constants'
+import { PILLAR_ORDER, todayInTz, rollingWindowDates, getEffectiveChallengeDay } from '@/lib/constants'
 import { evaluateRollingWindow } from '@/lib/rolling-window'
 import type { DurationGoal, GoalCompletions, PillarDailyEntry, PillarLevel, LevelNumber, PulseState } from '@/lib/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -73,10 +73,17 @@ export async function POST(request: NextRequest) {
   // writing entries into another user's challenge.
   const { data: challengeCheck, error: challengeCheckError } = await supabase
     .from('challenges')
-    .select('is_paused')
+    .select('is_paused, status, duration_days, start_date, paused_at, pause_days_used')
     .eq('id', challengeId as string)
     .eq('user_id', userId)
-    .single<{ is_paused: boolean }>()
+    .single<{
+      is_paused:        boolean
+      status:           string
+      duration_days:    number
+      start_date:       string
+      paused_at:        string | null
+      pause_days_used:  number
+    }>()
 
   if (challengeCheckError || !challengeCheck) {
     // Null result means: challenge doesn't exist OR doesn't belong to this user.
@@ -88,6 +95,19 @@ export async function POST(request: NextRequest) {
 
   if (challengeCheck.is_paused) {
     return NextResponse.json({ error: 'Challenge is paused' }, { status: 403 })
+  }
+
+  // Block today saves once the challenge duration has elapsed — the user must
+  // explicitly extend (via /api/challenges/duration) or end (via /api/challenges/complete)
+  // before more check-ins are accepted. Retroactive saves (past entry_date) remain allowed.
+  if (effectiveDate === clientToday) {
+    const effectiveDay = getEffectiveChallengeDay(challengeCheck, clientToday)
+    if (effectiveDay > challengeCheck.duration_days) {
+      return NextResponse.json(
+        { error: 'Challenge duration ended — extend or complete to continue' },
+        { status: 403 }
+      )
+    }
   }
 
   // Fetch active duration goals for this user+pillar to determine `completed`

@@ -45,11 +45,26 @@ export function getAllPct(
   activePillars: PillarLevel[],
   goalsByPillar: Map<PillarName, DurationGoal[]>,
 ): number | null {
-  const pillarPcts = activePillars
-    .map((p) => getPillarPct(p.pillar, date, entryIndex, goalsByPillar))
-    .filter((pct): pct is number => pct !== null)
-  if (pillarPcts.length === 0) return null
-  return Math.round(pillarPcts.reduce((a, b) => a + b, 0) / pillarPcts.length)
+  // Missing per-pillar entries count as 0% (the pillar was active but the user
+  // didn't check in). Pillars with no active goals are skipped entirely.
+  // Returns null only when no pillar has any entry that day, so empty cells
+  // stay visually empty instead of showing 0%.
+  let hasAnyEntry = false
+  let sum = 0
+  let pillarsWithGoals = 0
+  for (const p of activePillars) {
+    const goals = goalsByPillar.get(p.pillar) ?? []
+    if (goals.length === 0) continue
+    pillarsWithGoals++
+    const entry = entryIndex.get(`${p.pillar}|${date}`)
+    if (entry) {
+      hasAnyEntry = true
+      const completed = goals.filter((g) => entry.goal_completions?.[g.id] === true).length
+      sum += (completed / goals.length) * 100
+    }
+  }
+  if (!hasAnyEntry || pillarsWithGoals === 0) return null
+  return Math.round(sum / pillarsWithGoals)
 }
 
 export function cellStyle(pct: number | null, isFuture: boolean, isBeforeChallenge: boolean): string {

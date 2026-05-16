@@ -37,13 +37,16 @@ export function usePillarSave(
       }
       const data = (await res.json()) as CheckinApiResponse
       if (data.advanced && data.newLevel) {
+        // Advancement: don't refresh yet — the celebration modal needs to stay
+        // mounted until the user dismisses it. Refresh is deferred to
+        // dismissAdvancement() below.
         setAdvancedToLevel(data.newLevel)
-        setTimeout(() => router.refresh(), 2500)
       } else {
         setSaved(true)
         onSuccess?.()
         router.refresh()
-        setTimeout(() => setSaved(false), 2000)
+        // ~1s illumination on the card, then fade back to normal.
+        setTimeout(() => setSaved(false), 1200)
       }
     } catch {
       setSaveError('Could not reach the server. Please try again.')
@@ -52,5 +55,10 @@ export function usePillarSave(
     }
   }
 
-  return { saving, saved, saveError, advancedToLevel, handleSave }
+  function dismissAdvancement() {
+    setAdvancedToLevel(null)
+    router.refresh()
+  }
+
+  return { saving, saved, saveError, advancedToLevel, handleSave, dismissAdvancement }
 }

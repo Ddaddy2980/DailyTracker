@@ -8,6 +8,7 @@ import VideoModal from '@/components/shared/VideoModal'
 import { usePillarSave } from '@/hooks/usePillarSave'
 import ChevronIcon from '@/components/ui/ChevronIcon'
 import PlayIcon from '@/components/ui/PlayIcon'
+import AdvancementCelebrationModal from '@/components/dashboard/AdvancementCelebrationModal'
 
 interface TuningPillarCardProps {
   pillarLevel: PillarLevel
@@ -61,7 +62,7 @@ export default function TuningPillarCard({
   const [completions, setCompletions] = useState<GoalCompletions>(() => {
     return todayEntry?.goal_completions ?? {}
   })
-  const { saving, saved, saveError, advancedToLevel, handleSave } = usePillarSave(
+  const { saving, saved, saveError, advancedToLevel, handleSave, dismissAdvancement } = usePillarSave(
     pillar, challengeId, entryDate, () => setIsOpen(false),
   )
   const [showVideo, setShowVideo] = useState(false)
@@ -95,6 +96,13 @@ export default function TuningPillarCard({
 
   return (
     <>
+    {advancedToLevel !== null && (
+      <AdvancementCelebrationModal
+        pillar={pillar}
+        newLevel={advancedToLevel}
+        onDismiss={dismissAdvancement}
+      />
+    )}
     {showVideo && (
       <VideoModal
         video={video}
@@ -102,7 +110,7 @@ export default function TuningPillarCard({
         onWatched={() => setVideoWatched(true)}
       />
     )}
-    <div className="rounded-xl overflow-hidden shadow-sm">
+    <div className={`rounded-xl overflow-hidden transition-all duration-300 ${saved && !advancedToLevel ? 'ring-4 ring-emerald-400 shadow-[0_0_32px_rgba(52,211,153,0.85)]' : 'shadow-sm'}`}>
       {/* Collapsed header row — always visible */}
       <button
         type="button"
@@ -157,17 +165,6 @@ export default function TuningPillarCard({
           style={{ backgroundColor: config.background }}
         >
           <div className="border-t mt-0 pt-3" style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
-            {/* Advancement toast — replaces content when level-up fires */}
-            {advancedToLevel !== null ? (
-              <div className="py-4 text-center">
-                <p className="font-semibold mb-1" style={{ color: config.title }}>
-                  You&apos;ve advanced to {LEVEL_NAMES[advancedToLevel]}!
-                </p>
-                <p className="text-sm" style={{ color: config.subtitle }}>
-                  Your dashboard is updating…
-                </p>
-              </div>
-            ) : (
             <>
             {/* Duration goals */}
             {goals.length === 0 ? (
@@ -247,7 +244,6 @@ export default function TuningPillarCard({
               <p className="text-red-400 text-xs mt-2 text-center">{saveError}</p>
             )}
             </>
-            )}
           </div>
         </div>
       )}

@@ -43,7 +43,7 @@ export default function PillarCard({
   const saveLabel = saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'
 
   return (
-    <div className="rounded-xl overflow-hidden shadow-sm">
+    <div className={`rounded-xl overflow-hidden transition-all duration-300 ${saved ? 'ring-4 ring-emerald-400 shadow-[0_0_32px_rgba(52,211,153,0.85)]' : 'shadow-sm'}`}>
       {/* Collapsed header row — always visible */}
       <button
         type="button"

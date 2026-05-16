@@ -129,6 +129,14 @@ export const LEVEL_NAMES: Record<LevelNumber, LevelName> = {
   4: 'Soloing',
 }
 
+// Stage-appropriate celebration line shown when a pillar advances.
+// Level 1 is the starting state — never advanced into, so no message.
+export const ADVANCEMENT_MESSAGES: Record<2 | 3 | 4, string> = {
+  2: "You're finding your rhythm.",
+  3: "You're in the groove now.",
+  4: "You've made this part of who you are.",
+}
+
 // Short status phrase shown on the Pillar Portrait and pillar cards
 export const LEVEL_STATUS_PHRASES: Record<LevelNumber, string> = {
   1: 'Starting Fresh',

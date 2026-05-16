@@ -4,3 +4,6 @@ CLAUDE.local.md
 .next/
 .DS_Store
 tsconfig.tsbuildinfo
+
+# clerk configuration (can include secrets)
+/.clerk/

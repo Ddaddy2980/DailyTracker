@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from '@/lib/supabase'
 import { getDayNumber, todayInTz, getEffectiveChallengeDay } from '@/lib/constants'
 import type { UserProfile, Challenge, PillarLevel, DurationGoal, DestinationGoal, PillarDailyEntry } from '@/lib/types'
 import DashboardShell from '@/components/dashboard/DashboardShell'
+import EndOfChallengeDecision from '@/components/completion/EndOfChallengeDecision'
 
 // Always fetch fresh data — never serve a cached page
 export const dynamic = 'force-dynamic'
@@ -115,29 +116,30 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   // If challenge is already marked completed, redirect immediately
   if (challenge.status === 'completed') redirect('/completion')
 
-  // Compute effective day (pause-adjusted) and check for natural completion
-  const effectiveDay = getEffectiveChallengeDay(challenge, today)
-  if (effectiveDay > challenge.duration_days && !challenge.is_paused) {
-    // Mark challenge complete directly — no internal HTTP round-trip needed
-    const { error: completeError } = await supabase
-      .from('challenges')
-      .update({ status: 'completed', completed_at: `${today}T12:00:00.000Z` })
-      .eq('id', challenge.id)
-      .eq('status', 'active')
-    if (completeError) {
-      console.error('DashboardPage: failed to mark challenge complete:', completeError)
-    }
-    redirect('/completion')
-  }
-
-  const daysRemaining = challenge.duration_days - effectiveDay
-
   // Resolve viewingDate from search param — must be a valid date within the challenge window
   const rawDate = searchParams.date
   let viewingDate = today
   if (rawDate && ISO_DATE_RE.test(rawDate) && rawDate >= challenge.start_date && rawDate <= today) {
     viewingDate = rawDate
   }
+
+  // Compute effective day (pause-adjusted) and check for natural completion.
+  // Past the duration the user picks what's next — continue, review past days,
+  // edit goals, or end — rather than the server marking complete automatically.
+  // When the user explicitly navigates to a past day (?date=…), fall through to
+  // the normal dashboard so they can retroactively fill in or fix that day's entries.
+  const effectiveDay = getEffectiveChallengeDay(challenge, today)
+  const isViewingPastDay = viewingDate < today
+  if (effectiveDay > challenge.duration_days && !challenge.is_paused && !isViewingPastDay) {
+    return (
+      <EndOfChallengeDecision
+        durationDays={challenge.duration_days}
+        effectiveDay={effectiveDay}
+      />
+    )
+  }
+
+  const daysRemaining = challenge.duration_days - effectiveDay
 
   // Fetch all entries from challenge start through viewingDate.
   // This covers rolling window dot visualizations (7/14 day windows ending at viewingDate)
