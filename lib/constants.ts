@@ -27,6 +27,7 @@ import type {
   PulseState,
   VideoEntry,
   VideoLibrarySection,
+  GoalSuggestion,
 } from '@/lib/types'
 
 
@@ -115,6 +116,61 @@ export const MAX_PAUSE_DAYS = 14
 // Pulse state thresholds: minimum active days in a 7-day window to qualify for each band.
 // Used by lib/pulse.ts computePulseState.
 export const PULSE_THRESHOLDS = { smooth: 5, rough: 3 } as const
+
+
+// =============================================================================
+// v4 Streaks & Grace
+// Used by lib/streaks.ts. See PRODUCT.md §v4.1.
+// =============================================================================
+
+// Every N consecutive main-streak days earns 1 grace day
+export const GRACE_EARN_INTERVAL = 7
+
+// Maximum grace days a user can bank
+export const GRACE_BANK_CAP = 2
+
+// Upper bound on backward walks when computing streaks (rows fetched per query)
+export const STREAK_WALK_LIMIT_DAYS = 400
+
+
+// =============================================================================
+// v4 Goal labels & icons
+// Every duration goal carries a short label + emoji icon chosen at creation.
+// Pre-v4 goals have null label/icon and fall back to these helpers at render.
+// =============================================================================
+
+// Maximum length of a goal's short display label (shown under its ring)
+export const GOAL_LABEL_MAX = 16
+
+// Curated emoji per pillar for the goal-icon picker. The first entry is the
+// pillar's default icon for goals created before v4 (see DEFAULT_GOAL_EMOJI).
+export const PILLAR_GOAL_EMOJI: Record<PillarName, string[]> = {
+  spiritual:   ['📖', '🙏', '✝️', '🕊️', '🎵', '✍️', '🌅', '💭', '❤️', '🛐', '📿', '🕯️'],
+  physical:    ['🏃', '🚶', '💪', '🏋️', '🧘', '🚴', '🏊', '🤸', '⚽', '🛌', '👟', '⏱️'],
+  nutritional: ['🥗', '💧', '🍎', '🥦', '🍳', '🚫', '🌙', '🥕', '🍽️', '🥤', '🫐', '🍠'],
+  personal:    ['📚', '✍️', '🎯', '🧠', '🎸', '🎨', '💻', '🗂️', '⏰', '🛌', '🌱', '🧩'],
+  relational:  ['💬', '📞', '💌', '🤝', '👂', '🍽️', '🙏', '🎁', '☕', '🚶', '❤️', '🎲'],
+}
+
+// Fallback icon for goals with icon = null (pre-v4 rows)
+export const DEFAULT_GOAL_EMOJI: Record<PillarName, string> = {
+  spiritual:   PILLAR_GOAL_EMOJI.spiritual[0],
+  physical:    PILLAR_GOAL_EMOJI.physical[0],
+  nutritional: PILLAR_GOAL_EMOJI.nutritional[0],
+  personal:    PILLAR_GOAL_EMOJI.personal[0],
+  relational:  PILLAR_GOAL_EMOJI.relational[0],
+}
+
+// Derives a short display label from full goal text — word-boundary truncation
+// capped at GOAL_LABEL_MAX. Used for goals with label = null (pre-v4 rows) and
+// to auto-suggest a label as the user types a new goal.
+export function deriveGoalLabel(text: string): string {
+  const t = text.trim()
+  if (t.length <= GOAL_LABEL_MAX) return t
+  const cut = t.slice(0, GOAL_LABEL_MAX + 1)
+  const lastSpace = cut.lastIndexOf(' ')
+  return (lastSpace > 3 ? cut.slice(0, lastSpace) : t.slice(0, GOAL_LABEL_MAX)).trim()
+}
 
 
 // =============================================================================
@@ -236,46 +292,47 @@ export function destinationGoalCapReached(
 // =============================================================================
 // DURATION_GOAL_SUGGESTIONS
 // Pre-written ACT-compliant goal suggestions shown per pillar in GoalSuggestions.
-// Tap a suggestion to fill the goal input and auto-check all three ACT boxes.
+// Tap a suggestion to fill the goal input (text + label + icon) and auto-check
+// all three ACT boxes.
 // Relational suggestions use Think ONE / Four B's framing — no missional language.
 // Replace placeholder copy with final copy before launch.
 // =============================================================================
 
-export const DURATION_GOAL_SUGGESTIONS: Record<PillarName, string[]> = {
+export const DURATION_GOAL_SUGGESTIONS: Record<PillarName, GoalSuggestion[]> = {
   spiritual: [
-    'Read scripture for 10 minutes',
-    'Spend 10 minutes in prayer',
-    'Write one thing I am grateful to God for',
-    'Meditate on a verse for 5 minutes',
-    'Listen to a worship song with full intention',
+    { text: 'Read scripture for 10 minutes',                label: 'Scripture',    icon: '📖' },
+    { text: 'Spend 10 minutes in prayer',                   label: 'Prayer',       icon: '🙏' },
+    { text: 'Write one thing I am grateful to God for',     label: 'Gratitude',    icon: '✍️' },
+    { text: 'Meditate on a verse for 5 minutes',            label: 'Meditate',     icon: '💭' },
+    { text: 'Listen to a worship song with full intention', label: 'Worship',      icon: '🎵' },
   ],
   physical: [
-    'Complete a 20-minute workout',
-    'Walk for 30 minutes',
-    'Do 10 minutes of stretching or mobility work',
-    'Complete a bodyweight strength routine',
-    'Do any active movement for at least 20 minutes',
+    { text: 'Complete a 20-minute workout',                     label: 'Workout',      icon: '💪' },
+    { text: 'Walk for 30 minutes',                              label: 'Walk 30 min',  icon: '🚶' },
+    { text: 'Do 10 minutes of stretching or mobility work',     label: 'Stretch',      icon: '🧘' },
+    { text: 'Complete a bodyweight strength routine',           label: 'Strength',     icon: '🏋️' },
+    { text: 'Do any active movement for at least 20 minutes',   label: 'Move 20 min',  icon: '🏃' },
   ],
   nutritional: [
-    'Eat a whole-food breakfast',
-    'Drink 8 glasses of water',
-    'Eat at least 3 servings of vegetables',
-    'Avoid added sugar for the day',
-    'Prepare at least one home-cooked meal',
+    { text: 'Eat a whole-food breakfast',              label: 'Breakfast',    icon: '🍳' },
+    { text: 'Drink 8 glasses of water',                label: 'Water ×8',     icon: '💧' },
+    { text: 'Eat at least 3 servings of vegetables',   label: 'Veggies ×3',   icon: '🥦' },
+    { text: 'Avoid added sugar for the day',           label: 'No sugar',     icon: '🚫' },
+    { text: 'Prepare at least one home-cooked meal',   label: 'Home meal',    icon: '🍽️' },
   ],
   personal: [
-    'Read for 20 minutes',
-    'Spend 15 minutes on a personal development skill',
-    'Write in a journal for 10 minutes',
-    'Review and prioritize my top 3 tasks for the day',
-    'Spend 10 minutes learning something new',
+    { text: 'Read for 20 minutes',                                    label: 'Read 20 min',  icon: '📚' },
+    { text: 'Spend 15 minutes on a personal development skill',       label: 'Skill 15 min', icon: '🎯' },
+    { text: 'Write in a journal for 10 minutes',                      label: 'Journal',      icon: '✍️' },
+    { text: 'Review and prioritize my top 3 tasks for the day',       label: 'Top 3 tasks',  icon: '🗂️' },
+    { text: 'Spend 10 minutes learning something new',                label: 'Learn 10 min', icon: '🧠' },
   ],
   relational: [
-    'Have a meaningful conversation with someone I care about',
-    'Send an encouraging message to a friend or family member',
-    'Be fully present with my family for 30 minutes — no phone',
-    'Pray intentionally for one person in my life today',
-    'Look for one opportunity to serve or encourage someone today',
+    { text: 'Have a meaningful conversation with someone I care about',      label: 'Real talk',    icon: '💬' },
+    { text: 'Send an encouraging message to a friend or family member',      label: 'Encourage',    icon: '💌' },
+    { text: 'Be fully present with my family for 30 minutes — no phone',     label: 'Be present',   icon: '☕' },
+    { text: 'Pray intentionally for one person in my life today',            label: 'Pray for one', icon: '🙏' },
+    { text: 'Look for one opportunity to serve or encourage someone today',  label: 'Serve one',    icon: '🤝' },
   ],
 }
 

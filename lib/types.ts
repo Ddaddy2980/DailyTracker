@@ -115,6 +115,11 @@ export interface DurationGoal {
   user_id:    string
   pillar:     PillarName
   goal_text:  string
+  // v4: short display label + emoji icon chosen at goal creation.
+  // Both nullable — pre-v4 goals fall back to deriveGoalLabel(goal_text)
+  // and DEFAULT_GOAL_EMOJI[pillar] at render time.
+  label:      string | null
+  icon:       string | null
   is_active:  boolean    // false = soft-deleted; preserves history for rolling window
   created_at: string
   updated_at: string
@@ -156,6 +161,78 @@ export interface ConsistencyProfileSession {
   relational_score:  number    // 0–12
   is_reassessment:   boolean   // true for every session after the first
   created_at:        string
+}
+
+
+// =============================================================================
+// v4 Streaks & Grace — tables: daily_summary, streak_state
+// Migration: supabase/migrations/20260410000009_v4_streaks_and_goal_labels.sql
+// =============================================================================
+
+// One row per user per finalized day, written by the lazy streak evaluator.
+// Snapshots the required-pillar count at evaluation time (pillar activation
+// dates are not tracked historically — this snapshot is the source of truth
+// for streak walks and Journey-page stats).
+export interface DailySummary {
+  id:                string
+  user_id:           string
+  summary_date:      string    // ISO date YYYY-MM-DD
+  pillars_required:  number    // active pillars with >= 1 active duration goal that day
+  pillars_completed: number
+  main_complete:     boolean   // every required pillar completed (a "sealed" day)
+  grace_used:        boolean   // a grace day was consumed to cover this missed day
+  paused:            boolean   // day fell inside a Life Pause — neutral for streaks
+  created_at:        string
+  updated_at:        string
+}
+
+// One row per user. Covers the streak walk through *yesterday* only —
+// the displayed main streak adds +1 live when today is sealed.
+export interface StreakState {
+  user_id:                     string
+  main_streak:                 number
+  longest_main_streak:         number
+  grace_bank:                  number    // 0–2
+  last_grace_earned_at_streak: number    // double-earn guard between live earn + evaluator
+  last_evaluated_date:         string    // ISO date, always <= yesterday
+  created_at:                  string
+  updated_at:                  string
+}
+
+// Classification of one calendar day by the streak evaluator
+export type DayClass = 'complete' | 'missed' | 'paused'
+
+// Which table a committed goal belongs to — duration goals drive `completed`
+// and streaks; destination goals are stored in the same map but are inert.
+export type GoalType = 'duration' | 'destination'
+
+// Response shape from POST /api/checkin (v4 per-goal commits).
+// Carries everything the dashboard needs to animate without refetching.
+export interface GoalCommitApiResponse {
+  success:        boolean
+  completed:      boolean             // pillar complete for entry_date after this commit
+  advanced:       boolean
+  newLevel:       LevelNumber | null
+  pillarCompleted: boolean            // completed transitioned false → true on THIS commit
+  pillarStreak:   number              // display value including entry_date when complete
+  daySealed:      boolean             // all required pillars complete for TODAY (false for past dates)
+  mainStreak:     number              // display value (includes today when sealed)
+  graceBank:      number
+  graceEarned:    boolean             // this seal banked a new grace day
+}
+
+// Draft goal shape used by the goal editor before persistence (v4)
+export interface GoalDraft {
+  text:  string
+  label: string
+  icon:  string
+}
+
+// A pre-written ACT-compliant suggestion with its display label + icon (v4)
+export interface GoalSuggestion {
+  text:  string
+  label: string
+  icon:  string
 }
 
 

@@ -36,17 +36,17 @@ export default function GoalSuggestions({ pillar, onSelect }: GoalSuggestionsPro
 
       {open && (
         <ul className="mt-2 space-y-1.5">
-          {suggestions.map((text) => (
-            <li key={text}>
+          {suggestions.map((s) => (
+            <li key={s.text}>
               <button
                 type="button"
                 onClick={() => {
-                  onSelect(text)
+                  onSelect(s.text)
                   setOpen(false)
                 }}
                 className="w-full text-left text-xs text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg px-3 py-2 transition-colors"
               >
-                {text}
+                {s.icon} {s.text}
               </button>
             </li>
           ))}
