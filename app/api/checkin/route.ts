@@ -1,17 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { PILLAR_ORDER, todayInTz, rollingWindowDates, getEffectiveChallengeDay } from '@/lib/constants'
+import { PILLAR_ORDER, todayInTz, addDays, rollingWindowDates, getEffectiveChallengeDay } from '@/lib/constants'
 import { evaluateRollingWindow } from '@/lib/rolling-window'
-import type { DurationGoal, GoalCompletions, PillarDailyEntry, PillarLevel, LevelNumber, PulseState } from '@/lib/types'
+import {
+  evaluatePendingDays,
+  reevaluateYesterday,
+  updateHistoricalSummary,
+  computePillarStreaks,
+  applyLiveGraceEarn,
+} from '@/lib/streaks'
+import type {
+  DurationGoal,
+  GoalCompletions,
+  GoalCommitApiResponse,
+  PillarDailyEntry,
+  PillarLevel,
+  PillarName,
+  LevelNumber,
+  PulseState,
+  StreakState,
+} from '@/lib/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+// v4 per-goal commit body. The legacy whole-map shape ({ goalCompletions })
+// is still accepted while the old pillar cards exist — removed in Step 6.
 interface CheckinRequestBody {
   pillar: unknown
   challengeId: unknown
-  goalCompletions: unknown
+  goalId?: unknown
+  goalType?: unknown
+  done?: unknown
+  goalCompletions?: unknown
   entry_date?: unknown
 }
+
+interface ChallengeCheck {
+  is_paused:        boolean
+  status:           string
+  duration_days:    number
+  start_date:       string
+  paused_at:        string | null
+  pause_days_used:  number
+}
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
 export async function POST(request: NextRequest) {
   const { userId } = await auth()
@@ -29,17 +62,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { pillar, challengeId, goalCompletions, entry_date } = body
+  const { pillar, challengeId, entry_date } = body
 
   // Validate optional entry_date
-  const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
   if (entry_date !== undefined && (typeof entry_date !== 'string' || !ISO_DATE_RE.test(entry_date))) {
     return NextResponse.json({ error: 'Invalid entry_date' }, { status: 400 })
   }
   const effectiveDate: string = (typeof entry_date === 'string' ? entry_date : null) ?? clientToday
 
   // Validate pillar
-  if (typeof pillar !== 'string' || !PILLAR_ORDER.includes(pillar as (typeof PILLAR_ORDER)[number])) {
+  if (typeof pillar !== 'string' || !PILLAR_ORDER.includes(pillar as PillarName)) {
     return NextResponse.json({ error: 'Invalid pillar' }, { status: 400 })
   }
 
@@ -48,7 +80,318 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid challengeId' }, { status: 400 })
   }
 
-  // Validate goalCompletions is a Record<string, boolean>
+  const typedPillar = pillar as PillarName
+
+  const supabase = createServerSupabaseClient()
+
+  // Guard: verify challenge belongs to this user AND is not paused.
+  // Filtering on both id and user_id prevents one authenticated user from
+  // writing entries into another user's challenge.
+  const { data: challengeCheck, error: challengeCheckError } = await supabase
+    .from('challenges')
+    .select('is_paused, status, duration_days, start_date, paused_at, pause_days_used')
+    .eq('id', challengeId)
+    .eq('user_id', userId)
+    .single<ChallengeCheck>()
+
+  if (challengeCheckError || !challengeCheck) {
+    if (challengeCheckError) {
+      console.error('checkin: failed to verify challenge state:', challengeCheckError)
+    }
+    return NextResponse.json({ error: 'Challenge not found' }, { status: 403 })
+  }
+
+  if (challengeCheck.is_paused) {
+    return NextResponse.json({ error: 'Challenge is paused' }, { status: 403 })
+  }
+
+  // Block today saves once the challenge duration has elapsed — the user must
+  // explicitly extend or end before more check-ins are accepted.
+  // Retroactive saves (past entry_date) remain allowed.
+  if (effectiveDate === clientToday) {
+    const effectiveDay = getEffectiveChallengeDay(challengeCheck, clientToday)
+    if (effectiveDay > challengeCheck.duration_days) {
+      return NextResponse.json(
+        { error: 'Challenge duration ended — extend or complete to continue' },
+        { status: 403 }
+      )
+    }
+  }
+
+  // Legacy whole-map save (old pillar cards) — deleted with them in Step 6
+  if (body.goalCompletions !== undefined) {
+    return handleLegacyPillarSave(
+      userId, tz, clientToday, effectiveDate, typedPillar, challengeId, body.goalCompletions, supabase
+    )
+  }
+
+  return handleGoalCommit(
+    userId, tz, clientToday, effectiveDate, typedPillar, challengeId, body, supabase
+  )
+}
+
+
+// =============================================================================
+// v4 per-goal commit
+// =============================================================================
+
+async function handleGoalCommit(
+  userId: string,
+  tz: string | undefined,
+  clientToday: string,
+  effectiveDate: string,
+  pillar: PillarName,
+  challengeId: string,
+  body: CheckinRequestBody,
+  supabase: SupabaseClient
+) {
+  const { goalId, goalType, done } = body
+
+  if (typeof goalId !== 'string' || goalId.trim() === '') {
+    return NextResponse.json({ error: 'Invalid goalId' }, { status: 400 })
+  }
+  if (goalType !== 'duration' && goalType !== 'destination') {
+    return NextResponse.json({ error: 'Invalid goalType' }, { status: 400 })
+  }
+  if (typeof done !== 'boolean') {
+    return NextResponse.json({ error: 'Invalid done' }, { status: 400 })
+  }
+
+  // Verify the goal belongs to this user, matches the pillar, and is active —
+  // ownership checked in the same query as the id (house rule).
+  if (goalType === 'duration') {
+    const { data: goal } = await supabase
+      .from('duration_goals')
+      .select('id')
+      .eq('id', goalId)
+      .eq('user_id', userId)
+      .eq('pillar', pillar)
+      .eq('is_active', true)
+      .maybeSingle<{ id: string }>()
+    if (!goal) return NextResponse.json({ error: 'Goal not found' }, { status: 403 })
+  } else {
+    const { data: goal } = await supabase
+      .from('destination_goals')
+      .select('id')
+      .eq('id', goalId)
+      .eq('user_id', userId)
+      .eq('pillar', pillar)
+      .eq('status', 'active')
+      .maybeSingle<{ id: string }>()
+    if (!goal) return NextResponse.json({ error: 'Goal not found' }, { status: 403 })
+  }
+
+  // Fold any pending days into streak state before reasoning about
+  // yesterday/today. Fast path is a single SELECT.
+  const evalResult = await evaluatePendingDays(userId, tz, supabase)
+  let streakState: StreakState = evalResult.state
+
+  // Atomic merge of this one goal into the entry's jsonb map + completed
+  // recompute — two racing commits both land (in-row || concatenation).
+  const { data: mergeData, error: mergeError } = await supabase.rpc('checkin_merge_goal', {
+    p_user_id:      userId,
+    p_challenge_id: challengeId,
+    p_pillar:       pillar,
+    p_entry_date:   effectiveDate,
+    p_goal_id:      goalId,
+    p_done:         done,
+  })
+
+  if (mergeError) {
+    console.error('checkin: checkin_merge_goal failed:', mergeError)
+    return NextResponse.json({ error: 'Failed to save check-in' }, { status: 500 })
+  }
+
+  const merge = mergeData as { goal_completions: GoalCompletions; completed: boolean; was_completed: boolean } | null
+  if (!merge || typeof merge.completed !== 'boolean') {
+    console.error('checkin: unexpected checkin_merge_goal result:', mergeData)
+    return NextResponse.json({ error: 'Failed to save check-in' }, { status: 500 })
+  }
+
+  const completed = merge.completed
+  const pillarCompleted = completed && !merge.was_completed
+  const yesterday = addDays(clientToday, -1)
+
+  // ── Older than yesterday: history-only. Update the day's summary counts;
+  //    never touches streak_state (a broken streak is never resurrected).
+  if (effectiveDate < yesterday) {
+    await updateHistoricalSummary(userId, effectiveDate, supabase)
+    return NextResponse.json(buildResponse({
+      completed, pillarCompleted, advanced: false, newLevel: null,
+      pillarStreak: 0, daySealed: false,
+      mainStreak: streakState.main_streak, graceBank: streakState.grace_bank, graceEarned: false,
+    }))
+  }
+
+  // ── Yesterday: inside the editable streak window until midnight tonight.
+  //    Re-classify it — refunds provisionally-consumed grace, resurrects a
+  //    streak broken only by yesterday. No advancement/pulse/groups (existing rule).
+  if (effectiveDate === yesterday) {
+    const updated = await reevaluateYesterday(userId, tz, supabase)
+    if (updated) streakState = updated
+    const pillarStreaks = await computePillarStreaks(userId, [pillar], yesterday, supabase)
+    return NextResponse.json(buildResponse({
+      completed, pillarCompleted, advanced: false, newLevel: null,
+      pillarStreak: pillarStreaks[pillar], daySealed: false,
+      mainStreak: streakState.main_streak, graceBank: streakState.grace_bank, graceEarned: false,
+    }))
+  }
+
+  // ── Today: full side-effects.
+  await syncGroupDailyStatus(userId, effectiveDate, supabase)
+  await updatePulseState(userId, challengeId, supabase, clientToday)
+
+  // Advancement — only when this commit completed the pillar
+  let advanced = false
+  let newLevel: LevelNumber | null = null
+  if (pillarCompleted && goalType === 'duration') {
+    const advancement = await runAdvancement(userId, pillar, clientToday, supabase)
+    advanced = advancement.advanced
+    newLevel = advancement.newLevel
+  }
+
+  // Day sealed? Every required pillar (active + >= 1 active duration goal)
+  // has a completed entry for today.
+  let daySealed = false
+  if (completed) {
+    daySealed = await isDaySealed(userId, clientToday, supabase)
+  }
+
+  let graceBank = streakState.grace_bank
+  let graceEarned = false
+  if (daySealed && pillarCompleted) {
+    // Today's seal pushes the display streak; bank a grace day immediately
+    // when it lands on an earn multiple (idempotent vs tomorrow's evaluator).
+    graceEarned = await applyLiveGraceEarn(userId, streakState.main_streak + 1, supabase)
+    if (graceEarned) graceBank = Math.min(graceBank + 1, 2)
+  }
+
+  const pillarStreaks = await computePillarStreaks(userId, [pillar], yesterday, supabase)
+
+  return NextResponse.json(buildResponse({
+    completed,
+    pillarCompleted,
+    advanced,
+    newLevel,
+    pillarStreak: pillarStreaks[pillar] + (completed ? 1 : 0),
+    daySealed,
+    mainStreak: streakState.main_streak + (daySealed ? 1 : 0),
+    graceBank,
+    graceEarned,
+  }))
+}
+
+function buildResponse(fields: Omit<GoalCommitApiResponse, 'success'>): GoalCommitApiResponse {
+  return { success: true, ...fields }
+}
+
+// Every required pillar has a completed entry on `date`
+async function isDaySealed(
+  userId: string,
+  date: string,
+  supabase: SupabaseClient
+): Promise<boolean> {
+  const [levelsResult, goalsResult, entriesResult] = await Promise.all([
+    supabase
+      .from('pillar_levels')
+      .select('pillar')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .returns<{ pillar: PillarName }[]>(),
+    supabase
+      .from('duration_goals')
+      .select('pillar')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .returns<{ pillar: PillarName }[]>(),
+    supabase
+      .from('pillar_daily_entries')
+      .select('pillar')
+      .eq('user_id', userId)
+      .eq('entry_date', date)
+      .eq('completed', true)
+      .returns<{ pillar: PillarName }[]>(),
+  ])
+
+  const goalPillars = new Set((goalsResult.data ?? []).map((g) => g.pillar))
+  const required = (levelsResult.data ?? []).map((l) => l.pillar).filter((p) => goalPillars.has(p))
+  if (required.length === 0) return false
+
+  const completedSet = new Set((entriesResult.data ?? []).map((e) => e.pillar))
+  return required.every((p) => completedSet.has(p))
+}
+
+// Rolling-window advancement — unchanged v3 logic, shared by both paths
+async function runAdvancement(
+  userId: string,
+  pillar: PillarName,
+  clientToday: string,
+  supabase: SupabaseClient
+): Promise<{ advanced: boolean; newLevel: LevelNumber | null }> {
+  const windowStart = rollingWindowDates(60, clientToday)[0]
+
+  const [levelResult, entriesResult] = await Promise.all([
+    supabase
+      .from('pillar_levels')
+      .select('level')
+      .eq('user_id', userId)
+      .eq('pillar', pillar)
+      .single<Pick<PillarLevel, 'level'>>(),
+
+    supabase
+      .from('pillar_daily_entries')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('pillar', pillar)
+      .gte('entry_date', windowStart)
+      .lte('entry_date', clientToday)
+      .returns<PillarDailyEntry[]>(),
+  ])
+
+  if (levelResult.error) {
+    console.error('checkin: failed to load pillar_levels for advancement check:', levelResult.error)
+    return { advanced: false, newLevel: null }
+  }
+
+  const currentLevel = levelResult.data.level as LevelNumber
+  const entries = entriesResult.data ?? []
+
+  const result = evaluateRollingWindow(entries, currentLevel, pillar, clientToday)
+
+  if (!result.shouldAdvance || result.nextLevel === null) {
+    return { advanced: false, newLevel: null }
+  }
+
+  const { error: advanceError } = await supabase
+    .from('pillar_levels')
+    .update({ level: result.nextLevel })
+    .eq('user_id', userId)
+    .eq('pillar', pillar)
+
+  if (advanceError) {
+    console.error('checkin: failed to advance pillar level:', advanceError)
+    return { advanced: false, newLevel: null }
+  }
+
+  return { advanced: true, newLevel: result.nextLevel }
+}
+
+
+// =============================================================================
+// Legacy whole-map pillar save — kept only while the v3 pillar cards exist.
+// Deleted in Step 6 along with the old cards and usePillarSave.
+// =============================================================================
+
+async function handleLegacyPillarSave(
+  userId: string,
+  tz: string | undefined,
+  clientToday: string,
+  effectiveDate: string,
+  pillar: PillarName,
+  challengeId: string,
+  goalCompletions: unknown,
+  supabase: SupabaseClient
+) {
   if (
     typeof goalCompletions !== 'object' ||
     goalCompletions === null ||
@@ -64,58 +407,12 @@ export async function POST(request: NextRequest) {
   }
 
   const typedGoalCompletions = goalCompletions as GoalCompletions
-  const typedPillar = pillar as (typeof PILLAR_ORDER)[number]
 
-  const supabase = createServerSupabaseClient()
-
-  // Guard: verify challenge belongs to this user AND is not paused.
-  // Filtering on both id and user_id prevents one authenticated user from
-  // writing entries into another user's challenge.
-  const { data: challengeCheck, error: challengeCheckError } = await supabase
-    .from('challenges')
-    .select('is_paused, status, duration_days, start_date, paused_at, pause_days_used')
-    .eq('id', challengeId as string)
-    .eq('user_id', userId)
-    .single<{
-      is_paused:        boolean
-      status:           string
-      duration_days:    number
-      start_date:       string
-      paused_at:        string | null
-      pause_days_used:  number
-    }>()
-
-  if (challengeCheckError || !challengeCheck) {
-    // Null result means: challenge doesn't exist OR doesn't belong to this user.
-    if (challengeCheckError) {
-      console.error('checkin: failed to verify challenge state:', challengeCheckError)
-    }
-    return NextResponse.json({ error: 'Challenge not found' }, { status: 403 })
-  }
-
-  if (challengeCheck.is_paused) {
-    return NextResponse.json({ error: 'Challenge is paused' }, { status: 403 })
-  }
-
-  // Block today saves once the challenge duration has elapsed — the user must
-  // explicitly extend (via /api/challenges/duration) or end (via /api/challenges/complete)
-  // before more check-ins are accepted. Retroactive saves (past entry_date) remain allowed.
-  if (effectiveDate === clientToday) {
-    const effectiveDay = getEffectiveChallengeDay(challengeCheck, clientToday)
-    if (effectiveDay > challengeCheck.duration_days) {
-      return NextResponse.json(
-        { error: 'Challenge duration ended — extend or complete to continue' },
-        { status: 403 }
-      )
-    }
-  }
-
-  // Fetch active duration goals for this user+pillar to determine `completed`
   const { data: activeGoals, error: goalsError } = await supabase
     .from('duration_goals')
     .select('id')
     .eq('user_id', userId)
-    .eq('pillar', typedPillar)
+    .eq('pillar', pillar)
     .eq('is_active', true)
     .returns<Pick<DurationGoal, 'id'>[]>()
 
@@ -125,8 +422,6 @@ export async function POST(request: NextRequest) {
   }
 
   const goals = activeGoals ?? []
-
-  // completed = true only when every active duration goal is checked
   const completed =
     goals.length > 0 &&
     goals.every((g) => typedGoalCompletions[g.id] === true)
@@ -137,7 +432,7 @@ export async function POST(request: NextRequest) {
       {
         user_id:          userId,
         challenge_id:     challengeId,
-        pillar:           typedPillar,
+        pillar,
         entry_date:       effectiveDate,
         completed,
         goal_completions: typedGoalCompletions,
@@ -150,93 +445,43 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to save check-in' }, { status: 500 })
   }
 
-  // Only evaluate advancement and sync group status for today's completions.
-  // Retroactive edits to past days do not trigger level-up or group sync.
+  // Keep streak bookkeeping consistent with the new path
+  await evaluatePendingDays(userId, tz, supabase)
+  const yesterday = addDays(clientToday, -1)
+  if (effectiveDate === yesterday) {
+    await reevaluateYesterday(userId, tz, supabase)
+  } else if (effectiveDate < yesterday) {
+    await updateHistoricalSummary(userId, effectiveDate, supabase)
+  }
+
   if (effectiveDate !== clientToday) {
     return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
   }
 
-  // Side-effects for today saves — both awaited to ensure serverless completion.
-  // updatePulseState is non-fatal internally; awaiting it guarantees the write
-  // actually runs before Vercel freezes the execution context.
   await syncGroupDailyStatus(userId, effectiveDate, supabase)
-  await updatePulseState(userId, challengeId as string, supabase, clientToday)
+  await updatePulseState(userId, challengeId, supabase, clientToday)
 
   if (!completed) {
     return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
   }
 
-  // Fetch current pillar level and last 60 days of entries in parallel.
-  // 60 days covers the largest rolling window (Grooving → Soloing).
-  // evaluateRollingWindow filters internally to the correct window for the level.
-  const windowStart = rollingWindowDates(60, clientToday)[0]
-
-  const [levelResult, entriesResult] = await Promise.all([
-    supabase
-      .from('pillar_levels')
-      .select('level')
-      .eq('user_id', userId)
-      .eq('pillar', typedPillar)
-      .single<Pick<PillarLevel, 'level'>>(),
-
-    supabase
-      .from('pillar_daily_entries')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('pillar', typedPillar)
-      .gte('entry_date', windowStart)
-      .lte('entry_date', clientToday)
-      .returns<PillarDailyEntry[]>(),
-  ])
-
-  if (levelResult.error) {
-    console.error('checkin: failed to load pillar_levels for advancement check:', levelResult.error)
-    // Non-fatal — entry was already saved; return success without advancement
-    return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
-  }
-
-  const currentLevel = levelResult.data.level as LevelNumber
-  const entries = entriesResult.data ?? []
-
-  const result = evaluateRollingWindow(entries, currentLevel, typedPillar, clientToday)
-
-  if (!result.shouldAdvance || result.nextLevel === null) {
-    return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
-  }
-
-  // Advance the pillar level
-  const { error: advanceError } = await supabase
-    .from('pillar_levels')
-    .update({ level: result.nextLevel })
-    .eq('user_id', userId)
-    .eq('pillar', typedPillar)
-
-  if (advanceError) {
-    console.error('checkin: failed to advance pillar level:', advanceError)
-    // Non-fatal — entry was saved; report no advancement rather than erroring
-    return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
-  }
-
-  return NextResponse.json({
-    success:   true,
-    completed,
-    advanced:  true,
-    newLevel:  result.nextLevel,
-  })
+  const { advanced, newLevel } = await runAdvancement(userId, pillar, clientToday, supabase)
+  return NextResponse.json({ success: true, completed, advanced, newLevel })
 }
+
 
 // ---------------------------------------------------------------------------
 // syncGroupDailyStatus
-// Called after a successful today's pillar save when completed = true.
-// Finds all active groups this user belongs to and upserts a completed = true
-// row in group_daily_status for each. Non-fatal — errors are logged only.
+// Called after every today save. Finds all active groups this user belongs to
+// and upserts a completed = true row in group_daily_status for each (binary
+// green-circle indicator — any pillar activity today counts).
+// Non-fatal — errors are logged only.
 // ---------------------------------------------------------------------------
 async function syncGroupDailyStatus(
   userId: string,
   today: string,
   supabase: SupabaseClient,
 ): Promise<void> {
-  // Get all active group memberships for this user where the group is active
   const { data: memberships, error: membershipError } = await supabase
     .from('group_members')
     .select('group_id')
@@ -253,7 +498,6 @@ async function syncGroupDailyStatus(
 
   const groupIds = memberships.map((m) => m.group_id)
 
-  // Only sync to groups with status = 'active' (not paused/archived)
   const { data: activeGroups, error: groupsError } = await supabase
     .from('consistency_groups')
     .select('id')
@@ -315,7 +559,6 @@ async function updatePulseState(
     return
   }
 
-  // Count distinct days that had at least one completed pillar
   const completedDays = new Set(
     (recentEntries ?? []).filter((e) => e.completed).map((e) => e.entry_date)
   ).size
