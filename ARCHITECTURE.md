@@ -12,6 +12,16 @@ completed phases. Do not modify completed phase entries.
 
 ---
 
+> **v4 Phase 1 is IN PROGRESS on branch `v4-phase1`** (started 2026-07-09) — streaks +
+> grace days + dashboard redesign + press-and-hold per-goal check-in + Tempo debut.
+> Design spec: PRODUCT.md §v4. Build plan + live status checklist: `V4_PHASE1_PLAN.md`
+> (repo root). Steps 1–2 shipped (migration `20260410000009`, `lib/streaks.ts` engine,
+> evaluator wiring), Step 3 partial (/api/checkin per-goal path; legacy body still
+> accepted so v3 cards keep working). Migration 20260410000009 NOT yet run in Supabase.
+> Full v4 Phase 1 documentation lands here at Step 7 (build completion).
+
+---
+
 ## v3 Routing Logic
 
 Every authenticated user session resolves to one of two places:
