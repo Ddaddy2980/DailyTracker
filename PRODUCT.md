@@ -2,7 +2,96 @@
 
 This file is the authoritative source of truth for this product. Read this file at the start of every Claude Code session before writing any code.
 
-*Last updated: April 2026 — v3 Phase 9 complete. Full user lifecycle built: onboarding → daily check-in → challenge completion → restart. Per-pillar progression within a single user-chosen challenge container. Onboarding restructured: username → challenge length → clarity videos → Consistency Profile → goal setup. All level routing replaced by unified dashboard. Internal groups redesign: invitation/request system, public/private visibility, username-based identity.*
+*Last updated: July 2026 — v4 Engagement Overhaul designed (see the v4 section immediately below — it supersedes several v3 sections where noted). v3 remains the live production baseline.*
+
+---
+
+## v4 Engagement Overhaul (Decided 2026-07-09 — Design Locked, Not Yet Built)
+
+After 3+ months of daily production use and alpha testing, the verdict: the app tracks consistency but is not itself habit-forming — a "necessary bland chore." v4 rebuilds the engagement loop around the Hook Model (trigger → action → variable reward → investment), loss aversion softened by grace, and a coach character. **Where this section conflicts with v3 sections below, this section wins.** The five pillars, duration-goal philosophy, ACT test, level system, rolling-window advancement, and groups privacy rules are all unchanged.
+
+### 1. Streaks & Grace (new — nothing like this exists in v3)
+
+- **Per-pillar streaks** (all of that pillar's duration goals completed = a pillar day) plus a headline **main streak** (all active pillars completed).
+- **Grace days:** every 7 consecutive main-streak days earns 1 grace day, bank capped at 2. A missed day silently consumes one overnight; the morning message reads "Grace covered yesterday — your streak holds." Grace protects the **main streak only**; pillar streaks remain an honest mirror.
+- **Retroactive edits:** yesterday can be back-filled until midnight tonight and counts toward streaks. Older edits update history and the gauge but never resurrect a broken streak.
+- **Life Pause:** the main streak freezes during a pause (consistent with `getEffectiveChallengeDay`).
+
+### 2. Tempo — The Coach (replaces the entire video system)
+
+- **Character:** an illustrated metronome mascot named **Tempo** — the embodiment of steady rhythm, living inside the Tuning/Jamming/Grooving/Soloing music metaphor. Art: AI-generated concepts → designer-refined pose sheet (cheering, encouraging, concerned, sleeping, celebrating, waving).
+- **Voice arc:** one personality, deepening register per level — Tuning hype-man → Jamming honest workout partner → Grooving wry contemplative → Soloing mostly-quiet proud presence.
+- **Faith boundary:** Tempo is faith-aware and *presents* Scripture, but the Word always appears in its own reverent frame — never mascot-paraphrased. Tempo never jokes about the sacred.
+- **Pop-up rules:** moment-tied only (dashboard greeting, save celebrations, milestones, recovery mornings, streak-at-risk). Hard cap ~2 unprompted appearances per session; self-dismissing; never mid-task.
+- **Brain:** Phase 1 = curated line library (~300+ lines, Claude-drafted, David-curated, ~30-day no-repeat window). "Ask Tempo" = tap the character → bottom sheet with in-voice state summary + 4–6 contextual suggested questions with curated answers. Phase 2 = real Claude-powered chat, informed by phase-1 tap analytics.
+- **Push notifications are written in Tempo's voice** (register-shifted for grave moments).
+- **Settings dial:** Full personality / Just the essentials / Off (functional alerts survive Off).
+- **VIDEO SYSTEM RETIRED:** card video buttons, the `/videos` page, the onboarding clarity-video gate, and `video_progress` usage are all removed. All A/B/C/D/J/G-series coaching moments become Tempo message cards on the same trigger logic. The Video Coaching Library sections below are superseded.
+
+### 3. Notifications (v3 spec was never built — crons point at nonexistent routes)
+
+- **Channel:** Web Push for the installed PWA (iOS 16.4+, Android, desktop) + email fallback. Onboarding must hard-sell Add-to-Home-Screen + Allow Notifications.
+- **Cadence:** the specced 4-step ladder ships **behavior-gated** — each step fires only while unchecked; the 9:45 PM / 11 PM rescues only when a streak ≥3 days is at risk. Intensity adjustable in Settings.
+- **Infrastructure:** hourly cron matching each user's local time via a tz stored on the profile (fixed-UTC crons are wrong for "7:00 AM").
+
+### 4. Variable Reward — "Variable Delight, Fixed Value"
+
+Surprise timing, never randomized currency: unannounced milestone celebrations on non-round days, just-for-today Scripture/message cards, occasional warm surprises. No slot-machine mechanics, ever.
+
+### 5. Consistency Gauge & Life on Purpose Score (specced in v3, never built)
+
+Built as specced (weekly-weighted rolling average, moves both directions) but **recomputed live on every save** — today's check-in visibly nudges it. Computed at save + dashboard load; no cron.
+
+### 6. Badges & the Journey Page
+
+Milestone-only badges: level advancements per pillar, streak landmarks (7/30/66/100), Rooted, challenge completions. A **Journey page** shows earned badges + greyed-out upcoming ones (goal-gradient pull), shareable cards, and the lifetime challenge timeline (see §9).
+
+### 7. Investment Loop
+
+Optional one-sentence daily reflection + the "why this matters to me" statement — played back by Tempo at milestones and on hard days.
+
+### 8. Social Pull (groups privacy rules unchanged — still no comparison, ever)
+
+- One-tap encouragement reactions on a teammate's green circle → generates a notification ("Sarah cheered your check-in").
+- A collective **group streak** ("everyone showed up 4 days running") — shared stake, no individual ranking.
+
+### 9. Dashboard Redesign
+
+- **Hero card** replaces the utility header: large (~90px) Today Ring filling segment-by-segment in pillar colors as each pillar saves; main streak number beside it (odometer tick-up); greeting + Day X of Y beneath; Tempo perched on the corner (tap → Ask sheet).
+- **Day navigation** demoted to a slim "Day 23 · Today ▾" strip below the hero (expands to ‹ › + History link).
+- **Closed pillar cards** gain mini-stats (rolling dots, pillar streak, "2 of 3 today") and a **radiant done-state** (lit-from-within shimmer + glowing check seal); incomplete cards stay matte. The page is a wall you light up panel by panel.
+- **Check-in (REVISED after studying Streaks, the top iPhone habit app):** every duration goal is its own press-and-hold ring target (~64px, goal icon + short user-chosen label, pillar-tinted) displayed inside its pillar card — holding fills the ring and **commits instantly**. No Save buttons, no expand/collapse, no checkboxes anywhere. The habit IS the button. Completing a pillar's last goal fires the pillar celebration (card ignites + hero segment sweeps). Per-goal API commits replace the batch pillar save. Goals gain a short label + icon chosen at creation (goal editor change). The Journey page adds a Streaks-style stats mirror: "since" date, best-ever streak, all-time %, total completions, weekday and time-of-day patterns. Native wrapper (home-screen widgets, watch) noted as a Phase 6 consideration — structurally unavailable to a PWA.
+- **Perfect day:** when the last pillar saves — ring snap-and-glow, one-time cascade down the lit cards, Tempo line, and a persistent "Day 23 — sealed" header state. No daily modals.
+- **Motion:** purposeful micro-motion only; springy easing; respects `prefers-reduced-motion`.
+- **Atmosphere:** living CSS gradient tied to day progress (cool dawn → warm evening → faint gold when sealed) replaces flat `#EBEBEC` on the dashboard.
+- **Dormant pillars:** compact whisper-rows at the bottom ("Waiting for you" → `/goals`), not full-size cards.
+- **Check-in juice:** the hold gesture itself is the feedback moment — filling ring, haptic, icon flip to green; the pillar-complete ignition is the celebration.
+
+### 10. Onboarding Redesign (supersedes the v3 Onboarding Flow section)
+
+The five-gate funnel (username → duration → videos → profile → goals) collapses to **sign-up → "Where do you want to begin?" → one-tap starter goal → dashboard** — under a minute:
+
+- **Progress bar:** 3 fat segments across the top; segment 1 ("Create your account ✓") is pre-filled at first paint — sign-up counts toward completion (endowed progress).
+- **Begin screen:** desire-language buttons mapping to pillars ("Get closer to God" · "Move my body every day" · "Eat like I mean it" · "Grow my mind" · "Show up for people" + a few specific ones), plus a free type/speak box (Web Speech API mic). Picking only ONE area is fine and celebrated. Everything positive.
+- **Free input:** one structured Claude API call maps their words to a pillar + drafts an ACT-compliant starter goal they confirm/tweak (keyword fallback on failure). Non-conversational — ships in phase 1.
+- **First win:** after the goal, the dashboard greets them with Tempo offering "Already done this today? Seal Day 1 right now" — streak = 1 in the first session.
+- **Consistency Profile deferred:** everyone starts at Tuning in their chosen pillar; Tempo offers the Profile as an unlock around day 3–5 ("Want me to calibrate to where you really are? 3 minutes"); results can raise levels retroactively. The Profile itself (questions, scoring, Pillar Portrait) is unchanged — only its position moves.
+- **Duration gate removed:** automatic 21-day starter challenge ("First 21 days are on me" — Tempo). Duration choice moves to the first completion screen.
+- **Username deferred:** placeholder derived from email; the real username is prompted the first time it matters (groups/sharing).
+- **Clarity videos gate removed** (see §2).
+
+### 11. History Forever & the Comeback Flow
+
+- All check-in history is kept permanently (already true in the schema — `pillar_daily_entries` persist per `challenge_id`); the **Journey page** adds the missing cross-challenge lifetime view: every past challenge, dates, pillars, consistency, badges.
+- **Comeback flow:** a lapsed user (no active challenge / long idle) is met by Tempo showing their record warmly ("Last spring: 47 days across 3 pillars — that really happened") with two options: **"Run it back"** (one tap duplicates their old pillars, goals, and duration into a fresh challenge) or **"Start fresh"** (the new begin screen). Streaks restart; badges and lifetime stats never reset.
+
+### 12. Build Order
+
+1. **Phase 1:** Streaks + grace + dashboard redesign + check-in juice (Tempo's celebration lines debut here). Onboarding redesign can ride along or follow immediately.
+2. **Phase 2:** Notifications (Web Push infra, tz-aware hourly cron, Tempo-voiced copy).
+3. **Phase 3:** Gauge + Life on Purpose Score + badges/Journey page + comeback flow.
+4. **Phase 4:** Ask-Tempo sheet + daily reflections + social reactions + video surface removal.
+5. **Phase 5:** Tempo LLM chat.
 
 ---
 
@@ -1361,7 +1450,7 @@ App is in private testing with David only. Fresh start — existing data wiped a
 
 ---
 
-*Last updated: April 2026*
+*Last updated: July 2026*
 *Maintained by: David / Altared Life, LLC*
-*v3 Phase 9 complete: Username system + internal groups redesign. Ten Supabase migrations run. Full user lifecycle built and tested.*
+*v3 Phase 9 complete and live. v4 Engagement Overhaul designed 2026-07-09 (see v4 section at top) — build not yet started.*
 

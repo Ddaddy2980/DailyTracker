@@ -1,0 +1,460 @@
+<title>DCT Dashboard — v4 Mockup</title>
+<style>
+  :root{
+    --page-bg:#e8e9ec; --page-ink:#334155; --frame:#0f172a;
+    --sp:#275578; --sp-t:#82B2DE; --sp-s:#608BAF;
+    --ph:#202644; --ph-t:#8A96CD; --ph-s:#656E96;
+    --nu:#B85D27; --nu-t:#F7B188; --nu-s:#D19675;
+    --pe:#2E5144; --pe-t:#96CE95; --pe-s:#77A676;
+    --go:#22c55e;
+  }
+  @media (prefers-color-scheme: dark){ :root{ --page-bg:#161a22; --page-ink:#cbd5e1; } }
+  :root[data-theme="dark"]{ --page-bg:#161a22; --page-ink:#cbd5e1; }
+  :root[data-theme="light"]{ --page-bg:#e8e9ec; --page-ink:#334155; }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  body{margin:0; background:var(--page-bg); color:var(--page-ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    display:flex; flex-direction:column; align-items:center; gap:14px; padding:28px 12px 48px}
+  h1{font-size:15px; font-weight:600; letter-spacing:.02em; margin:0}
+  .hint{font-size:12.5px; opacity:.7; margin:0; text-align:center; max-width:400px; line-height:1.5}
+
+  /* ---------- phone ---------- */
+  .phone{width:390px; max-width:100%; height:780px; border-radius:42px; background:var(--frame);
+    padding:10px; box-shadow:0 24px 60px rgba(15,23,42,.35); position:relative}
+  .screen{position:relative; width:100%; height:100%; border-radius:34px; overflow:hidden;
+    background:linear-gradient(180deg,#E3E9F0 0%,#EBEBEC 55%,#EFE9E1 100%);
+    transition:background 1.2s ease; display:flex; flex-direction:column}
+  .screen.sealed{background:linear-gradient(180deg,#F0EBDB 0%,#F3EAD3 60%,#EFE3C4 100%)}
+  .scroll{flex:1; overflow-y:auto; padding:0 14px 90px; display:flex; flex-direction:column; gap:10px}
+  .scroll > *{flex-shrink:0}
+
+  .topbar{display:flex; align-items:center; justify-content:center; padding:14px 16px 2px; gap:8px}
+  .topbar .logo{width:26px;height:26px;border-radius:8px;background:var(--sp);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700}
+  .topbar span{font-size:13px;font-weight:600;color:#475569}
+
+  /* ---------- hero ---------- */
+  .hero{background:rgba(255,255,255,.92); backdrop-filter:blur(10px); border-radius:20px; padding:16px;
+    box-shadow:0 4px 16px rgba(15,23,42,.12); display:flex; align-items:center; gap:14px;
+    position:sticky; top:0; z-index:25; margin-top:14px}
+  .hero .ringwrap{position:relative; width:96px; height:96px; flex-shrink:0}
+  .hero .ringwrap > svg{transform:rotate(-90deg)}
+  .hero .ring-center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center}
+  .hero .ring-center b{font-size:20px; color:#1e293b; font-variant-numeric:tabular-nums; line-height:1}
+  .hero .ring-center small{font-size:9px; color:#94a3b8; letter-spacing:.06em; text-transform:uppercase; margin-top:2px}
+  .hero .who{flex:1; min-width:0}
+  .hero .who h2{margin:0; font-size:17px; color:#1e293b}
+  .hero .who p{margin:2px 0 0; font-size:12px; color:#64748b}
+  .streakline{display:flex; align-items:center; gap:6px; margin-top:8px}
+  .beat{width:22px;height:22px;border-radius:50%;background:#fef3c7;display:flex;align-items:center;justify-content:center;font-size:12px}
+  .streakline b{font-size:18px;color:#b45309;font-variant-numeric:tabular-nums}
+  .streakline span{font-size:11px;color:#a16207}
+  .sealed-chip{display:none; margin-top:8px; font-size:11.5px; font-weight:600; color:#92650a;
+    background:#fdf0d2; border:1px solid #ecd9a8; border-radius:999px; padding:3px 10px; width:max-content}
+  .screen.sealed .sealed-chip{display:block}
+  .screen.sealed .streakline{display:none}
+
+  /* Tempo */
+  .tempo{position:absolute; top:8px; right:10px; width:44px; height:54px; cursor:pointer; border:none; background:none; padding:0; z-index:5}
+  .tempo:focus-visible{outline:2px solid #b45309; border-radius:10px}
+  .tempo svg{overflow:visible}
+  .pendulum{transform-origin:16px 30px; animation:tick 1.6s ease-in-out infinite alternate}
+  @keyframes tick{from{transform:rotate(-11deg)}to{transform:rotate(11deg)}}
+  .bubble{position:absolute; top:64px; right:8px; max-width:250px; background:#1e293b; color:#f1f5f9;
+    font-size:12.5px; line-height:1.45; padding:10px 12px; border-radius:14px 4px 14px 14px;
+    box-shadow:0 8px 24px rgba(15,23,42,.3); z-index:30; opacity:0; transform:translateY(-6px); pointer-events:none;
+    transition:opacity .3s, transform .3s}
+  .bubble.show{opacity:1; transform:translateY(0)}
+
+  .daystrip{display:flex; align-items:center; justify-content:center; gap:8px;
+    font-size:12px; color:#64748b; background:rgba(255,255,255,.55); border-radius:12px; padding:6px}
+  .daystrip b{color:#334155; font-variant-numeric:tabular-nums}
+  .daystrip .nav{opacity:.45; letter-spacing:.15em}
+
+  /* ---------- pillar cards ---------- */
+  .card{border-radius:18px; overflow:hidden; box-shadow:0 2px 8px rgba(15,23,42,.10);
+    transition:box-shadow .5s, filter .6s; position:relative; padding:12px 14px 14px}
+  .card.lit{box-shadow:0 0 0 1.5px rgba(34,197,94,.55), 0 3px 10px rgba(34,197,94,.12)}
+  .card::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .8s;
+    background:radial-gradient(ellipse 90% 75% at 50% 45%, rgba(255,255,240,.34) 0%, rgba(255,255,220,.14) 45%, transparent 75%)}
+  .card.lit::before{opacity:1}
+  .card > *{position:relative; z-index:1}
+  .cardhead{display:flex; align-items:center; gap:10px; margin-bottom:10px}
+  .cardhead .picon{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+  .cardhead .meta{flex:1;min-width:0; display:flex; align-items:baseline; gap:7px}
+  .cardhead .name{font-size:14.5px;font-weight:600}
+  .cardhead .lvl{font-size:10.5px; text-transform:uppercase; letter-spacing:.05em}
+  .cardhead .pstreak{font-size:11px;font-weight:600;margin-left:auto;display:flex;align-items:center;gap:3px}
+  .dots{display:flex;gap:3.5px;margin-left:2px}
+  .dots i{width:6px;height:6px;border-radius:50%;display:block}
+
+  /* goal rings — the habit IS the button */
+  .goals{display:flex; flex-wrap:wrap; gap:6px 4px; justify-content:space-around; row-gap:10px}
+  .goalring{display:flex; flex-direction:column; align-items:center; gap:6px; border:none; background:none;
+    cursor:pointer; padding:2px; width:96px}
+  .goalring:focus-visible{outline:2px solid #fff; border-radius:12px}
+  .gr-target{position:relative; width:64px; height:64px}
+  .gr-target .track, .gr-target .fillring{position:absolute; inset:0; transform:rotate(-90deg)}
+  .gr-icon{position:absolute; inset:6px; border-radius:50%; background:rgba(255,255,255,.12);
+    display:flex; align-items:center; justify-content:center; font-size:22px; transition:background .3s, transform .3s}
+  .goalring.done .gr-icon{background:var(--go); transform:scale(1.04)}
+  .goalring.done .gr-icon .em{filter:brightness(10) saturate(0)}
+  .gr-label{font-size:10.5px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; line-height:1.25; text-align:center}
+  .goalring.done .gr-label{opacity:.9}
+  .goalring:not(.done):active .gr-target{transform:scale(.97)}
+  .goals.four .goalring{width:44%}
+
+  /* shimmer sweep on completion */
+  .card::after{content:"";position:absolute;inset:0;z-index:2;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);
+    transform:translateX(-120%);pointer-events:none}
+  .card.shimmer::after{animation:sweep 1s ease-out both}
+  @keyframes sweep{to{transform:translateX(120%)}}
+
+  /* dormant whisper rows */
+  .whisper{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.5);border-radius:12px;padding:9px 14px;cursor:pointer}
+  .whisper .icon{width:24px;height:24px;border-radius:7px;background:#cbd5e1;display:flex;align-items:center;justify-content:center;font-size:12px;filter:grayscale(1);opacity:.75}
+  .whisper span{font-size:12px;color:#64748b}
+  .whisper em{font-size:11px;color:#94a3b8;font-style:normal;margin-left:auto}
+
+  .nav-bar{position:absolute;bottom:0;left:0;right:0;height:64px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);
+    display:flex;align-items:center;justify-content:space-around;border-top:1px solid rgba(15,23,42,.06)}
+  .nav-bar div{font-size:10px;color:#94a3b8;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .nav-bar div.on{color:#1e40af}
+  .nav-bar i{font-size:17px;font-style:normal}
+
+  /* ask sheet */
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:18px 18px 26px;
+    transform:translateY(105%);transition:transform .35s cubic-bezier(.16,1,.3,1);z-index:40;box-shadow:0 -12px 40px rgba(15,23,42,.25);max-height:70%;overflow-y:auto}
+  .sheet.show{transform:translateY(0)}
+  .sheet h3{margin:0 0 4px;font-size:15px;color:#1e293b}
+  .sheet .state{font-size:12.5px;color:#475569;line-height:1.5;background:#f1f5f9;border-radius:10px;padding:10px;margin:10px 0}
+  .sheet .q{display:block;width:100%;text-align:left;border:1px solid #e2e8f0;background:#fff;border-radius:10px;
+    padding:10px 12px;font-size:12.5px;color:#334155;margin-top:7px;cursor:pointer}
+  .sheet .a{font-size:12px;color:#475569;background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:10px;margin-top:7px;display:none;line-height:1.5}
+  .sheet .close{position:absolute;top:10px;right:14px;border:none;background:#f1f5f9;border-radius:50%;width:26px;height:26px;cursor:pointer;color:#64748b}
+  .scrim{position:absolute;inset:0;background:rgba(15,23,42,.35);opacity:0;pointer-events:none;transition:opacity .3s;z-index:35}
+  .scrim.show{opacity:1;pointer-events:auto}
+
+  .controls{display:flex;gap:8px}
+  .controls button{border:1px solid rgba(100,116,139,.4);background:transparent;color:var(--page-ink);
+    border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer}
+
+  @media (prefers-reduced-motion: reduce){
+    .pendulum{animation:none}
+    .card.shimmer::after{animation:none}
+    *{transition-duration:.01ms !important}
+  }
+</style>
+
+<h1>Daily Consistency Tracker — v4 Dashboard Mockup</h1>
+<p class="hint"><b>Press and hold</b> any goal ring to complete it — it saves instantly. No Save buttons anywhere. Complete all nine rings to seal the day. Personal shows the densest allowed case — four goals at Soloing. Tap Tempo to ask a question.</p>
+
+<div class="phone"><div class="screen" id="screen">
+  <div class="topbar"><div class="logo">♪</div><span>Daily Consistency Tracker</span></div>
+  <div class="scroll">
+
+    <!-- HERO -->
+    <div class="hero">
+      <button class="tempo" id="tempoBtn" aria-label="Ask Tempo">
+        <svg width="44" height="54" viewBox="0 0 32 40">
+          <path d="M13 3 Q16 1.5 19 3 L26.5 31 L5.5 31 Z" fill="#B45309" stroke="#92400e" stroke-width="1" stroke-linejoin="round"/>
+          <rect x="3.5" y="30" width="25" height="6" rx="2" fill="#78350f"/>
+          <rect x="15.1" y="7" width="1.8" height="22" rx="0.9" fill="rgba(60,25,5,.45)"/>
+          <line class="pendulum" x1="16" y1="30" x2="16" y2="8.5" stroke="#fde68a" stroke-width="2" stroke-linecap="round"/>
+          <rect class="pendulum" x="13.4" y="11" width="5.2" height="4" rx="1.2" fill="#fde68a" style="transform-origin:16px 30px"/>
+          <circle cx="11" cy="22.5" r="1.6" fill="#1e293b"/><circle cx="21" cy="22.5" r="1.6" fill="#1e293b"/>
+          <path d="M11.5 26 Q16 29 20.5 26" stroke="#1e293b" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div class="bubble" id="bubble"></div>
+
+      <div class="ringwrap">
+        <svg width="96" height="96" viewBox="0 0 96 96">
+          <circle cx="48" cy="48" r="41" fill="none" stroke="#e2e8f0" stroke-width="9"/>
+          <circle id="seg-sp" cx="48" cy="48" r="41" fill="none" stroke="#82B2DE" stroke-width="9" stroke-linecap="round"/>
+          <circle id="seg-ph" cx="48" cy="48" r="41" fill="none" stroke="#8A96CD" stroke-width="9" stroke-linecap="round"/>
+          <circle id="seg-nu" cx="48" cy="48" r="41" fill="none" stroke="#F7B188" stroke-width="9" stroke-linecap="round"/>
+          <circle id="seg-pe" cx="48" cy="48" r="41" fill="none" stroke="#96CE95" stroke-width="9" stroke-linecap="round"/>
+        </svg>
+        <div class="ring-center"><b id="pct">0%</b><small>today</small></div>
+      </div>
+      <div class="who">
+        <h2>Hi David!</h2>
+        <p id="greet">Let&rsquo;s Do This!</p>
+        <div class="streakline"><span class="beat">🎵</span><b id="streak">11</b><span>day main streak · 1 grace banked</span></div>
+        <div class="sealed-chip">Day 23 — sealed 🎵 &nbsp;Streak: <b>12</b></div>
+      </div>
+    </div>
+
+    <div class="daystrip"><span class="nav">‹</span><b>Day 23 of 60</b><span>·</span><span>Today ▾</span><span class="nav">›</span></div>
+
+    <!-- SPIRITUAL — Tuning -->
+    <div class="card" id="card-sp" style="background:var(--sp)">
+      <div class="cardhead">
+        <div class="picon">🙏</div>
+        <div class="meta">
+          <span class="name" style="color:var(--sp-t)">Spiritual</span>
+          <span class="lvl" style="color:var(--sp-s)">Tuning</span>
+          <span class="dots" id="dots-sp"></span>
+        </div>
+        <span class="pstreak" style="color:var(--sp-t)">🔥 4</span>
+      </div>
+      <div class="goals">
+        <button class="goalring" data-p="sp" data-label="Scripture" aria-label="Press and hold to complete: Read one chapter of Scripture">
+          <span class="gr-target">
+            <svg class="track" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="4" stroke-dasharray="3 5"/></svg>
+            <svg class="fillring" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="#22c55e" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="182.2" stroke-dashoffset="182.2"/></svg>
+            <span class="gr-icon"><span class="em">📖</span></span>
+          </span>
+          <span class="gr-label" style="color:var(--sp-t)">Scripture</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- PHYSICAL — Jamming -->
+    <div class="card" id="card-ph" style="background:var(--ph)">
+      <div class="cardhead">
+        <div class="picon">💪</div>
+        <div class="meta">
+          <span class="name" style="color:var(--ph-t)">Physical</span>
+          <span class="lvl" style="color:var(--ph-s)">Jamming</span>
+          <span class="dots" id="dots-ph"></span>
+        </div>
+        <span class="pstreak" style="color:var(--ph-t)">🔥 9</span>
+      </div>
+      <div class="goals">
+        <button class="goalring" data-p="ph" data-label="Walk 20 min" aria-label="Press and hold to complete: Walk 20 minutes">
+          <span class="gr-target">
+            <svg class="track" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="4" stroke-dasharray="3 5"/></svg>
+            <svg class="fillring" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="#22c55e" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="182.2" stroke-dashoffset="182.2"/></svg>
+            <span class="gr-icon"><span class="em">🚶</span></span>
+          </span>
+          <span class="gr-label" style="color:var(--ph-t)">Walk 20 min</span>
+        </button>
+        <button class="goalring" data-p="ph" data-label="Stretch" aria-label="Press and hold to complete: Stretch 5 minutes before bed">
+          <span class="gr-target">
+            <svg class="track" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="4" stroke-dasharray="3 5"/></svg>
+            <svg class="fillring" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="#22c55e" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="182.2" stroke-dashoffset="182.2"/></svg>
+            <span class="gr-icon"><span class="em">🧘</span></span>
+          </span>
+          <span class="gr-label" style="color:var(--ph-t)">Stretch</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- NUTRITIONAL — Grooving -->
+    <div class="card" id="card-nu" style="background:var(--nu)">
+      <div class="cardhead">
+        <div class="picon">🥗</div>
+        <div class="meta">
+          <span class="name" style="color:var(--nu-t)">Nutritional</span>
+          <span class="lvl" style="color:var(--nu-s)">Grooving</span>
+          <span class="dots" id="dots-nu"></span>
+        </div>
+        <span class="pstreak" style="color:var(--nu-t)">🔥 17</span>
+      </div>
+      <div class="goals">
+        <button class="goalring" data-p="nu" data-label="64 oz water" aria-label="Press and hold to complete: Drink 64 oz of water">
+          <span class="gr-target">
+            <svg class="track" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="4" stroke-dasharray="3 5"/></svg>
+            <svg class="fillring" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="#22c55e" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="182.2" stroke-dashoffset="182.2"/></svg>
+            <span class="gr-icon"><span class="em">💧</span></span>
+          </span>
+          <span class="gr-label" style="color:var(--nu-t)">64 oz water</span>
+        </button>
+        <button class="goalring" data-p="nu" data-label="No late snacks" aria-label="Press and hold to complete: No snacking after 8 PM">
+          <span class="gr-target">
+            <svg class="track" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="4" stroke-dasharray="3 5"/></svg>
+            <svg class="fillring" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="#22c55e" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="182.2" stroke-dashoffset="182.2"/></svg>
+            <span class="gr-icon"><span class="em">🌙</span></span>
+          </span>
+          <span class="gr-label" style="color:var(--nu-t)">No late snacks</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- PERSONAL — Soloing, 4 goals (densest case) -->
+    <div class="card" id="card-pe" style="background:var(--pe)">
+      <div class="cardhead">
+        <div class="picon">📝</div>
+        <div class="meta">
+          <span class="name" style="color:var(--pe-t)">Personal</span>
+          <span class="lvl" style="color:var(--pe-s)">Soloing</span>
+          <span class="dots" id="dots-pe"></span>
+        </div>
+        <span class="pstreak" style="color:var(--pe-t)">🔥 42</span>
+      </div>
+      <div class="goals four">
+        <button class="goalring" data-p="pe" data-label="Read 20 min" aria-label="Press and hold to complete: Read for 20 minutes">
+          <span class="gr-target">
+            <svg class="track" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="4" stroke-dasharray="3 5"/></svg>
+            <svg class="fillring" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="#22c55e" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="182.2" stroke-dashoffset="182.2"/></svg>
+            <span class="gr-icon"><span class="em">📚</span></span>
+          </span>
+          <span class="gr-label" style="color:var(--pe-t)">Read 20 min</span>
+        </button>
+        <button class="goalring" data-p="pe" data-label="Journal" aria-label="Press and hold to complete: Write one journal entry">
+          <span class="gr-target">
+            <svg class="track" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="4" stroke-dasharray="3 5"/></svg>
+            <svg class="fillring" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="#22c55e" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="182.2" stroke-dashoffset="182.2"/></svg>
+            <span class="gr-icon"><span class="em">✍️</span></span>
+          </span>
+          <span class="gr-label" style="color:var(--pe-t)">Journal</span>
+        </button>
+        <button class="goalring" data-p="pe" data-label="Practice guitar" aria-label="Press and hold to complete: Practice guitar 15 minutes">
+          <span class="gr-target">
+            <svg class="track" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="4" stroke-dasharray="3 5"/></svg>
+            <svg class="fillring" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="#22c55e" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="182.2" stroke-dashoffset="182.2"/></svg>
+            <span class="gr-icon"><span class="em">🎸</span></span>
+          </span>
+          <span class="gr-label" style="color:var(--pe-t)">Practice guitar</span>
+        </button>
+        <button class="goalring" data-p="pe" data-label="Lights out 10:30" aria-label="Press and hold to complete: In bed with lights out by 10:30">
+          <span class="gr-target">
+            <svg class="track" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="4" stroke-dasharray="3 5"/></svg>
+            <svg class="fillring" width="64" height="64"><circle cx="32" cy="32" r="29" fill="none" stroke="#22c55e" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="182.2" stroke-dashoffset="182.2"/></svg>
+            <span class="gr-icon"><span class="em">🛌</span></span>
+          </span>
+          <span class="gr-label" style="color:var(--pe-t)">Lights out 10:30</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="whisper"><div class="icon">🤝</div><span>Relational</span><em>Waiting for you ›</em></div>
+  </div>
+
+  <div class="nav-bar">
+    <div class="on"><i>⌂</i>Home</div><div><i>◎</i>Goals</div><div><i>▦</i>History</div><div><i>♟</i>Journey</div><div><i>⚑</i>Groups</div>
+  </div>
+
+  <div class="scrim" id="scrim"></div>
+  <div class="sheet" id="sheet">
+    <button class="close" id="sheetClose" aria-label="Close">✕</button>
+    <h3>Tempo</h3>
+    <div class="state">Main streak <b>11</b> — one grace day banked. Spiritual&rsquo;s on a 4-day run, Nutritional&rsquo;s cooking at 17. Nine rings today. What do you want to know?</div>
+    <button class="q" data-a="A grace day covers a missed day automatically so your main streak holds. You earn one for every 7 straight days — you can bank up to 2. You've got 1 ready.">What&rsquo;s a grace day?</button>
+    <button class="q" data-a="Your gauge dipped because last week you hit 4 of 7 in Physical. It weighs recent weeks more, so one strong week brings it right back. This week's the comeback.">Why did my gauge drop?</button>
+    <button class="q" data-a="Jamming to Grooving takes 10 completions in any rolling 14 days. Physical's at 9 in the last 12 — finish today and tomorrow, and I'll bring the confetti.">How close is Physical to Grooving?</button>
+    <div class="a" id="answer"></div>
+  </div>
+</div></div>
+
+<div class="controls">
+  <button id="resetBtn">Reset day</button>
+  <button id="autoBtn">Auto-complete all</button>
+</div>
+<p class="hint">Mockup only — visual/interaction target for Phase 1. Pillar colors are production PILLAR_CONFIG values. Goal icons and short labels are chosen by the user at goal creation.</p>
+
+<script>
+(function(){
+  const C = 2*Math.PI*41;
+  const RING_C = 182.2; // goal ring circumference
+  const pillars = { sp:{total:1,done:0}, ph:{total:2,done:0}, nu:{total:2,done:0}, pe:{total:4,done:0} };
+  const segs = { sp:document.getElementById('seg-sp'), ph:document.getElementById('seg-ph'), nu:document.getElementById('seg-nu'), pe:document.getElementById('seg-pe') };
+  Object.values(segs).forEach(s=>{ s.style.strokeDasharray=C; s.style.strokeDashoffset=C; s.style.transition='stroke-dashoffset .8s cubic-bezier(.16,1,.3,1), stroke-dasharray .8s cubic-bezier(.16,1,.3,1)'; });
+
+  const dotColors = { sp:['#82B2DE','#608BAF'], ph:['#8A96CD','#656E96'], nu:['#F7B188','#D19675'], pe:['#96CE95','#77A676'] };
+  const dotFill = { sp:[1,1,0,1,1,1,0], ph:[1,0,1,1,1,1,0], nu:[1,1,1,1,0,1,0], pe:[1,1,1,1,1,1,0] };
+  for (const p of ['sp','ph','nu','pe']){
+    const wrap=document.getElementById('dots-'+p);
+    dotFill[p].forEach((f,i)=>{
+      const d=document.createElement('i');
+      const last=i===6;
+      d.style.background = f&&!last ? dotColors[p][0] : 'transparent';
+      d.style.border = (f&&!last) ? 'none' : '1.5px solid '+dotColors[p][1];
+      if(last) d.dataset.today=p;
+      wrap.appendChild(d);
+    });
+  }
+
+  function redrawHero(){
+    // hero fills by GOALS completed (5 total) mapped onto 3 pillar segments proportionally
+    const totalGoals=9, doneGoals=Object.values(pillars).reduce((a,x)=>a+x.done,0);
+    const order=['sp','ph','nu','pe']; let offset=0; const gap=6;
+    for (const p of order){
+      const share = pillars[p].total/totalGoals * C;
+      const fill = pillars[p].done/pillars[p].total * share;
+      const s=segs[p];
+      if (fill>0){ s.style.strokeDasharray=Math.max(fill-gap,2)+' '+(C-fill+gap); s.style.strokeDashoffset=-offset; }
+      else { s.style.strokeDasharray=C; s.style.strokeDashoffset=C; }
+      offset+=share;
+    }
+    document.getElementById('pct').textContent=Math.round(doneGoals/totalGoals*100)+'%';
+    document.getElementById('greet').textContent = doneGoals===0?"Let's Do This!":doneGoals<totalGoals?"You've Got This!":"Day sealed. Well done.";
+    if (doneGoals===totalGoals) perfectDay();
+  }
+
+  const pillarLines={ sp:'Spiritual, sealed. Tick. The quiet ones count double.',
+    ph:'Physical complete — 10 in the window. Grooving is one good day away. Warming up the confetti.',
+    nu:'Nutritional — 18 days strong. At this point the habit is doing you.',
+    pe:'Personal: four for four at Soloing. I barely need to be here. I stay for the view.' };
+
+  const bubble=document.getElementById('bubble'); let bubbleTimer;
+  function say(t){ bubble.textContent=t; bubble.classList.add('show');
+    clearTimeout(bubbleTimer); bubbleTimer=setTimeout(()=>bubble.classList.remove('show'),4200); }
+  setTimeout(()=>say('Morning, David. Day 23. Nine rings, one grace day banked — let’s keep tempo. 🎵'),700);
+
+  function completeGoal(btn){
+    if (btn.classList.contains('done')) return;
+    btn.classList.add('done');
+    if (navigator.vibrate) navigator.vibrate(25);
+    const p=btn.dataset.p; pillars[p].done++;
+    redrawHero();
+    if (pillars[p].done===pillars[p].total){
+      const card=document.getElementById('card-'+p);
+      card.classList.add('lit','shimmer');
+      setTimeout(()=>card.classList.remove('shimmer'),1100);
+      const today=document.querySelector('[data-today="'+p+'"]');
+      if(today){ today.style.background=dotColors[p][0]; today.style.border='none'; }
+      const streaks={sp:'🔥 5',ph:'🔥 10',nu:'🔥 18',pe:'🔥 43'};
+      document.getElementById('card-'+p).querySelector('.pstreak').textContent=streaks[p];
+      const totalDone=Object.values(pillars).reduce((a,x)=>a+x.done,0);
+      if (totalDone<9) say(pillarLines[p]);
+    }
+  }
+
+  // press & hold on every goal ring
+  document.querySelectorAll('.goalring').forEach(btn=>{
+    const ring=btn.querySelector('.fillring circle');
+    let t=null;
+    function start(e){ if(btn.classList.contains('done'))return; e.preventDefault();
+      ring.style.transition='stroke-dashoffset .45s linear'; ring.style.strokeDashoffset='0';
+      t=setTimeout(()=>completeGoal(btn),450); }
+    function cancel(){ if(btn.classList.contains('done'))return; clearTimeout(t);
+      ring.style.transition='stroke-dashoffset .2s'; ring.style.strokeDashoffset=RING_C; }
+    btn.addEventListener('pointerdown',start);
+    btn.addEventListener('pointerup',cancel);
+    btn.addEventListener('pointerleave',cancel);
+    btn.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault(); ring.style.strokeDashoffset='0'; completeGoal(btn);} });
+  });
+
+  let sealedOnce=false;
+  function perfectDay(){
+    if (sealedOnce) return; sealedOnce=true;
+    const el=document.getElementById('streak');
+    setTimeout(()=>{ el.style.transition='transform .3s'; el.style.transform='translateY(-6px)';
+      setTimeout(()=>{ el.textContent='12'; el.style.transform='translateY(0)'; },300); },400);
+    ['sp','ph','nu','pe'].forEach((p,i)=> setTimeout(()=>{
+      const c=document.getElementById('card-'+p); c.classList.add('shimmer');
+      setTimeout(()=>c.classList.remove('shimmer'),1100); }, 600+i*220));
+    setTimeout(()=>{ document.getElementById('screen').classList.add('sealed');
+      say('Day 23 — SEALED. Nine rings, streak at 12. Somewhere, a metronome is dancing. It’s me. I’m the metronome. 🎵'); },1200);
+  }
+
+  // Ask Tempo sheet
+  const sheet=document.getElementById('sheet'), scrim=document.getElementById('scrim');
+  document.getElementById('tempoBtn').addEventListener('click',()=>{ sheet.classList.add('show'); scrim.classList.add('show'); });
+  function closeSheet(){ sheet.classList.remove('show'); scrim.classList.remove('show'); }
+  document.getElementById('sheetClose').addEventListener('click',closeSheet);
+  scrim.addEventListener('click',closeSheet);
+  document.querySelectorAll('.sheet .q').forEach(q=>q.addEventListener('click',()=>{
+    const a=document.getElementById('answer'); a.textContent=q.dataset.a; a.style.display='block'; }));
+
+  // demo controls
+  document.getElementById('resetBtn').addEventListener('click',()=>location.reload());
+  document.getElementById('autoBtn').addEventListener('click',()=>{
+    document.querySelectorAll('.goalring').forEach((b,i)=>setTimeout(()=>{
+      b.querySelector('.fillring circle').style.strokeDashoffset='0'; completeGoal(b); },i*300));
+  });
+})();
+</script>
