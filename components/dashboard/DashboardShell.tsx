@@ -28,6 +28,11 @@ interface DashboardShellProps {
   isPaused: boolean
   pulseState: PulseState
   username: string | null
+  // v4 streak props — consumed by the v4 shell rewrite (Step 6); optional so
+  // the v3 shell keeps compiling during the transition
+  streak?: { mainStreak: number; graceBank: number; longestMainStreak: number }
+  pillarStreaks?: Record<PillarName, number>
+  morning?: { graceCoveredYesterday: boolean; comeback: boolean }
 }
 
 export default function DashboardShell({

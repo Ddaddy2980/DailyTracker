@@ -2,7 +2,8 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import { getDayNumber, todayInTz, getEffectiveChallengeDay } from '@/lib/constants'
+import { getDayNumber, todayInTz, getEffectiveChallengeDay, addDays } from '@/lib/constants'
+import { evaluatePendingDays, computePillarStreaks } from '@/lib/streaks'
 import type { UserProfile, Challenge, PillarLevel, DurationGoal, DestinationGoal, PillarDailyEntry } from '@/lib/types'
 import DashboardShell from '@/components/dashboard/DashboardShell'
 import EndOfChallengeDecision from '@/components/completion/EndOfChallengeDecision'
@@ -113,6 +114,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     }
   }
 
+  // Fold any pending days (through yesterday) into streak_state + daily_summary.
+  // Lazy, idempotent, fast-path is one SELECT. Runs after pause auto-activation
+  // so the pause state it reads is current.
+  const streakEval = await evaluatePendingDays(userId, tz, supabase)
+
   // If challenge is already marked completed, redirect immediately
   if (challenge.status === 'completed') redirect('/completion')
 
@@ -162,6 +168,16 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const destinationGoals = destinationGoalsResult.data ?? []
   const windowEntries = allEntries ?? []
 
+  // Honest per-pillar streaks through yesterday — the client adds +1 live
+  // when a pillar is complete on today's view.
+  const activePillarNames = pillarLevels.filter((p) => p.is_active).map((p) => p.pillar)
+  const pillarStreaks = await computePillarStreaks(
+    userId,
+    activePillarNames,
+    addDays(today, -1),
+    supabase
+  )
+
   if (pillarLevelsResult.error) {
     console.error('DashboardPage: failed to load pillar_levels:', pillarLevelsResult.error)
   }
@@ -189,6 +205,16 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       isPaused={challenge.is_paused}
       pulseState={challenge.pulse_state}
       username={profile.username ?? null}
+      streak={{
+        mainStreak:        streakEval.state.main_streak,
+        graceBank:         streakEval.state.grace_bank,
+        longestMainStreak: streakEval.state.longest_main_streak,
+      }}
+      pillarStreaks={pillarStreaks}
+      morning={{
+        graceCoveredYesterday: streakEval.graceCoveredYesterday,
+        comeback:              streakEval.streakBrokeInWindow,
+      }}
     />
   )
 }

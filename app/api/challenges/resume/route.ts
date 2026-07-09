@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { todayInTz } from '@/lib/constants'
 import { getActiveChallenge } from '@/lib/supabaseUtils'
+import { evaluatePendingDays } from '@/lib/streaks'
 
 export async function POST(request: NextRequest) {
   const { userId } = await auth()
@@ -24,6 +25,11 @@ export async function POST(request: NextRequest) {
   if (!challenge.is_paused) {
     return NextResponse.json({ error: 'Challenge is not currently paused' }, { status: 409 })
   }
+
+  // Fold any pending days into the streak state BEFORE the pause flips off —
+  // while is_paused/paused_at still identify the pause window, so days inside
+  // it classify as paused (neutral) rather than missed.
+  await evaluatePendingDays(userId, tz, supabase)
 
   // Compute how many calendar days this pause lasted
   const pauseStart = challenge.paused_at
