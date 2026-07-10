@@ -5,7 +5,7 @@
 > - [x] Step 1 — Migration + types + constants — commit `2a67013`
 > - [x] Step 2 — Streak engine + evaluator wiring — commit `5bb98fb`
 > - [x] Step 3 — /api/checkin per-goal path (`ae1fd7d`) + `hooks/useGoalCommit.ts` (queued commits, inFlight set, advancement wiring) — hook complete, uncommitted
-> - [ ] Step 4 — Tempo (lib/tempo.ts, TempoCharacter, TempoBubble)
+> - [x] Step 4 — Tempo: `lib/tempo.ts` (48-line library + selection), `TempoCharacter`, `TempoBubble` — complete, uncommitted
 > - [ ] Step 5 — Dashboard components (HeroCard, HeroRing, DayStrip, V4PillarCard, GoalRing, WhisperRow, globals.css)
 > - [ ] Step 6 — DashboardShell rewrite + delete 8 old components + usePillarSave + legacy checkin branch
 > - [ ] Step 7 — Goal editor label/icon + ARCHITECTURE.md docs
