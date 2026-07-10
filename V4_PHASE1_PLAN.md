@@ -1,13 +1,13 @@
 # v4 Phase 1 — Streaks, Grace, Dashboard Redesign, Press-and-Hold Check-in, Tempo Debut
 
-> **BUILD STATUS (updated 2026-07-09, end of first build session)** — branch `v4-phase1`:
+> **BUILD STATUS (updated 2026-07-09, end of second build session — Steps 3–5 shipped)** — branch `v4-phase1`:
 >
 > - [x] Step 1 — Migration + types + constants — commit `2a67013`
 > - [x] Step 2 — Streak engine + evaluator wiring — commit `5bb98fb`
-> - [x] Step 3 — /api/checkin per-goal path (`ae1fd7d`) + `hooks/useGoalCommit.ts` (queued commits, inFlight set, advancement wiring) — hook complete, uncommitted
-> - [x] Step 4 — Tempo: `lib/tempo.ts` (48-line library + selection), `TempoCharacter`, `TempoBubble` — complete, uncommitted
-> - [x] Step 5 — Dashboard components: HeroRing, HeroCard, GoalRing, V4PillarCard, DayStrip, WhisperRow + globals.css (goal-fill/tempo-pendulum/hero-seg/lit/shimmer/atmosphere/reduced-motion) — complete, uncommitted; runtime smoke deferred to Step 6 (no consumer yet)
-> - [ ] Step 6 — DashboardShell rewrite + delete 8 old components + usePillarSave + legacy checkin branch
+> - [x] Step 3 — /api/checkin per-goal path (`ae1fd7d`) + `hooks/useGoalCommit.ts` (queued commits, inFlight set, advancement wiring) — commit `a193256`
+> - [x] Step 4 — Tempo: `lib/tempo.ts` (48-line library + selection), `TempoCharacter`, `TempoBubble` — commit `7f1f9f3`
+> - [x] Step 5 — Dashboard components: HeroRing, HeroCard, GoalRing, V4PillarCard, DayStrip, WhisperRow + globals.css (goal-fill/tempo-pendulum/hero-seg/lit/shimmer/atmosphere/reduced-motion) — commit `17c5323`; runtime smoke deferred to Step 6 (no consumer yet)
+> - [ ] Step 6 — DashboardShell rewrite + wire Step-5 components + delete 8 old components + usePillarSave + legacy checkin branch — **NEXT; full handoff in CLAUDE.local.md "Step 6 handoff" block**
 > - [ ] Step 7 — Goal editor label/icon + ARCHITECTURE.md docs
 >
 > ⚠️ **Migration `20260410000009_v4_streaks_and_goal_labels.sql` has NOT been run in Supabase yet** — David runs it before any smoke test (dashboard now calls the streak evaluator on load; errors are non-fatal but nothing streak-related works until it's run).
