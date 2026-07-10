@@ -12,13 +12,14 @@ completed phases. Do not modify completed phase entries.
 
 ---
 
-> **v4 Phase 1 is CODE-COMPLETE on branch `v4-phase1`** (2026-07-09 → 2026-07-10) — streaks +
+> **v4 Phase 1 is COMPLETE and shipped to branch `v4-phase1`** (2026-07-09 → 2026-07-10) — streaks +
 > grace days + dashboard redesign + press-and-hold per-goal check-in + Tempo debut.
 > Design spec: PRODUCT.md §v4. Build plan + status checklist: `V4_PHASE1_PLAN.md` (repo root).
-> All 7 steps built; Step 6 committed (`518f1a2`), Step 7 (goal editor label/icon + these docs)
-> uncommitted. Migration `20260410000009` was RUN in Supabase on 2026-07-10. Core loop
-> smoke-verified on device (hold-to-commit, ignite, seal cascade, hero ring). Not yet
-> merged to `main` / deployed. Full architecture documented in the **"v4 Phase 1"** section below.
+> All 7 steps committed (Step 6 `518f1a2`, Step 7 `6581b7b`) and **pushed to `origin/v4-phase1`**.
+> Migration `20260410000009` RUN in Supabase 2026-07-10. Core loop smoke-verified on device
+> (hold-to-commit, ignite, seal cascade, hero ring). **`main`/production stay on v3 — NOT merged/deployed**
+> (deploy decision: push-branch, hold-main; alpha testers use the Vercel preview URL; full rollout is a
+> later call). Full architecture documented in the **"v4 Phase 1"** section below.
 
 ---
 

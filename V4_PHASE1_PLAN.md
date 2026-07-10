@@ -1,6 +1,6 @@
 # v4 Phase 1 — Streaks, Grace, Dashboard Redesign, Press-and-Hold Check-in, Tempo Debut
 
-> **BUILD STATUS (updated 2026-07-09, end of second build session — Steps 3–5 shipped)** — branch `v4-phase1`:
+> **BUILD STATUS (updated 2026-07-10 — ALL 7 STEPS SHIPPED + PUSHED to `origin/v4-phase1`; `main` still v3, not merged/deployed)** — branch `v4-phase1`:
 >
 > - [x] Step 1 — Migration + types + constants — commit `2a67013`
 > - [x] Step 2 — Streak engine + evaluator wiring — commit `5bb98fb`
@@ -8,13 +8,15 @@
 > - [x] Step 4 — Tempo: `lib/tempo.ts` (48-line library + selection), `TempoCharacter`, `TempoBubble` — commit `7f1f9f3`
 > - [x] Step 5 — Dashboard components: HeroRing, HeroCard, GoalRing, V4PillarCard, DayStrip, WhisperRow + globals.css (goal-fill/tempo-pendulum/hero-seg/lit/shimmer/atmosphere/reduced-motion) — commit `17c5323`; runtime smoke deferred to Step 6 (no consumer yet)
 > - [x] Step 6 — DashboardShell rewritten (optimistic completions, seal cascade, Tempo orchestration, atmosphere, paused branch); page passes `key={viewingDate}`; 8 old components + `usePillarSave.ts` deleted; checkin legacy branch + `CheckinApiResponse` removed. Committed `518f1a2`. Core loop smoke-verified on device.
-> - [x] Step 7 — Goal editor label/icon: `GoalInputRow` emoji picker + label input → emits `GoalDraft`; threaded through `GoalEditorCard` (both modes), `GoalList` (shows icon), `GoalSuggestions` (`onSelect` passes full suggestion), `OnboardingGoalsClient` (`GoalDraft[]` state + batch payload), `POST /api/goals/duration`, `POST /api/onboarding/goals`. ARCHITECTURE.md v4 Phase 1 section written. `npx tsc --noEmit` clean. **NOT committed; runtime smoke pending David. v4 Phase 1 is CODE-COMPLETE.**
+> - [x] Step 7 — Goal editor label/icon: `GoalInputRow` emoji picker + label input → emits `GoalDraft`; threaded through `GoalEditorCard` (both modes), `GoalList` (shows icon), `GoalSuggestions` (`onSelect` passes full suggestion), `OnboardingGoalsClient` (`GoalDraft[]` state + batch payload), `POST /api/goals/duration`, `POST /api/onboarding/goals`. ARCHITECTURE.md v4 Phase 1 section written. `npx tsc --noEmit` clean. Committed `6581b7b`.
 >
 > ✅ **Migration `20260410000009_v4_streaks_and_goal_labels.sql` was RUN in Supabase on 2026-07-10** (verified 2 new tables / 2 goal cols / 1 fn). Streak evaluator + per-goal checkin are live.
+> ✅ **Branch pushed to `origin/v4-phase1` on 2026-07-10.** `main`/production untouched (still v3). Deploy decision: push-branch, hold-main — alpha testers use the Vercel preview URL; full rollout (merge→main→deploy) is a later call.
+> ✅ **Core loop smoke-verified on device** (hold-to-commit, ignite, seal cascade + gold + sealed chip, hero ring).
 >
-> Open decision for David: bootstrap seeds the main streak from entry history (feels earned on launch day). Change `bootstrapStreakState` in `lib/streaks.ts` if starting at 0 is preferred.
+> Bootstrap-seed decision RESOLVED: kept as seed-from-history globally (alpha testers keep history); David's 2 test accounts (dajett2000, djett@crossgates) manually zeroed in `streak_state` via SQL. No `bootstrapStreakState` change.
 >
-> Session protocol: at session start read this file end to end, work the first unchecked step, mark it here + log in CLAUDE.local.md, `npx tsc --noEmit` and commit per step.
+> **v4 Phase 1 is COMPLETE and shipped to branch.** Next (future sessions): Vercel preview URL for alpha → later full rollout; onboarding redesign; real video URLs.
 
 ## Context
 
