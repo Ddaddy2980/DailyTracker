@@ -11,7 +11,6 @@ import {
   applyLiveGraceEarn,
 } from '@/lib/streaks'
 import type {
-  DurationGoal,
   GoalCompletions,
   GoalCommitApiResponse,
   PillarDailyEntry,
@@ -23,15 +22,13 @@ import type {
 } from '@/lib/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-// v4 per-goal commit body. The legacy whole-map shape ({ goalCompletions })
-// is still accepted while the old pillar cards exist — removed in Step 6.
+// v4 per-goal commit body.
 interface CheckinRequestBody {
   pillar: unknown
   challengeId: unknown
   goalId?: unknown
   goalType?: unknown
   done?: unknown
-  goalCompletions?: unknown
   entry_date?: unknown
 }
 
@@ -116,13 +113,6 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       )
     }
-  }
-
-  // Legacy whole-map save (old pillar cards) — deleted with them in Step 6
-  if (body.goalCompletions !== undefined) {
-    return handleLegacyPillarSave(
-      userId, tz, clientToday, effectiveDate, typedPillar, challengeId, body.goalCompletions, supabase
-    )
   }
 
   return handleGoalCommit(
@@ -374,99 +364,6 @@ async function runAdvancement(
   }
 
   return { advanced: true, newLevel: result.nextLevel }
-}
-
-
-// =============================================================================
-// Legacy whole-map pillar save — kept only while the v3 pillar cards exist.
-// Deleted in Step 6 along with the old cards and usePillarSave.
-// =============================================================================
-
-async function handleLegacyPillarSave(
-  userId: string,
-  tz: string | undefined,
-  clientToday: string,
-  effectiveDate: string,
-  pillar: PillarName,
-  challengeId: string,
-  goalCompletions: unknown,
-  supabase: SupabaseClient
-) {
-  if (
-    typeof goalCompletions !== 'object' ||
-    goalCompletions === null ||
-    Array.isArray(goalCompletions)
-  ) {
-    return NextResponse.json({ error: 'Invalid goalCompletions' }, { status: 400 })
-  }
-
-  for (const [key, val] of Object.entries(goalCompletions)) {
-    if (typeof key !== 'string' || typeof val !== 'boolean') {
-      return NextResponse.json({ error: 'Invalid goalCompletions shape' }, { status: 400 })
-    }
-  }
-
-  const typedGoalCompletions = goalCompletions as GoalCompletions
-
-  const { data: activeGoals, error: goalsError } = await supabase
-    .from('duration_goals')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('pillar', pillar)
-    .eq('is_active', true)
-    .returns<Pick<DurationGoal, 'id'>[]>()
-
-  if (goalsError) {
-    console.error('checkin: failed to load active duration_goals:', goalsError)
-    return NextResponse.json({ error: 'Failed to load goals' }, { status: 500 })
-  }
-
-  const goals = activeGoals ?? []
-  const completed =
-    goals.length > 0 &&
-    goals.every((g) => typedGoalCompletions[g.id] === true)
-
-  const { error: upsertError } = await supabase
-    .from('pillar_daily_entries')
-    .upsert(
-      {
-        user_id:          userId,
-        challenge_id:     challengeId,
-        pillar,
-        entry_date:       effectiveDate,
-        completed,
-        goal_completions: typedGoalCompletions,
-      },
-      { onConflict: 'user_id,pillar,entry_date' }
-    )
-
-  if (upsertError) {
-    console.error('checkin: failed to upsert pillar_daily_entry:', upsertError)
-    return NextResponse.json({ error: 'Failed to save check-in' }, { status: 500 })
-  }
-
-  // Keep streak bookkeeping consistent with the new path
-  await evaluatePendingDays(userId, tz, supabase)
-  const yesterday = addDays(clientToday, -1)
-  if (effectiveDate === yesterday) {
-    await reevaluateYesterday(userId, tz, supabase)
-  } else if (effectiveDate < yesterday) {
-    await updateHistoricalSummary(userId, effectiveDate, supabase)
-  }
-
-  if (effectiveDate !== clientToday) {
-    return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
-  }
-
-  await syncGroupDailyStatus(userId, effectiveDate, supabase)
-  await updatePulseState(userId, challengeId, supabase, clientToday)
-
-  if (!completed) {
-    return NextResponse.json({ success: true, completed, advanced: false, newLevel: null })
-  }
-
-  const { advanced, newLevel } = await runAdvancement(userId, pillar, clientToday, supabase)
-  return NextResponse.json({ success: true, completed, advanced, newLevel })
 }
 
 

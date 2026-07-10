@@ -7,10 +7,10 @@
 > - [x] Step 3 — /api/checkin per-goal path (`ae1fd7d`) + `hooks/useGoalCommit.ts` (queued commits, inFlight set, advancement wiring) — commit `a193256`
 > - [x] Step 4 — Tempo: `lib/tempo.ts` (48-line library + selection), `TempoCharacter`, `TempoBubble` — commit `7f1f9f3`
 > - [x] Step 5 — Dashboard components: HeroRing, HeroCard, GoalRing, V4PillarCard, DayStrip, WhisperRow + globals.css (goal-fill/tempo-pendulum/hero-seg/lit/shimmer/atmosphere/reduced-motion) — commit `17c5323`; runtime smoke deferred to Step 6 (no consumer yet)
-> - [ ] Step 6 — DashboardShell rewrite + wire Step-5 components + delete 8 old components + usePillarSave + legacy checkin branch — **NEXT; full handoff in CLAUDE.local.md "Step 6 handoff" block**
-> - [ ] Step 7 — Goal editor label/icon + ARCHITECTURE.md docs
+> - [x] Step 6 — DashboardShell rewritten (optimistic completions, seal cascade, Tempo orchestration, atmosphere, paused branch); page passes `key={viewingDate}`; 8 old components + `usePillarSave.ts` deleted; checkin legacy branch + `CheckinApiResponse` removed. `npx tsc --noEmit` clean. **NOT committed; runtime smoke pending David.**
+> - [ ] Step 7 — Goal editor label/icon + ARCHITECTURE.md docs — **NEXT**
 >
-> ⚠️ **Migration `20260410000009_v4_streaks_and_goal_labels.sql` has NOT been run in Supabase yet** — David runs it before any smoke test (dashboard now calls the streak evaluator on load; errors are non-fatal but nothing streak-related works until it's run).
+> ✅ **Migration `20260410000009_v4_streaks_and_goal_labels.sql` was RUN in Supabase on 2026-07-10** (verified 2 new tables / 2 goal cols / 1 fn). Streak evaluator + per-goal checkin are live.
 >
 > Open decision for David: bootstrap seeds the main streak from entry history (feels earned on launch day). Change `bootstrapStreakState` in `lib/streaks.ts` if starting at 0 is preferred.
 >

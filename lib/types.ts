@@ -254,14 +254,6 @@ export interface RollingWindowResult {
   nextLevel:     LevelNumber | null  // null when already at Level 4 (Soloing)
 }
 
-// Response shape from POST /api/checkin
-export interface CheckinApiResponse {
-  success:   boolean
-  completed: boolean
-  advanced:  boolean
-  newLevel:  LevelNumber | null
-}
-
 // Full state for one pillar card on the dashboard
 // Built server-side per active pillar, passed to the appropriate card component
 export interface PillarCardState {

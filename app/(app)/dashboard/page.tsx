@@ -192,6 +192,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   return (
     <DashboardShell
+      key={viewingDate}
       challenge={challenge}
       pillarLevels={pillarLevels}
       durationGoals={durationGoals}
