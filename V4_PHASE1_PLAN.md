@@ -6,7 +6,7 @@
 > - [x] Step 2 — Streak engine + evaluator wiring — commit `5bb98fb`
 > - [x] Step 3 — /api/checkin per-goal path (`ae1fd7d`) + `hooks/useGoalCommit.ts` (queued commits, inFlight set, advancement wiring) — hook complete, uncommitted
 > - [x] Step 4 — Tempo: `lib/tempo.ts` (48-line library + selection), `TempoCharacter`, `TempoBubble` — complete, uncommitted
-> - [ ] Step 5 — Dashboard components (HeroCard, HeroRing, DayStrip, V4PillarCard, GoalRing, WhisperRow, globals.css)
+> - [x] Step 5 — Dashboard components: HeroRing, HeroCard, GoalRing, V4PillarCard, DayStrip, WhisperRow + globals.css (goal-fill/tempo-pendulum/hero-seg/lit/shimmer/atmosphere/reduced-motion) — complete, uncommitted; runtime smoke deferred to Step 6 (no consumer yet)
 > - [ ] Step 6 — DashboardShell rewrite + delete 8 old components + usePillarSave + legacy checkin branch
 > - [ ] Step 7 — Goal editor label/icon + ARCHITECTURE.md docs
 >

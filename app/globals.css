@@ -85,3 +85,71 @@
   .animate-fadeIn { animation: fadeIn 220ms ease-out both; }
   .animate-zoomIn { animation: zoomIn 320ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 }
+
+/* =========================================================================
+   v4 Phase 1 — dashboard redesign (hero ring, press-and-hold goal rings,
+   pillar-card ignite/shimmer, Tempo pendulum, atmosphere). Class names are
+   referenced as static strings from the v4 dashboard components.
+   ========================================================================= */
+
+/* Tempo's swinging pendulum (TempoCharacter) */
+.tempo-pendulum {
+  transform-origin: 16px 30px;
+  animation: tempo-tick 1.6s ease-in-out infinite alternate;
+}
+@keyframes tempo-tick {
+  from { transform: rotate(-11deg); }
+  to   { transform: rotate(11deg); }
+}
+
+/* Hero ring segments — animate as goals commit (HeroRing) */
+.hero-seg {
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              stroke-dasharray 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Press-and-hold goal ring fill (GoalRing). Base = empty via the SVG
+   stroke-dashoffset attribute; classes drive it to full. */
+.goal-fill { transition: stroke-dashoffset 0.2s ease; }
+.goal-fill.is-filling { stroke-dashoffset: 0; transition: stroke-dashoffset 0.45s linear; }
+.goal-fill.is-done    { stroke-dashoffset: 0; transition: none; }
+
+/* Pillar card ignite (lit glow) + one-shot shimmer sweep (V4PillarCard) */
+.v4card { transition: box-shadow 0.5s, filter 0.6s; }
+.v4card > * { position: relative; z-index: 1; }
+.v4card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.8s;
+  background: radial-gradient(ellipse 90% 75% at 50% 45%,
+    rgba(255, 255, 240, 0.34) 0%, rgba(255, 255, 220, 0.14) 45%, transparent 75%);
+}
+.v4card.is-lit { box-shadow: 0 0 0 1.5px rgba(34, 197, 94, 0.55), 0 3px 10px rgba(34, 197, 94, 0.12); }
+.v4card.is-lit::before { opacity: 1; }
+.v4card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%);
+  transform: translateX(-120%);
+}
+.v4card.is-shimmer::after { animation: v4-sweep 1s ease-out both; }
+@keyframes v4-sweep { to { transform: translateX(120%); } }
+
+/* Dashboard atmosphere by client hour + sealed gold (dashboard wrapper) */
+.atmosphere { transition: background 1.2s ease; }
+.atmosphere-dawn    { background: linear-gradient(180deg, #E3E9F0 0%, #EBEBEC 55%, #EFE9E1 100%); }
+.atmosphere-day     { background: linear-gradient(180deg, #EBEEF2 0%, #EBEBEC 55%, #EEECE8 100%); }
+.atmosphere-evening { background: linear-gradient(180deg, #E7E4EC 0%, #EBEBEC 55%, #F0E9E1 100%); }
+.atmosphere-sealed  { background: linear-gradient(180deg, #F0EBDB 0%, #F3EAD3 60%, #EFE3C4 100%); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tempo-pendulum { animation: none; }
+  .v4card.is-shimmer::after { animation: none; }
+  .goal-fill.is-filling { transition-duration: 0.01ms; }
+}
