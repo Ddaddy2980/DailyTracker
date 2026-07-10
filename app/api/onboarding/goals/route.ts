@@ -7,6 +7,8 @@ import type { UserProfile, ChallengeDuration } from '@/lib/types'
 interface GoalEntry {
   pillar:    string
   goal_text: string
+  label?:    string
+  icon?:     string
   activate:  boolean
 }
 
@@ -16,7 +18,9 @@ function isGoalEntry(v: unknown): v is GoalEntry {
   return (
     typeof g.pillar === 'string' &&
     typeof g.goal_text === 'string' &&
-    typeof g.activate === 'boolean'
+    typeof g.activate === 'boolean' &&
+    (g.label === undefined || typeof g.label === 'string') &&
+    (g.icon === undefined || typeof g.icon === 'string')
   )
 }
 
@@ -86,6 +90,8 @@ export async function POST(req: NextRequest) {
     user_id:   userId,
     pillar:    g.pillar,
     goal_text: g.goal_text.trim(),
+    label:     g.label?.trim() || null,
+    icon:      g.icon || null,
     is_active: true,
   }))
 

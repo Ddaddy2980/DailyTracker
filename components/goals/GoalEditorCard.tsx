@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { PILLAR_CONFIG, DURATION_GOAL_CAP, destinationGoalsAvailable } from '@/lib/constants'
-import type { PillarName, LevelNumber, DurationGoal, DestinationGoal } from '@/lib/types'
+import { PILLAR_CONFIG, DURATION_GOAL_CAP, destinationGoalsAvailable, deriveGoalLabel, DEFAULT_GOAL_EMOJI } from '@/lib/constants'
+import type { PillarName, LevelNumber, DurationGoal, DestinationGoal, GoalDraft } from '@/lib/types'
 import GoalInputRow from '@/components/goals/GoalInputRow'
 import DestinationGoalSection from '@/components/goals/DestinationGoalSection'
 import GoalList from '@/components/goals/GoalList'
@@ -20,9 +20,9 @@ interface BaseProps {
 
 interface OnboardingProps extends BaseProps {
   context:       'onboarding'
-  goals:         string[]           // current goal texts for this pillar
+  goals:         GoalDraft[]        // current goal drafts (text + label + icon) for this pillar
   isActive:      boolean
-  onGoalsChange: (goals: string[]) => void
+  onGoalsChange: (goals: GoalDraft[]) => void
   onToggle:      () => void
 }
 
@@ -52,21 +52,26 @@ export default function GoalEditorCard(props: GoalEditorCardProps) {
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState<string | null>(null)
 
-  // Derived goal texts for display
-  const displayGoals: string[] =
+  // Uniform display shape (text + label + icon) for both modes. Mid-challenge
+  // rows may predate v4, so fall back to a derived label and default icon.
+  const displayGoals: GoalDraft[] =
     props.context === 'onboarding'
       ? props.goals
-      : midGoals.map((g) => g.goal_text)
+      : midGoals.map((g) => ({
+          text:  g.goal_text,
+          label: g.label ?? deriveGoalLabel(g.goal_text),
+          icon:  g.icon ?? DEFAULT_GOAL_EMOJI[pillar],
+        }))
 
   const atCap = displayGoals.length >= cap
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
-  async function handleAdd(text: string) {
+  async function handleAdd(draft: GoalDraft) {
     setError(null)
 
     if (props.context === 'onboarding') {
-      props.onGoalsChange([...props.goals, text])
+      props.onGoalsChange([...props.goals, draft])
       setAdding(false)
       return
     }
@@ -77,7 +82,7 @@ export default function GoalEditorCard(props: GoalEditorCardProps) {
       const res = await fetch('/api/goals/duration', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ pillar, goal_text: text }),
+        body:    JSON.stringify({ pillar, goal_text: draft.text, label: draft.label, icon: draft.icon }),
       })
       if (!res.ok) {
         const json = (await res.json()) as { error?: string }

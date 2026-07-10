@@ -3,13 +3,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PILLAR_ORDER } from '@/lib/constants'
-import type { PillarLevel, PillarName, LevelNumber } from '@/lib/types'
+import type { PillarLevel, PillarName, LevelNumber, GoalDraft } from '@/lib/types'
 import PillarPortrait from '@/components/onboarding/PillarPortrait'
 import GoalEditorCard from '@/components/goals/GoalEditorCard'
 import Spinner from '@/components/ui/Spinner'
 
 interface PillarState {
-  goals:    string[]
+  goals:    GoalDraft[]
   isActive: boolean
 }
 
@@ -45,7 +45,7 @@ export default function OnboardingGoalsClient({
     pillarLevels.map((pl) => [pl.pillar, pl.level as LevelNumber])
   ) as Partial<Record<PillarName, LevelNumber>>
 
-  function handleGoalsChange(pillar: PillarName, goals: string[]) {
+  function handleGoalsChange(pillar: PillarName, goals: GoalDraft[]) {
     setWarnSolo(false)
     setState((prev) => ({ ...prev, [pillar]: { ...prev[pillar], goals } }))
   }
@@ -77,10 +77,12 @@ export default function OnboardingGoalsClient({
 
     const goalsPayload = PILLAR_ORDER.flatMap((pillar) =>
       state[pillar].isActive
-        ? state[pillar].goals.map((goal_text) => ({
+        ? state[pillar].goals.map((g) => ({
             pillar,
-            goal_text,
-            activate: true,
+            goal_text: g.text,
+            label:     g.label,
+            icon:      g.icon,
+            activate:  true,
           }))
         : [{ pillar, goal_text: '', activate: false }]
     )

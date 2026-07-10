@@ -7,8 +7,8 @@
 > - [x] Step 3 — /api/checkin per-goal path (`ae1fd7d`) + `hooks/useGoalCommit.ts` (queued commits, inFlight set, advancement wiring) — commit `a193256`
 > - [x] Step 4 — Tempo: `lib/tempo.ts` (48-line library + selection), `TempoCharacter`, `TempoBubble` — commit `7f1f9f3`
 > - [x] Step 5 — Dashboard components: HeroRing, HeroCard, GoalRing, V4PillarCard, DayStrip, WhisperRow + globals.css (goal-fill/tempo-pendulum/hero-seg/lit/shimmer/atmosphere/reduced-motion) — commit `17c5323`; runtime smoke deferred to Step 6 (no consumer yet)
-> - [x] Step 6 — DashboardShell rewritten (optimistic completions, seal cascade, Tempo orchestration, atmosphere, paused branch); page passes `key={viewingDate}`; 8 old components + `usePillarSave.ts` deleted; checkin legacy branch + `CheckinApiResponse` removed. `npx tsc --noEmit` clean. **NOT committed; runtime smoke pending David.**
-> - [ ] Step 7 — Goal editor label/icon + ARCHITECTURE.md docs — **NEXT**
+> - [x] Step 6 — DashboardShell rewritten (optimistic completions, seal cascade, Tempo orchestration, atmosphere, paused branch); page passes `key={viewingDate}`; 8 old components + `usePillarSave.ts` deleted; checkin legacy branch + `CheckinApiResponse` removed. Committed `518f1a2`. Core loop smoke-verified on device.
+> - [x] Step 7 — Goal editor label/icon: `GoalInputRow` emoji picker + label input → emits `GoalDraft`; threaded through `GoalEditorCard` (both modes), `GoalList` (shows icon), `GoalSuggestions` (`onSelect` passes full suggestion), `OnboardingGoalsClient` (`GoalDraft[]` state + batch payload), `POST /api/goals/duration`, `POST /api/onboarding/goals`. ARCHITECTURE.md v4 Phase 1 section written. `npx tsc --noEmit` clean. **NOT committed; runtime smoke pending David. v4 Phase 1 is CODE-COMPLETE.**
 >
 > ✅ **Migration `20260410000009_v4_streaks_and_goal_labels.sql` was RUN in Supabase on 2026-07-10** (verified 2 new tables / 2 goal cols / 1 fn). Streak evaluator + per-goal checkin are live.
 >

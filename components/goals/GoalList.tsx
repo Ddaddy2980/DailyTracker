@@ -1,5 +1,7 @@
+import type { GoalDraft } from '@/lib/types'
+
 interface GoalListProps {
-  goals:    string[]
+  goals:    GoalDraft[]
   saving:   boolean
   onRemove: (index: number) => void
 }
@@ -9,12 +11,13 @@ export default function GoalList({ goals, saving, onRemove }: GoalListProps) {
 
   return (
     <ul className="space-y-2 mb-2">
-      {goals.map((text, i) => (
+      {goals.map((goal, i) => (
         <li
           key={i}
           className="flex items-start gap-2 bg-white/10 rounded-lg px-3 py-2"
         >
-          <span className="flex-1 text-sm text-white leading-snug">{text}</span>
+          <span className="shrink-0 text-base leading-snug" aria-hidden>{goal.icon}</span>
+          <span className="flex-1 text-sm text-white leading-snug">{goal.text}</span>
           <button
             type="button"
             onClick={() => onRemove(i)}

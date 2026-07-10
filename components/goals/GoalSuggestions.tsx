@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 import { DURATION_GOAL_SUGGESTIONS } from '@/lib/constants'
-import type { PillarName } from '@/lib/types'
+import type { PillarName, GoalSuggestion } from '@/lib/types'
 
 interface GoalSuggestionsProps {
   pillar:    PillarName
-  onSelect:  (text: string) => void
+  onSelect:  (suggestion: GoalSuggestion) => void
 }
 
 export default function GoalSuggestions({ pillar, onSelect }: GoalSuggestionsProps) {
@@ -41,7 +41,7 @@ export default function GoalSuggestions({ pillar, onSelect }: GoalSuggestionsPro
               <button
                 type="button"
                 onClick={() => {
-                  onSelect(s.text)
+                  onSelect(s)
                   setOpen(false)
                 }}
                 className="w-full text-left text-xs text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg px-3 py-2 transition-colors"

@@ -12,14 +12,153 @@ completed phases. Do not modify completed phase entries.
 
 ---
 
-> **v4 Phase 1 is IN PROGRESS on branch `v4-phase1`** (started 2026-07-09) — streaks +
+> **v4 Phase 1 is CODE-COMPLETE on branch `v4-phase1`** (2026-07-09 → 2026-07-10) — streaks +
 > grace days + dashboard redesign + press-and-hold per-goal check-in + Tempo debut.
-> Design spec: PRODUCT.md §v4. Build plan + live status checklist: `V4_PHASE1_PLAN.md`
-> (repo root). Steps 1–6 done (Step 6 uncommitted): streak engine + evaluator wiring,
-> per-goal `/api/checkin`, Tempo, the v4 dashboard components, and the DashboardShell
-> rewrite (old pillar cards + `usePillarSave` + legacy checkin branch deleted).
-> Migration `20260410000009` was RUN in Supabase on 2026-07-10. Step 7 (goal editor
-> label/icon + these docs) remains. Full v4 Phase 1 documentation lands here at Step 7.
+> Design spec: PRODUCT.md §v4. Build plan + status checklist: `V4_PHASE1_PLAN.md` (repo root).
+> All 7 steps built; Step 6 committed (`518f1a2`), Step 7 (goal editor label/icon + these docs)
+> uncommitted. Migration `20260410000009` was RUN in Supabase on 2026-07-10. Core loop
+> smoke-verified on device (hold-to-commit, ignite, seal cascade, hero ring). Not yet
+> merged to `main` / deployed. Full architecture documented in the **"v4 Phase 1"** section below.
+
+---
+
+## v4 Phase 1 — Streaks, Grace, Dashboard Redesign, Press-and-Hold Check-in, Tempo
+
+Branch `v4-phase1`. Rebuilds the engagement loop on top of the v3 data model (no v3 tables
+changed). Design spec: PRODUCT.md §v4; visual target `design/v4-dashboard-mockup.html`.
+
+### Migration `20260410000009_v4_streaks_and_goal_labels.sql` (run 2026-07-10)
+
+- **`duration_goals`** gains nullable `label text` + `icon text` (chosen at goal creation).
+  Nullable by design — pre-v4 rows fall back to `deriveGoalLabel(goal_text)` +
+  `DEFAULT_GOAL_EMOJI[pillar]` at render time. No backfill.
+- **`daily_summary`** (1 row/user/day): `pillars_required`, `pillars_completed`, `main_complete`,
+  `grace_used`, `paused`, `UNIQUE(user_id, summary_date)`. Written by the lazy evaluator; snapshots
+  the required-pillar set at evaluation time (pillar activation dates aren't tracked historically —
+  this snapshot is the source of truth for streak walks + future Journey stats).
+- **`streak_state`** (1 row/user): `main_streak`, `longest_main_streak`, `grace_bank` (0–2, CHECK),
+  `last_grace_earned_at_streak` (double-earn guard), `last_evaluated_date` (always ≤ yesterday).
+  **Invariant: covers through *yesterday* only.** Displayed streak = `main_streak + (today sealed ? 1 : 0)`.
+- **`checkin_merge_goal(user_id, challenge_id, pillar, entry_date, goal_id, done)`** — Postgres fn:
+  atomic `INSERT … ON CONFLICT DO UPDATE SET goal_completions = goal_completions || jsonb_build_object(goal_id, done)`,
+  then recomputes `completed` from the pillar's active duration goals. Returns
+  `{ goal_completions, completed, was_completed }`. Two racing commits both land (in-row `||` merge).
+- v3-style RLS on both tables (own-rows SELECT via anon key; service role ALL).
+
+### Streak model (`lib/streaks.ts`)
+
+- **Grace:** earn 1 per 7 consecutive main-streak days, bank cap 2. A missed day consumes 1 grace
+  overnight (streak holds, doesn't increment); no grace → streak resets to 0. Grace protects the
+  main streak only — per-pillar streaks are honest.
+- **Lazy evaluation, no cron** (same pattern as scheduled-pause auto-activation): `evaluatePendingDays`
+  runs on dashboard load, at the top of `/api/checkin`, and inside `/api/challenges/resume` *before*
+  flipping `is_paused` (so days inside the pause window classify as paused — no pause-ledger table;
+  the evaluator also treats `scheduled_pause_date <= D` as paused). Fast path is one SELECT.
+- **Retroactive:** a save with `entry_date === yesterday` → `reevaluateYesterday` recomputes yesterday's
+  summary, refunds grace if it was consumed (`grace_used` flag makes the refund safe), and walks
+  `daily_summary` backwards to resurrect a streak broken *only* by yesterday. Older dates update
+  `daily_summary` history only (`updateHistoricalSummary`) — never `streak_state`.
+- **Per-pillar streaks:** computed, not stored (`computePillarStreaks`) — walk `pillar_daily_entries`
+  per pillar desc (cross-challenge), skipping `daily_summary.paused` dates.
+- **Bootstrap** (`bootstrapStreakState`): first-ever load seeds `main_streak` from existing entry
+  history against the current pillar set, `grace_bank = min(2, streak/7)`, `last_evaluated_date =
+  yesterday`. (Launch day feels earned, not zeroed. **Open flag:** flip to start-at-0 if David prefers.)
+- Concurrency: `streak_state` update guarded by `WHERE last_evaluated_date = <value read>`; loser re-reads.
+- `applyLiveGraceEarn`: when a seal makes the display streak hit a multiple of 7, banks a grace day
+  immediately, idempotent vs. tomorrow's evaluator via `last_grace_earned_at_streak`.
+
+### Check-in contract — per-goal commits (`/api/checkin`)
+
+Body: `{ pillar, challengeId, goalId, goalType: 'duration'|'destination', done, entry_date? }`.
+Guards unchanged (ownership-in-same-query, pause 403, today-past-duration 403); goal ownership verified
+against the right table. Path split by `entry_date`:
+- **older than yesterday** → `updateHistoricalSummary` only; never touches `streak_state`.
+- **yesterday** → `reevaluateYesterday`; no advancement / pulse / groups.
+- **today** → full side-effects: `checkin_merge_goal`, `syncGroupDailyStatus`, `updatePulseState`,
+  rolling-window advancement (on `pillarCompleted`), seal check, `applyLiveGraceEarn`.
+
+Response (`GoalCommitApiResponse`): `{ success, completed, advanced, newLevel, pillarCompleted,
+pillarStreak, daySealed, mainStreak, graceBank, graceEarned }` — everything the UI needs to animate
+without refetching. The legacy whole-map body + `CheckinApiResponse` were removed in Step 6.
+
+### Client commit engine (`hooks/useGoalCommit.ts`)
+
+`useGoalCommit(challengeId, entryDate)` → `{ commit, inFlight, advancedToLevel, dismissAdvancement }`.
+- **FIFO promise queue** serializes one user's rapid taps so the server's `streak_state`
+  read-modify-write stays off the optimistic-concurrency retry path.
+- **`inFlight: Set<goalId>`** so a `GoalRing` disables itself mid-commit.
+- **`advancedToLevel`** set from a level-up response; `dismissAdvancement` clears it and `router.refresh()`s
+  (refresh deferred to dismiss so `AdvancementCelebrationModal` stays mounted through its animation).
+- Never throws — returns `{ ok: true; data } | { ok: false; error }`. Optimistic state / seal cascade /
+  Tempo orchestration live in the caller (DashboardShell), not the hook.
+
+### Dashboard UI
+
+- **DashboardShell** (client, rewritten in Step 6) — the orchestrator. One `useGoalCommit`; a flat
+  optimistic `completions: Record<goalId, boolean>` seeded once on mount from the viewing-day entry's
+  `goal_completions` (duration + destination keys). The page passes **`key={viewingDate}`** so the shell
+  *remounts and re-seeds* on day navigation. The seed also derives initial `sealed`, `mainStreak`
+  (`+1` when today is already sealed on load), `graceBank`, and per-pillar streaks. `handleCommit`
+  does optimistic set → `commit` → rollback + error on failure; on success reconciles streak/grace from
+  server truth and (today only, on `pillarCompleted`) runs the **seal cascade** (`600 + i*220ms` shimmer
+  stagger, then `atmosphere-sealed` gold + perfect-day Tempo at 1200ms — mockup timing verbatim) or a
+  single-pillar shimmer + `selectPillarCompleteLine(level)`. Atmosphere gradient by client hour is set
+  in a `useEffect` (avoids a UTC/local hydration mismatch). Past-day view hides the streak line and
+  suppresses celebrations; paused view renders `PausedDashboard` only.
+- **HeroCard + HeroRing** — 96px segmented ring, one arc per required pillar (share ∝ goal count, fill ∝
+  goals done, `PILLAR_CONFIG[p].title` stroke, 6px gaps, mockup math verbatim), % center, greeting,
+  streak line (🎵 N · X grace banked), sealed-chip swap, Tempo perched + self-dismissing bubble. Sticky.
+- **DayStrip** — "Day X of Y · Today ▾" collapses to ‹ › URL day-nav + History link.
+- **V4PillarCard** (one component, all 4 levels) — PNG-icon header / name / level / 7-day dots / 🔥 pillar
+  streak; `GoalRing` grid; Grooving+ destination checklist below a divider (tap-toggle, inert to streaks);
+  `lit` glow + `shimmer` sweep states; empty-state "Add a goal →". Goal label = `goal.label ??
+  deriveGoalLabel`, icon = `goal.icon ?? DEFAULT_GOAL_EMOJI[pillar]`.
+- **GoalRing** — 64px press-and-hold: pointerdown → 450ms CSS fill + timeout → commit; up/leave/cancel
+  snaps back; Enter/Space instant (a11y); `touch-action:none`; haptic; commit-only (no un-check);
+  disabled in-flight. Gesture + presentation only — parent owns optimistic `done` + rollback.
+- **WhisperRow** — dormant-pillar invitation row → `/goals`.
+- **Kept & rewired:** `AdvancementCelebrationModal`, `PausedDashboard`, `LifePauseBanner`,
+  `CompletionCountdownBanner`, `EndOfChallengeDecision`.
+- **Deleted at Step-6 cleanup:** `Tuning/Jamming/Grooving/Soloing/PillarCard`, `DormantPillarCard`,
+  `DashboardHeader`, `ProgressRing`, `hooks/usePillarSave.ts`.
+- **globals.css (Step 5):** `.goal-fill`/`.is-filling`/`.is-done`, `.v4card` `.is-lit`/`.is-shimmer`,
+  `.hero-seg`, `.tempo-pendulum`, `.atmosphere-{dawn,day,evening,sealed}`, `prefers-reduced-motion` block.
+
+### Tempo (`lib/tempo.ts`)
+
+Curated line library (no LLM in Phase 1). Greetings (time-of-day / grace / comeback), pillar-complete
+×4 level registers (hype → honest → wry → quiet-proud), perfect-day. `selectGreeting` is unprompted,
+capped at 2/session, priority comeback > grace > time-of-day, `{name}` interpolation, returns null when
+capped. `selectPillarCompleteLine(level)` / `selectPerfectDayLine()` are prompted (never capped).
+Session no-repeat per pool via sessionStorage (SSR-safe). No Scripture (faith boundary). `TempoCharacter`
+(metronome SVG) + `TempoBubble` (self-dismissing, 4200ms). 30-day cross-session no-repeat + Ask-Tempo
+sheet deferred to Phase 4.
+
+### Goal editor — label + icon (Step 7)
+
+`GoalInputRow` gains an emoji picker (`PILLAR_GOAL_EMOJI[pillar]`, ~12/pillar) + a short label input
+(auto-mirrors `deriveGoalLabel(text)` until edited, max `GOAL_LABEL_MAX` = 16) and emits a `GoalDraft`
+`{ text, label, icon }`. Threads through both `GoalEditorCard` modes, `GoalList` (renders the icon),
+`GoalSuggestions` (`onSelect` passes the full `{text,label,icon}` suggestion), `OnboardingGoalsClient`
+(pillar state is now `GoalDraft[]`; batch payload carries label/icon), `POST /api/goals/duration`, and
+`POST /api/onboarding/goals`. Columns nullable — legacy goals render with fallbacks, no backfill.
+`DURATION_GOAL_SUGGESTIONS` is `{text,label,icon}[]` (restructured in Step 1).
+
+### Architectural rules established by v4 Phase 1
+
+- **`streak_state` covers through yesterday only; today's seal is a live +1.** Never fold today into the
+  stored streak. The dashboard seeds "today already sealed" from the viewing-day completions on load.
+- **Streak evaluation is lazy + idempotent, guarded by `last_evaluated_date`.** No cron. Runs on dashboard
+  load, at the top of `/api/checkin`, and inside `/api/challenges/resume` before the pause flip.
+- **Per-goal commits merge atomically in Postgres (`checkin_merge_goal`) + are queued client-side.** Never
+  read-modify-write a jsonb map from application code for concurrent goals.
+- **DashboardShell remounts on day nav via `key={viewingDate}`** to re-seed all optimistic client state.
+- **`router.refresh()` is deferred while a modal is mounted** (advancement) — the hook exposes
+  `dismissAdvancement`; the modal's Continue wires to it. (Reinforces the 2026-05 rule.)
+- **Retroactive saves: yesterday can resurrect/refund; older dates are history-only.** The split lives in
+  `/api/checkin` on `entry_date` vs. `yesterday`.
+- **Goal `label`/`icon` are nullable and always have render-time fallbacks** (`deriveGoalLabel`,
+  `DEFAULT_GOAL_EMOJI`). No migration ever backfills them.
 
 ---
 

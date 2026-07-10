@@ -30,10 +30,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  const { pillar, goal_text } = body as { pillar: string; goal_text: string }
+  const { pillar, goal_text, label, icon } = body as {
+    pillar: string
+    goal_text: string
+    label?: unknown
+    icon?: unknown
+  }
 
   if (!VALID_PILLARS.has(pillar)) {
     return NextResponse.json({ error: 'Invalid pillar' }, { status: 400 })
+  }
+
+  if ((label !== undefined && typeof label !== 'string') || (icon !== undefined && typeof icon !== 'string')) {
+    return NextResponse.json({ error: 'Invalid label or icon' }, { status: 400 })
   }
 
   const trimmedText = goal_text.trim()
@@ -86,6 +95,8 @@ export async function POST(req: Request) {
       user_id:   userId,
       pillar,
       goal_text: trimmedText,
+      label:     typeof label === 'string' ? label.trim() || null : null,
+      icon:      typeof icon === 'string' ? icon || null : null,
       is_active: true,
     })
     .select('*')
