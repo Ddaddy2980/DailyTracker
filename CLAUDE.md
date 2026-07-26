@@ -2,14 +2,26 @@
 
 Read this file at the start of every session along with PRODUCT.md and CLAUDE.local.md. These are your operating rules for this codebase. Follow them consistently.
 
+> ## ⚠️ ACTIVE WORKSTREAM: the v5 native iOS fork — read `V5_NATIVE_PLAN.md` first
+>
+> As of **2026-07-25** this project is rebuilding as a **native iOS app (Expo / React Native)** on top of
+> the existing Next.js API. **Web feature work is FROZEN** — `components/` and the web UI are legacy.
+> `V5_NATIVE_PLAN.md` (repo root) is the approved plan and the source of truth for what to build next;
+> it carries a BUILD STATUS checklist and a per-step model allocation.
+>
+> **Much of this file still describes the web app.** The TypeScript, Supabase, Clerk, ownership-check,
+> timezone, and `await`-side-effects rules below all still apply — they govern the API routes, which
+> remain the backend. The Tailwind, component, and Next.js-page rules apply only to the frozen web UI.
+
 ## Your First Step Every Session
 
-1. Read PRODUCT.md — understand the product, philosophy, level system, and onboarding flow
-2. Read CLAUDE.local.md — review deferred items and personal working notes
-3. Read CODING_DISCIPLINE.md — working principles for code quality and execution discipline
-4. Read this file — understand how to work in this codebase
-5. Ask David: "What are we building today?" — then confirm which Phase/Step from ARCHITECTURE.md it maps to
-6. Build only that one thing. Do not anticipate or add adjacent features unless asked.
+1. Read **`V5_NATIVE_PLAN.md`** — the active build. Work its first unchecked step, in the model it names.
+2. Read PRODUCT.md — understand the product, philosophy, level system, and onboarding flow
+3. Read CLAUDE.local.md — review deferred items and personal working notes
+4. Read CODING_DISCIPLINE.md — working principles for code quality and execution discipline
+5. Read this file — understand how to work in this codebase
+6. Confirm with David which step you're on before writing code. ARCHITECTURE.md is **build history**, not the current direction — the v5 plan supersedes its phase sequence.
+7. Build only that one thing. Do not anticipate or add adjacent features unless asked.
 
 ---
 
@@ -21,19 +33,21 @@ Read this file at the start of every session along with PRODUCT.md and CLAUDE.lo
 - Framework: Next.js 14 with App Router
 - Language: TypeScript (strict — no `any` types)
 - Styling: Tailwind CSS only — no inline styles, no CSS modules, no styled-components
-- Auth: Clerk (`@clerk/nextjs` v7)
+- Auth: Clerk (`@clerk/nextjs` ^6.39.1 — v7 requires Next 15)
 - Database: Supabase (`@supabase/supabase-js` v2)
-- Hosting: Vercel
-- **Current version: v3** — live on `main`, deployed to `altared-tracker.com`
+- Hosting: Vercel (API + web); iOS ships via the App Store
+- **Current version: v4 on branch `v4-phase1`; production `main` is still v3** until v5 Step 0 merges it
+- **Building: v5 — native iOS in Expo / React Native (`mobile/`), Next.js API as the backend**
 
 ---
 
 ## Branch Rules
 
 - `main` is the live production branch — always deployed to Vercel
-- Post-launch fixes, audits, and small improvements commit directly to `main`
-- For larger new features (new Phase/Step from ARCHITECTURE.md), create a feature branch:
-  e.g. `step-22-feature-name` — merge into `main` when ready to deploy
+- **v5 Step 0 fast-forwards `main` to `v4-phase1`** (verified clean — `main` is a strict ancestor, 12 behind / 0 ahead) so production becomes the v4 backend the native app talks to
+- **After that, `main` is API + marketing only.** No new web features — the web UI is frozen
+- Native work goes on a `v5-native` branch (following the existing feature-branch convention), merged to `main` at milestones
+- Post-launch API fixes, audits, and small improvements still commit directly to `main`
 - Push to GitHub via HTTPS with embedded token (SSH not configured on this machine):
   `git -c credential.helper= push https://TOKEN@github.com/Ddaddy2980/DailyTracker.git main`
 - Never paste the token into the chat — it gets saved in conversation history

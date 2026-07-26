@@ -4,6 +4,19 @@ This file is the authoritative source of truth for this product. Read this file 
 
 *Last updated: July 2026 — v4 Engagement Overhaul designed (see the v4 section immediately below — it supersedes several v3 sections where noted). v3 remains the live production baseline.*
 
+> ## ⚠️ PLATFORM FORK, 2026-07-25 — the product is going native (iOS)
+>
+> **The product design in this file is unchanged and still authoritative.** What changed is the
+> platform: DailyTracker is being rebuilt as a **native iOS app (Expo / React Native)** on the
+> existing Next.js API. Web feature work is FROZEN. See **`V5_NATIVE_PLAN.md`** (repo root).
+>
+> Two things below are now out of date:
+> - **§12 Build Order** — Phases 1–5 were sequenced for the web. §10 onboarding is now **v5 Step 5**;
+>   §3 Notifications becomes APNs/Expo Push (no longer gated on a Home-Screen PWA install, which is
+>   what made onboarding a prerequisite).
+> - **Line 63's** "native wrapper … noted as a Phase 6 consideration" — that is now the whole build,
+>   and it unblocks Apple Health, home-screen widgets, Watch, and Live Activities.
+
 ---
 
 ## v4 Engagement Overhaul (Decided 2026-07-09 — Design Locked, Not Yet Built)

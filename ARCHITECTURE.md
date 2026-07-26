@@ -6,6 +6,17 @@ completed phases. Do not modify completed phase entries.
 
 ---
 
+> ## ⚠️ SUPERSEDED AS "CURRENT DIRECTION" 2026-07-25 — this file is BUILD HISTORY
+>
+> The project has forked to a **native iOS app (Expo / React Native)**; web feature work is FROZEN.
+> **`V5_NATIVE_PLAN.md` (repo root) is the active plan** — the phase sequence and Build Order below
+> describe the web app and no longer say what to build next.
+>
+> **This file remains authoritative for how the existing system works** — especially the
+> **"v4 Phase 1"** section, which documents every dashboard timing, streak-model invariant, and
+> check-in contract the native port must reproduce verbatim (v5 Step 3 depends on it). Keep reading it
+> for architecture; don't read it for direction.
+
 > **v3 is live on `main`, deployed to `altared-tracker.com`.** All v2 phases and the
 > `v3-phase1` branch are retired. Do not use them as a base for new work.
 > The v3 schema is defined in `supabase/migrations/20260410000000_v3_clean_schema.sql`.
